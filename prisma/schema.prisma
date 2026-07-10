@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ================= ENUMS (SABİT LİSTELER) =================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING // Bekliyor
+  PROCESSING // Hazırlanıyor
+  SHIPPED // Kargoya Verildi
+  DELIVERED // Teslim Edildi
+  CANCELLED // İptal Edildi
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// ================= MODELLER (TABLOLAR) =================
+
+// 1. KULLANICI YÖNETİMİ
+model User {
+  id       String  @id @default(uuid())
+  name     String
+  email    String  @unique
+  password String? // OAuth (Google vs) ile girişler için nullable olabilir
+  phone    String?
+  role     Role    @default(USER)
+
+  // İlişkiler
+  addresses Address[]
+  orders    Order[]
+  cart      Cart? // Bir kullanıcının 1 sepeti olur (1-to-1)
+  reviews   Review[]
+  favorites Favorite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Address {
+  id         String  @id @default(uuid())
+  title      String // Ev, İş vb.
+  city       String
+  district   String
+  address    String
+  postalCode String?
+
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[] // Bu adrese verilen siparişler
+
+  createdAt DateTime @default(now())
+}
+
+// 2. KATALOG VE ÜRÜN YÖNETİMİ
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  products    Product[]
+}
+
+model Brand {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          String @id @default(uuid())
+  name        String
+  slug        String @unique
+  description String
+  price       Float
+  stock       Int    @default(0)
+
+  // İlişkiler
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id])
+
+  images     ProductImage[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+  favorites  Favorite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductImage {
+  id       String @id @default(uuid())
+  imageUrl String
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// 3. SEPET YÖNETİMİ
+model Cart {
+  id     String     @id @default(uuid())
+  userId String     @unique
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  CartItem[]
+}
+
+model CartItem {
+  id       String @id @default(uuid())
+  quantity Int    @default(1)
+
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// 4. SİPARİŞ VE ÖDEME
+model Order {
+  id         String      @id @default(uuid())
+  totalPrice Float
+  status     OrderStatus @default(PENDING)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  addressId String
+  address   Address @relation(fields: [addressId], references: [id])
+
+  items    OrderItem[]
+  payment  Payment?
+  shipment Shipment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id       String @id @default(uuid())
+  quantity Int
+  price    Float // Ürünün sipariş anındaki fiyatı sabitlenmeli
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  method        String // Kredi Kartı, Havale vb.
+  status        PaymentStatus @default(PENDING)
+  transactionId String? // İyzico/Stripe işlem ID'si
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  paidAt DateTime?
+}
+
+model Shipment {
+  id             String  @id @default(uuid())
+  trackingNumber String?
+  company        String? // Yurtiçi, Aras vb.
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// 5. ETKİLEŞİM VE KAMPANYA
+model Review {
+  id      String  @id @default(uuid())
+  rating  Int // 1-5 arası
+  comment String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model Favorite {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId]) // Bir kullanıcı bir ürünü sadece 1 kez favoriye ekleyebilir
+}
+
+model Coupon {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  discount   Float // İndirim oranı (%10) veya sabit miktar (50 TL)
+  usageLimit Int      @default(100)
+  usedCount  Int      @default(0)
+  expireDate DateTime
+
+  isActive Boolean @default(true)
+}
