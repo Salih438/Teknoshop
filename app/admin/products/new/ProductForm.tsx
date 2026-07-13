@@ -8,12 +8,16 @@ export default function ProductForm({ categories, brands }: { categories: any[],
   const [imageUrl, setImageUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form gönderildiğinde çalışacak fonksiyon (Listendeki 24. Madde: Loading State)
+  // Form gönderildiğinde çalışacak fonksiyon
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
     
     const formData = new FormData(e.currentTarget);
+    
+    // Checkbox'ın (Aktif mi?) değerini boolean olarak form datasına ekleyelim
+    const isActive = e.currentTarget.isActive.checked;
+    formData.set("isActive", isActive.toString());
     
     try {
       const res = await fetch("/api/admin/products", {
@@ -24,6 +28,8 @@ export default function ProductForm({ categories, brands }: { categories: any[],
       if (res.ok) {
         router.push("/admin/products");
         router.refresh();
+      } else {
+         console.error("Kayıt sırasında sunucu hatası oluştu.");
       }
     } catch (error) {
       console.error("Hata:", error);
@@ -48,7 +54,7 @@ export default function ProductForm({ categories, brands }: { categories: any[],
           <input type="text" name="slug" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="orn-apple-iphone-16e" />
         </div>
 
-        {/* Kategori Seçimi (Listendeki 7. Madde) */}
+        {/* Kategori Seçimi */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Kategori ▼</label>
           <select name="categoryId" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
@@ -59,7 +65,7 @@ export default function ProductForm({ categories, brands }: { categories: any[],
           </select>
         </div>
 
-        {/* Marka Seçimi (Listendeki 8. Madde) */}
+        {/* Marka Seçimi */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Marka ▼</label>
           <select name="brandId" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
@@ -76,10 +82,31 @@ export default function ProductForm({ categories, brands }: { categories: any[],
           <input type="number" name="price" step="0.01" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="75000" />
         </div>
 
-        {/* Stok (Listendeki 6. Madde) */}
+        {/* Stok */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Stok Miktarı</label>
           <input type="number" name="stock" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="150" />
+        </div>
+
+        {/* YENİ EKLENEN: SKU (Stok Kodu) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Stok Kodu (SKU)</label>
+          <input type="text" name="sku" className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Örn: APP-IP16-256" />
+          <p className="text-xs text-gray-400 mt-1">İsteğe bağlı. Benzersiz olmalıdır.</p>
+        </div>
+
+        {/* YENİ EKLENEN: Durum (Aktif / Pasif) */}
+        <div className="flex items-center mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+          <input 
+            type="checkbox" 
+            name="isActive" 
+            id="isActive" 
+            defaultChecked 
+            className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" 
+          />
+          <label htmlFor="isActive" className="ml-3 text-sm font-bold text-gray-800 cursor-pointer">
+            Ürünü Vitrinde Yayınla (Aktif)
+          </label>
         </div>
       </div>
 
@@ -89,7 +116,7 @@ export default function ProductForm({ categories, brands }: { categories: any[],
         <textarea name="description" rows={4} required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="• M4 İşlemci&#10;• 16GB RAM..."></textarea>
       </div>
 
-      {/* Görsel Önizleme Alanı (Listendeki 5. Madde) */}
+      {/* Görsel Önizleme Alanı */}
       <div className="border border-gray-200 rounded-xl p-6 bg-gray-50">
         <label className="block text-sm font-bold text-gray-800 mb-2">📷 Görsel Yönetimi</label>
         <div className="flex flex-col md:flex-row gap-6 items-start">

@@ -88,6 +88,13 @@ model Product {
   price       Float
   stock       Int    @default(0)
 
+  // --- YENİ EKLENEN GELİŞMİŞ E-TİCARET ALANLARI ---
+  sku         String?  @unique          // Stok Kodu / Barkod (Örn: SMS25-256)
+  isActive    Boolean  @default(true)   // Ürün yayında mı? (Aktif/Pasif)
+  salesCount  Int      @default(0)      // Satış sayısı istatistiği
+  viewCount   Int      @default(0)      // Görüntülenme istatistiği
+  // ------------------------------------------------
+
   // İlişkiler
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])

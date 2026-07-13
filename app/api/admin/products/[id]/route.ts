@@ -2,16 +2,15 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+// SİLME İŞLEMİ (Mevcut kodunu koruyoruz)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Next.js 15'te params bir Promise'dir, önce onu çözümlüyoruz
     const resolvedParams = await params;
     const productId = resolvedParams.id;
 
-    // Veritabanından ürünü siliyoruz (Cascade sayesinde resimleri de silinir)
     await prisma.product.delete({
       where: {
         id: productId,
@@ -24,8 +23,8 @@ export async function DELETE(
     return NextResponse.json({ error: "Silme işlemi başarısız oldu." }, { status: 500 });
   }
 }
-// Mevcut DELETE fonksiyonun yukarıda duruyor...
 
+// GÜNCELLEME İŞLEMİ (Yeni alanlar eklendi)
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -34,7 +33,7 @@ export async function PUT(
     const resolvedParams = await params;
     const productId = resolvedParams.id;
     
-    // Formdan gelen YENİ verileri alıyoruz
+    // Formdan gelen verileri alıyoruz
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const slug = formData.get("slug") as string;
@@ -45,12 +44,25 @@ export async function PUT(
     const brandId = formData.get("brandId") as string;
     const imageUrl = formData.get("imageUrl") as string;
 
-    // Prisma ile mevcut ürünü güncelliyoruz (UPDATE)
+    // YENİ: SKU ve Aktif/Pasif durumunu yakalıyoruz
+    const skuData = formData.get("sku") as string;
+    const sku = skuData ? skuData.trim() : undefined; 
+    const isActive = formData.get("isActive") === "true";
+
+    // Prisma ile mevcut ürünü güncelliyoruz
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
       data: {
-        name, slug, description, price, stock, categoryId, brandId,
-        // Eski resmi silip yenisini ekleyen basit ve güvenli bir taktik
+        name, 
+        slug, 
+        description, 
+        price, 
+        stock, 
+        categoryId, 
+        brandId,
+        sku,             // YENİ: Veritabanında güncellenir
+        isActive,        // YENİ: Veritabanında güncellenir
+        // Eski resmi silip yenisini ekleyen taktiğin
         images: {
           deleteMany: {}, 
           create: [{ imageUrl }] 

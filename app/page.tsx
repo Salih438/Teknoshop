@@ -5,8 +5,11 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  // 1. DOKUNUŞ: İlişkisel veritabanından ürünleri ve onlara ait resimleri (images) birlikte çekiyoruz
+  // 1. DOKUNUŞ: İlişkisel veritabanından SADECE AKTİF ürünleri ve resimlerini çekiyoruz
   const products = await prisma.product.findMany({
+    where: {
+      isActive: true, // EN KRİTİK GÜNCELLEME: Pasif ürünler ana sayfada çıkmaz!
+    },
     orderBy: {
       createdAt: 'desc' 
     },

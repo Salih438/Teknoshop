@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    // Formdan gelen verileri (kargoyu) teslim alıyoruz
+    // Formdan gelen verileri teslim alıyoruz
     const formData = await request.formData();
     
     const name = formData.get("name") as string;
@@ -15,6 +15,14 @@ export async function POST(request: Request) {
     const categoryId = formData.get("categoryId") as string;
     const brandId = formData.get("brandId") as string;
     const imageUrl = formData.get("imageUrl") as string;
+
+    // YENİ EKLENEN ALANLARI YAKALAMA
+    const skuData = formData.get("sku") as string;
+    // SKU boş girildiyse null atıyoruz ki veritabanında "benzersizlik" (unique) çakışması yapmasın
+    const sku = skuData ? skuData.trim() : undefined; 
+    
+    // Checkbox'tan gelen "true" / "false" string değerini gerçek Boolean'a çeviriyoruz
+    const isActive = formData.get("isActive") === "true"; 
 
     // Basit bir güvenlik kontrolü (Boş alan var mı?)
     if (!name || !slug || !price || !categoryId || !brandId || !imageUrl) {
@@ -31,7 +39,8 @@ export async function POST(request: Request) {
         stock: stock,
         categoryId: categoryId,
         brandId: brandId,
-        // Dikkat: Resim tablosu ayrı olduğu için "create" komutuyla ilişkili kayıt atıyoruz!
+        sku: sku,               // YENİ: Veritabanına yazılıyor
+        isActive: isActive,     // YENİ: Veritabanına yazılıyor
         images: {
           create: [
             { imageUrl: imageUrl }

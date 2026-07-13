@@ -9,8 +9,11 @@ export default async function AllProductsPage({
 }) {
   const { sort, min, max, category } = await searchParams;
 
-  // 1. Prisma Filtreleme Mantığı (Fiyat Aralığı)
-  let whereClause: any = {};
+  // 1. Prisma Filtreleme Mantığı (Fiyat Aralığı ve AKTİF ÜRÜNLER)
+  let whereClause: any = {
+    isActive: true, // EN KRİTİK GÜNCELLEME: Sadece aktif ürünleri getir!
+  };
+  
   if (min || max) {
     whereClause.price = {};
     if (min) whereClause.price.gte = parseInt(min);
@@ -22,12 +25,12 @@ export default async function AllProductsPage({
   if (sort === "price_asc") orderByClause = { price: "asc" };
   if (sort === "price_desc") orderByClause = { price: "desc" };
 
-  // 3. Veritabanı Sorgusu (EN KRİTİK DOKUNUŞ)
+  // 3. Veritabanı Sorgusu
   const products = await prisma.product.findMany({
     where: whereClause,
     orderBy: orderByClause,
     include: {
-      images: true, // YENİ SİSTEM: Ürünleri çekerken resimleri de ilişkili tablodan getiriyoruz!
+      images: true, 
     }
   });
 
@@ -113,11 +116,9 @@ export default async function AllProductsPage({
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {products.map((product) => {
                 
-                // YENİ SİSTEM VERİ AYIKLAMA: Resimleri diziye çevir
                 const extractedImageUrls = product.images.map((img) => img.imageUrl);
                 const displayImage = extractedImageUrls.length > 0 ? extractedImageUrls[0] : null;
 
-                // Mock veriler (Tasarımın şık durması için)
                 const mockRating = (Math.random() * (5 - 4) + 4).toFixed(1); 
                 const mockReviewCount = Math.floor(Math.random() * 200) + 15; 
                 const isOutOfStock = product.stock <= 0; 
@@ -187,7 +188,7 @@ export default async function AllProductsPage({
                               id: product.id,
                               name: product.name,
                               price: product.price,
-                              imageUrls: extractedImageUrls, // Temizlenen diziyi gönderiyoruz
+                              imageUrls: extractedImageUrls, 
                             }} 
                           />
                         </div>

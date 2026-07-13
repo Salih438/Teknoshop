@@ -20,6 +20,10 @@ export default function EditProductForm({ product, categories, brands }: { produ
     
     const formData = new FormData(e.currentTarget);
     
+    // YENİ: Checkbox'ın değerini okuyup string olarak formData'ya ekliyoruz
+    const isActive = e.currentTarget.isActive.checked;
+    formData.set("isActive", isActive.toString());
+    
     try {
       const res = await fetch(`/api/admin/products/${product.id}`, {
         method: "PUT",
@@ -92,6 +96,27 @@ export default function EditProductForm({ product, categories, brands }: { produ
             <label className="block text-sm font-medium text-gray-700 mb-2">Stok Miktarı</label>
             <input type="number" name="stock" defaultValue={product.stock} required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" />
           </div>
+
+          {/* YENİ EKLENEN: SKU */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Stok Kodu (SKU)</label>
+            <input type="text" name="sku" defaultValue={product.sku || ""} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Örn: APP-IP16-256" />
+          </div>
+
+          {/* YENİ EKLENEN: Aktif/Pasif Durumu */}
+          <div className="flex items-center mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <input 
+              type="checkbox" 
+              name="isActive" 
+              id="isActive" 
+              defaultChecked={product.isActive} // Veritabanından gelen değeri varsayılan yap
+              className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer" 
+            />
+            <label htmlFor="isActive" className="ml-3 text-sm font-bold text-gray-800 cursor-pointer">
+              Ürünü Vitrinde Yayınla (Aktif)
+            </label>
+          </div>
+
         </div>
       </div>
 

@@ -1,27 +1,61 @@
+// app/admin/products/page.tsx
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import DeleteButton from "./DeleteButton";
+import DeleteButton from "./DeleteButton"; // Kendi oluşturduğun silme bileşenini koruyoruz
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProductsPage() {
-  // Ürünleri markası, kategorisi ve resimleriyle birlikte çekiyoruz
-  const products = await prisma.product.findMany({
-    include: {
-      category: true,
-      brand: true,
-      images: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  // GÜNCELLEME 1: searchParams artık bir Promise olarak tanımlandı
+  searchParams: Promise<{ q?: string; category?: string; brand?: string }>;
+}) {
+  // GÜNCELLEME 2: URL'den gelen parametreleri "await" ile bekleyerek çözümlüyoruz
+  const resolvedParams = await searchParams;
+  const query = resolvedParams?.q || "";
+  const categoryId = resolvedParams?.category || "";
+  const brandId = resolvedParams?.brand || "";
+
+  // 2. Prisma için Dinamik Filtreleme Koşulu (Gelen verilere göre şekillenir)
+  const whereCondition: any = {};
+  if (query) {
+    whereCondition.name = { contains: query, mode: "insensitive" };
+  }
+  if (categoryId) {
+    whereCondition.categoryId = categoryId;
+  }
+  if (brandId) {
+    whereCondition.brandId = brandId;
+  }
+
+  // 3. Veritabanından İhtiyacımız Olan Tüm Verileri Tek Seferde (Paralel) Çekiyoruz
+  const [products, categories, brands, totalCount] = await Promise.all([
+    prisma.product.findMany({
+      where: whereCondition,
+      include: {
+        category: true,
+        brand: true,
+        images: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.brand.findMany({ orderBy: { name: "asc" } }),
+    prisma.product.count({ where: whereCondition }),
+  ]);
 
   return (
-    <div>
+    <div className="space-y-6">
+      
       {/* ÜST KISIM: Başlık ve Yeni Ürün Ekle Butonu */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Ürün Yönetimi</h1>
+      <div className="flex justify-between items-center mb-2">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Ürün Yönetimi</h1>
+          <p className="text-sm text-gray-500 mt-1 font-medium">
+            Toplam <span className="text-blue-600 font-bold">{totalCount}</span> ürün listeleniyor.
+          </p>
+        </div>
         <Link
           href="/admin/products/new"
           className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition shadow-sm flex items-center gap-2"
@@ -30,13 +64,54 @@ export default async function AdminProductsPage() {
         </Link>
       </div>
 
+      {/* ARAMA VE FİLTRELEME ÇUBUĞU */}
+      <form className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-4 items-center mb-6">
+        {/* Arama Kutusu */}
+        <div className="flex-1 w-full relative">
+          <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
+          <input
+            type="text"
+            name="q"
+            defaultValue={query}
+            placeholder="Ürün adı ara..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+        </div>
+
+        {/* Kategori Filtresi */}
+        <select name="category" defaultValue={categoryId} className="w-full md:w-auto px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <option value="">Tüm Kategoriler</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+
+        {/* Marka Filtresi */}
+        <select name="brand" defaultValue={brandId} className="w-full md:w-auto px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <option value="">Tüm Markalar</option>
+          {brands.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
+
+        {/* Aksiyon Butonları */}
+        <button type="submit" className="w-full md:w-auto bg-gray-900 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition">
+          Filtrele
+        </button>
+        {(query || categoryId || brandId) && (
+          <Link href="/admin/products" className="text-gray-500 hover:text-red-500 font-medium px-2 transition">
+            Temizle
+          </Link>
+        )}
+      </form>
+
       {/* TABLO KISMI */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-500 uppercase tracking-wider">
-                <th className="p-4 font-medium">Görsel</th>
+                <th className="p-4 font-medium w-16">Görsel</th>
                 <th className="p-4 font-medium">Ürün Adı</th>
                 <th className="p-4 font-medium">Kategori</th>
                 <th className="p-4 font-medium">Marka</th>
@@ -51,7 +126,7 @@ export default async function AdminProductsPage() {
                 const mainImage = product.images.length > 0 ? product.images[0].imageUrl : null;
 
                 return (
-                  <tr key={product.id} className="hover:bg-gray-50 transition">
+                  <tr key={product.id} className="hover:bg-gray-50 transition group">
                     
                     {/* Görsel Sütunu */}
                     <td className="p-4">
@@ -64,8 +139,13 @@ export default async function AdminProductsPage() {
                       </div>
                     </td>
 
-                    {/* Ürün Adı */}
-                    <td className="p-4 font-medium text-gray-900">{product.name}</td>
+                    {/* Ürün Adı, SKU ve Aktiflik Durumu */}
+                    <td className="p-4">
+                      <p className="font-medium text-gray-900">{product.name}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {product.sku ? `SKU: ${product.sku}` : "SKU Yok"} • {product.isActive ? "🟢 Aktif" : "🔴 Pasif"}
+                      </p>
+                    </td>
 
                     {/* Kategori */}
                     <td className="p-4 text-gray-600">
@@ -100,16 +180,15 @@ export default async function AdminProductsPage() {
                     {/* İşlemler */}
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-3">
-                        {/* Vitrinde Gör */}
                         <Link href={`/products/${product.id}`} target="_blank" className="text-gray-400 hover:text-blue-600 transition" title="Vitrinde Gör">
                           👁️
                         </Link>
-                        {/* Düzenle */}
-<Link href={`/admin/products/${product.id}/edit`} className="text-gray-400 hover:text-green-600 transition" title="Düzenle">
-  ✏️
-</Link>
-                        {/* Sil */}
-<DeleteButton id={product.id} />
+                        <Link href={`/admin/products/${product.id}/edit`} className="text-gray-400 hover:text-green-600 transition" title="Düzenle">
+                          ✏️
+                        </Link>
+                        
+                        {/* Harici silme bileşenin */}
+                        <DeleteButton id={product.id} />
                       </div>
                     </td>
 
@@ -117,10 +196,13 @@ export default async function AdminProductsPage() {
                 );
               })}
 
+              {/* Arama Sonucu Boş Dönerse */}
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-500">
-                    Henüz hiç ürün eklenmemiş.
+                  <td colSpan={7} className="p-12 text-center text-gray-500">
+                    <p className="text-4xl mb-3">🔍</p>
+                    <p className="font-medium text-lg text-gray-900">Ürün bulunamadı</p>
+                    <p>Farklı bir arama yapmayı veya yeni ürün eklemeyi deneyin.</p>
                   </td>
                 </tr>
               )}
