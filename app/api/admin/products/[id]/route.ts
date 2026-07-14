@@ -1,13 +1,27 @@
-// app/api/admin/products/[id]/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { currentUser } from "@clerk/nextjs/server";
 
-// SİLME İŞLEMİ (Mevcut kodunu koruyoruz)
+// Ortak Güvenlik Fonksiyonu
+async function checkAdminAuth() {
+  const clerkUser = await currentUser();
+  if (!clerkUser) return false;
+  
+  const dbUser = await prisma.user.findUnique({
+    where: { email: clerkUser.emailAddresses[0].emailAddress },
+  });
+  return dbUser?.role === "ADMIN";
+}
+
+// SİLME İŞLEMİ
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const isAdmin = await checkAdminAuth();
+    if (!isAdmin) return NextResponse.json({ error: "Yetkiniz yok." }, { status: 403 });
+
     const resolvedParams = await params;
     const productId = resolvedParams.id;
 
@@ -24,16 +38,18 @@ export async function DELETE(
   }
 }
 
-// GÜNCELLEME İŞLEMİ (Yeni alanlar eklendi)
+// GÜNCELLEME İŞLEMİ
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const isAdmin = await checkAdminAuth();
+    if (!isAdmin) return NextResponse.json({ error: "Yetkiniz yok." }, { status: 403 });
+
     const resolvedParams = await params;
     const productId = resolvedParams.id;
     
-    // Formdan gelen verileri alıyoruz
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const slug = formData.get("slug") as string;
@@ -44,12 +60,10 @@ export async function PUT(
     const brandId = formData.get("brandId") as string;
     const imageUrl = formData.get("imageUrl") as string;
 
-    // YENİ: SKU ve Aktif/Pasif durumunu yakalıyoruz
     const skuData = formData.get("sku") as string;
     const sku = skuData ? skuData.trim() : undefined; 
     const isActive = formData.get("isActive") === "true";
 
-    // Prisma ile mevcut ürünü güncelliyoruz
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
       data: {
@@ -60,9 +74,8 @@ export async function PUT(
         stock, 
         categoryId, 
         brandId,
-        sku,             // YENİ: Veritabanında güncellenir
-        isActive,        // YENİ: Veritabanında güncellenir
-        // Eski resmi silip yenisini ekleyen taktiğin
+        sku,             
+        isActive,        
         images: {
           deleteMany: {}, 
           create: [{ imageUrl }] 

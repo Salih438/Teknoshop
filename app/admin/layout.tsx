@@ -1,8 +1,33 @@
 // app/admin/layout.tsx
 import Link from "next/link";
 import { ReactNode } from "react";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  // 1. Clerk'ten anlık olarak giriş yapan kullanıcıyı alıyoruz
+  const clerkUser = await currentUser();
+
+  // 2. Eğer kullanıcı giriş yapmamışsa anasayfaya (vitrine) yönlendir
+  if (!clerkUser) {
+    redirect("/");
+  }
+
+  // 3. Giriş yapan kişinin e-posta adresini alıyoruz
+  const userEmail = clerkUser.emailAddresses[0].emailAddress;
+
+  // 4. Prisma Veritabanımızda bu e-postaya sahip bir kullanıcı var mı kontrol ediyoruz
+  const dbUser = await prisma.user.findUnique({
+    where: { email: userEmail },
+  });
+
+  // 5. KESİN GÜVENLİK KONTROLÜ: Veritabanında yoksa VEYA rolü ADMIN değilse, vitrine fırlat!
+  if (!dbUser || dbUser.role !== "ADMIN") {
+    redirect("/"); 
+  }
+
+  // Güvenlik duvarı aşıldıysa, senin o harika tasarımını ekrana basıyoruz
   return (
     <div className="flex min-h-screen bg-gray-100">
       
@@ -35,8 +60,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-gray-800">
+          {/* Sadece yazıyı Çıkış Yap'tan Vitrine Dön'e çevirdim çünkü çıkış işlemini Clerk yapacak */}
           <Link href="/" className="block text-center px-4 py-2 bg-red-600 rounded-lg hover:bg-red-700 transition">
-            Çıkış Yap
+            Vitrine Dön
           </Link>
         </div>
       </aside>

@@ -1,15 +1,36 @@
 // app/admin/users/page.tsx
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import UserActionButtons from "./UserActionButtons";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminUsersPage(props: any) {
-  const searchParams = await Promise.resolve(props.searchParams);
-  const query = typeof searchParams?.q === "string" ? searchParams.q : "";
-  const roleFilter = typeof searchParams?.role === "string" ? searchParams.role : "";
+export default async function AdminUsersPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }> 
+}) {
+  // --- 1. KESİN GÜVENLİK DUVARI (Kimlik ve Yetki Kontrolü) ---
+  const clerkUser = await currentUser();
+  if (!clerkUser) redirect("/");
 
-  // 1. DİNAMİK FİLTRELEME
+  const dbUser = await prisma.user.findUnique({
+    where: { email: clerkUser.emailAddresses[0].emailAddress },
+  });
+
+  if (!dbUser || dbUser.role !== "ADMIN") {
+    redirect("/"); // Admin değilse anasayfaya fırlat
+  }
+  // --- GÜVENLİK DUVARI BİTİŞİ ---
+
+  // 2. ARAMA VE FİLTRE PARAMETRELERİNİ YAKALAMA
+  const resolvedParams = await searchParams;
+  const query = typeof resolvedParams?.q === "string" ? resolvedParams.q : "";
+  const roleFilter = typeof resolvedParams?.role === "string" ? resolvedParams.role : "";
+
+  // Dinamik Filtreleme Mantığı
   const whereCondition: any = {};
   if (query) {
     whereCondition.OR = [
@@ -21,19 +42,18 @@ export default async function AdminUsersPage(props: any) {
     whereCondition.role = roleFilter;
   }
 
-  // 2. VERİTABANI SORGULARI (Senin İstediğin Yapı)
-  // Gece yarısını bulalım (Bugün kayıt olanlar için)
+  // 3. VERİTABANI SORGULARI (Paralel Çalıştırma ile Yüksek Hız) 
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0); // Bugünün başlangıç saatini alıyoruz
 
   const [users, totalUsers, adminCount, userCount, todayUsers] = await Promise.all([
-    // Kullanıcı listesi ve ilişkili veriler
+    // Filtrelenmiş Kullanıcı listesi
     prisma.user.findMany({
       where: whereCondition,
       orderBy: { createdAt: "desc" },
       include: {
         _count: { select: { orders: true } },
-        orders: { select: { totalPrice: true } }, // Eğer veritabanında sütun adı farklıysa burayı güncelle
+        orders: { select: { totalPrice: true } }, 
       },
     }),
     // İstatistik Kartları için Sayımlar
@@ -49,7 +69,7 @@ export default async function AdminUsersPage(props: any) {
         <h1 className="text-3xl font-bold text-gray-800">Kullanıcı Yönetimi</h1>
       </div>
 
-      {/* 1. İSTATİSTİK KARTLARI (Senin Tasarımın) */}
+      {/* İSTATİSTİK KARTLARI */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-blue-50 border border-blue-100 p-6 rounded-xl shadow-sm flex items-center justify-between">
           <div>
@@ -84,7 +104,7 @@ export default async function AdminUsersPage(props: any) {
         </div>
       </div>
 
-      {/* 2. ARAMA VE FİLTRELEME */}
+      {/* ARAMA VE FİLTRELEME ÇUBUĞU */}
       <form action="/admin/users" method="GET" className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-4 items-center">
         <div className="flex-1 w-full relative">
           <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
@@ -113,7 +133,7 @@ export default async function AdminUsersPage(props: any) {
         )}
       </form>
 
-      {/* 3. KULLANICI TABLOSU */}
+      {/* KULLANICI LİSTELEME TABLOSU */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -130,21 +150,21 @@ export default async function AdminUsersPage(props: any) {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {users.map((user) => {
-                // Toplam harcamayı hesapla
                 const totalSpent = user.orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
-                
-                // İsim baş harfi (Avatar için)
                 const initial = user.name ? user.name.charAt(0).toUpperCase() : "U";
 
                 return (
-                  <tr key={user.id} className="hover:bg-gray-50 transition group">
+                  <tr key={user.id} className={`hover:bg-gray-50 transition group ${!user.isActive ? 'opacity-60 bg-gray-50' : ''}`}>
                     <td className="p-4">
                       <div className="w-10 h-10 bg-blue-100 text-blue-700 font-bold rounded-full flex items-center justify-center">
                         {initial}
                       </div>
                     </td>
                     <td className="p-4">
-                      <p className="font-bold text-gray-900">{user.name || "İsimsiz"}</p>
+                      <p className="font-bold text-gray-900">
+                        {user.name || "İsimsiz"}
+                        {!user.isActive && <span className="ml-2 text-xs text-red-500 font-bold">(Pasif)</span>}
+                      </p>
                       <p className="text-sm text-gray-500">{user.email}</p>
                     </td>
                     <td className="p-4">
@@ -166,12 +186,11 @@ export default async function AdminUsersPage(props: any) {
                         <Link href={`/admin/users/${user.id}`} className="text-gray-400 hover:text-blue-600 transition" title="Görüntüle">
                           👁️
                         </Link>
-                        <button className="text-gray-400 hover:text-orange-600 transition" title="Düzenle">
-                          ✏️
-                        </button>
-                        <button className="text-gray-400 hover:text-red-600 transition" title="Devre Dışı Bırak (Soft Delete)">
-                          🚫
-                        </button>
+                        <UserActionButtons 
+                          userId={user.id} 
+                          currentRole={user.role} 
+                          isActive={user.isActive} 
+                        />
                       </div>
                     </td>
                   </tr>

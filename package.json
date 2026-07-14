@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.5.13",
+    "@clerk/nextjs": "^7.5.17",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",
     "react-hot-toast": "^2.6.0",
+    "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

@@ -6,15 +6,31 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOrdersPage() {
-  // 1. İSTATİSTİKLER İÇİN VERİ ÇEKİMİ
-  const totalOrders = await prisma.order.count();
-  const pendingOrders = await prisma.order.count({ where: { status: "PENDING" } });
-  const shippedOrders = await prisma.order.count({ where: { status: "SHIPPED" } });
-  const deliveredOrders = await prisma.order.count({ where: { status: "DELIVERED" } });
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const params = await searchParams;
+  const statusFilter = typeof params?.status === "string" ? params.status : "";
 
-  // 2. SİPARİŞ LİSTESİ VERİ ÇEKİMİ (Hata burada düzeltildi: orderItems yerine items yazıldı)
+  // 1. DİNAMİK FİLTRELEME
+  const whereCondition: any = {};
+  if (statusFilter) {
+    whereCondition.status = statusFilter;
+  }
+
+  // 2. İSTATİSTİKLER İÇİN VERİ ÇEKİMİ
+  const [totalOrders, pendingOrders, shippedOrders, deliveredOrders] = await Promise.all([
+    prisma.order.count(),
+    prisma.order.count({ where: { status: "PENDING" } }),
+    prisma.order.count({ where: { status: "SHIPPED" } }),
+    prisma.order.count({ where: { status: "DELIVERED" } })
+  ]);
+
+  // 3. SİPARİŞ LİSTESİ VERİ ÇEKİMİ
   const orders = await prisma.order.findMany({
+    where: whereCondition,
     include: {
       user: true,
       items: true, 
@@ -53,23 +69,39 @@ export default async function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* ARAMA VE FİLTRELEME ÇUBUĞU (UI Temeli) */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4">
+      {/* ARAMA VE FİLTRELEME ÇUBUĞU (Aktif Hale Getirildi) */}
+      <form action="/admin/orders" method="GET" className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
           <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
           <input 
             type="text" 
+            name="q"
             placeholder="Sipariş No veya Müşteri Adı Ara..." 
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
-        <select className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+        <select 
+          name="status" 
+          defaultValue={statusFilter}
+          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+        >
           <option value="">Tüm Durumlar</option>
           <option value="PENDING">Bekleyen</option>
+          <option value="PROCESSING">Hazırlanan</option>
           <option value="SHIPPED">Kargoda</option>
           <option value="DELIVERED">Teslim Edilen</option>
+          <option value="CANCELLED">İptal Edilen</option>
         </select>
-      </div>
+        
+        <button type="submit" className="bg-gray-900 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition">
+          Filtrele
+        </button>
+        {statusFilter && (
+          <Link href="/admin/orders" className="text-gray-500 hover:text-red-500 font-medium px-2 transition flex items-center">
+            Temizle
+          </Link>
+        )}
+      </form>
 
       {/* TABLO */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

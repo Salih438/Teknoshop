@@ -1,37 +1,35 @@
 "use client";
 
 import Link from 'next/link';
-// Eski Context yerine yeni Zustand hafızamızı çağırıyoruz:
 import { useCartStore } from '../lib/store'; 
-import { SignInButton, SignUpButton, Show, UserButton } from '@clerk/nextjs';
-// Arama çubuğunu içe aktarıyoruz
+import { SignInButton, SignUpButton, UserButton, useAuth } from '@clerk/nextjs';
 import SearchBar from './SearchBar'; 
 
 export default function Navbar() {
-  // Zustand hafızasından sepetteki ürünleri çekiyoruz
   const items = useCartStore((state) => state.items);
-  
-  // Sepetteki tüm ürünlerin adetlerini topluyoruz
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
+  
+  // Hataları önleyen, Clerk'in en güncel ve kararlı hook yapısı
+  const { isSignedIn } = useAuth(); 
 
   return (
     <nav className="flex items-center justify-between p-4 bg-white shadow-md text-gray-800 sticky top-0 z-50">
       
-      {/* 1. SOL KISIM: LOGO */}
+      {/* 1. SOL KISIM: LOGO (Eski sade tasarım geri geldi) */}
       <div className="flex-shrink-0">
         <Link href="/" className="text-2xl font-bold text-blue-600 tracking-tight">
           Vitrin
         </Link>
       </div>
 
-      {/* 2. ORTA KISIM: ARAMA ÇUBUĞU */}
+      {/* 2. ORTA KISIM: ARAMA ÇUBUĞU (Eski genişlik ve padding geri geldi) */}
       <div className="hidden md:flex flex-1 justify-center px-6">
         <div className="w-full max-w-lg">
           <SearchBar />
         </div>
       </div>
 
-      {/* 3. SAĞ KISIM: MENÜ VE KİMLİK DOĞRULAMA (CLERK) */}
+      {/* 3. SAĞ KISIM: MENÜ VE KİMLİK DOĞRULAMA (Eski gap-6 ve ikonsuz sade linkler) */}
       <div className="flex gap-6 font-medium items-center flex-shrink-0">
         <Link href="/products" className="hover:text-blue-500 transition-colors">
           Ürünler
@@ -43,8 +41,8 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Çıkış yapılmışsa Giriş ve Kayıt Butonlarını yan yana göster */}
-        <Show when="signed-out">
+        {/* Giriş yapılmamışsa Giriş ve Kayıt Butonları (Eski mavi/beyaz şık buton tasarımları) */}
+        {!isSignedIn && (
           <div className="flex items-center gap-2">
             <SignInButton mode="modal">
               <button className="text-blue-600 font-medium px-4 py-2 rounded hover:bg-blue-50 transition">
@@ -58,12 +56,17 @@ export default function Navbar() {
               </button>
             </SignUpButton>
           </div>
-        </Show>
+        )}
 
-        {/* Giriş yapılmışsa Profil İkonunu göster */}
-        <Show when="signed-in">
-          <UserButton />
-        </Show>
+        {/* Giriş yapılmışsa Hesabım Linkini ve Profil İkonunu göster */}
+        {isSignedIn && (
+          <div className="flex items-center gap-4">
+            <Link href="/profile" className="hover:text-blue-500 transition-colors">
+              Hesabım
+            </Link>
+            <UserButton />
+          </div>
+        )}
       </div>
       
     </nav>

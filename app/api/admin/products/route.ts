@@ -1,10 +1,19 @@
-// app/api/admin/products/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { currentUser } from "@clerk/nextjs/server";
 
 export async function POST(request: Request) {
   try {
-    // Formdan gelen verileri teslim alıyoruz
+    // --- GÜVENLİK DUVARI BAŞLANGICI ---
+    const clerkUser = await currentUser();
+    if (!clerkUser) return NextResponse.json({ error: "Giriş yapmalısınız." }, { status: 401 });
+
+    const dbUser = await prisma.user.findUnique({
+      where: { email: clerkUser.emailAddresses[0].emailAddress },
+    });
+    if (!dbUser || dbUser.role !== "ADMIN") return NextResponse.json({ error: "Yetkiniz yok." }, { status: 403 });
+    // --- GÜVENLİK DUVARI BİTİŞİ ---
+
     const formData = await request.formData();
     
     const name = formData.get("name") as string;
@@ -16,20 +25,15 @@ export async function POST(request: Request) {
     const brandId = formData.get("brandId") as string;
     const imageUrl = formData.get("imageUrl") as string;
 
-    // YENİ EKLENEN ALANLARI YAKALAMA
     const skuData = formData.get("sku") as string;
-    // SKU boş girildiyse null atıyoruz ki veritabanında "benzersizlik" (unique) çakışması yapmasın
     const sku = skuData ? skuData.trim() : undefined; 
     
-    // Checkbox'tan gelen "true" / "false" string değerini gerçek Boolean'a çeviriyoruz
     const isActive = formData.get("isActive") === "true"; 
 
-    // Basit bir güvenlik kontrolü (Boş alan var mı?)
     if (!name || !slug || !price || !categoryId || !brandId || !imageUrl) {
       return NextResponse.json({ error: "Lütfen tüm zorunlu alanları doldurun." }, { status: 400 });
     }
 
-    // Prisma ile veritabanına KUSURSUZ İLİŞKİSEL KAYIT yapıyoruz
     const newProduct = await prisma.product.create({
       data: {
         name: name,
@@ -39,8 +43,8 @@ export async function POST(request: Request) {
         stock: stock,
         categoryId: categoryId,
         brandId: brandId,
-        sku: sku,               // YENİ: Veritabanına yazılıyor
-        isActive: isActive,     // YENİ: Veritabanına yazılıyor
+        sku: sku,               
+        isActive: isActive,     
         images: {
           create: [
             { imageUrl: imageUrl }
@@ -49,7 +53,6 @@ export async function POST(request: Request) {
       }
     });
 
-    // Başarılı olursa 201 (Oluşturuldu) koduyla ürünü geri gönder
     return NextResponse.json(newProduct, { status: 201 });
     
   } catch (error) {

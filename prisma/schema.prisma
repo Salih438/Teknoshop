@@ -39,6 +39,7 @@ model User {
   password String? // OAuth (Google vs) ile girişler için nullable olabilir
   phone    String?
   role     Role    @default(USER)
+  isActive Boolean @default(true)
 
   // İlişkiler
   addresses Address[]

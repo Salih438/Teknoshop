@@ -4,6 +4,7 @@ import { useCartStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import toast from "react-hot-toast"; // Daha şık bildirimler için
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -16,6 +17,16 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState(0);
 
+  // YENİ EKLEDİĞİMİZ KISIM: Müşterinin form alanlarına girdiği verileri burada tutuyoruz
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    city: "",
+    district: "",
+    fullAddress: ""
+  });
+
   // Kart Formatlamaları
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -27,12 +38,16 @@ export default function CheckoutPage() {
   const finalTotal = subTotal + shippingCost - discount;
 
   // --- FONKSİYONLAR ---
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   const applyCoupon = () => {
     if (couponCode.toUpperCase() === "YAZ2026") {
       setDiscount(subTotal * 0.1); // %10 İndirim
-      alert("Kupon başarıyla uygulandı! %10 İndirim kazandınız.");
+      toast.success("Kupon başarıyla uygulandı! %10 İndirim kazandınız.");
     } else {
-      alert("Geçersiz veya süresi dolmuş kupon kodu.");
+      toast.error("Geçersiz veya süresi dolmuş kupon kodu.");
       setDiscount(0);
     }
   };
@@ -61,24 +76,48 @@ export default function CheckoutPage() {
     setCvv(e.target.value.replace(/\D/g, "").substring(0, 3));
   };
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  // YENİ EKLEDİĞİMİZ KISIM: Gerçek Veritabanı (API) İsteği
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault(); 
     
     if (paymentMethod === "credit_card" && (cardNumber.length < 19 || expiry.length < 5 || cvv.length < 3)) {
-      alert("Lütfen kredi kartı bilgilerinizi eksiksiz giriniz.");
+      toast.error("Lütfen kredi kartı bilgilerinizi eksiksiz giriniz.");
       return;
     }
 
     if (!isAgreed) {
-      alert("Lütfen mesafeli satış sözleşmesini onaylayınız.");
+      toast.error("Lütfen mesafeli satış sözleşmesini onaylayınız.");
       return;
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      clearCart(); 
-      router.push("/order-success"); 
-    }, 1500);
+    const toastId = toast.loading("Siparişiniz oluşturuluyor, lütfen bekleyin...");
+
+    try {
+      // Az önce oluşturduğumuz /api/checkout adresine sepeti ve müşteri formunu gönderiyoruz
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: { name: formData.name, email: formData.email, phone: formData.phone },
+          address: { city: formData.city, district: formData.district, fullAddress: formData.fullAddress },
+          items: items,
+          totalPrice: finalTotal
+        })
+      });
+
+      if (response.ok) {
+        toast.success("Sipariş başarıyla alındı!", { id: toastId });
+        clearCart(); // Sepeti temizle
+        router.push("/order-success"); // Başarı sayfasına yönlendir
+      } else {
+        toast.error("Sipariş oluşturulamadı. Lütfen tekrar deneyin.", { id: toastId });
+        setIsSubmitting(false);
+      }
+    } catch (error) {
+      toast.error("Sunucuya bağlanılamadı.", { id: toastId });
+      setIsSubmitting(false);
+    }
   };
 
   // Sepet Boş Ekranı
@@ -121,15 +160,15 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Ad Soyad</label>
-                  <input required type="text" placeholder="Örn: Salih Balta" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
+                  <input required name="name" value={formData.name} onChange={handleInputChange} type="text" placeholder="Örn: Salih Balta" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Telefon</label>
-                  <input required type="tel" placeholder="0 (5XX) XXX XX XX" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
+                  <input required name="phone" value={formData.phone} onChange={handleInputChange} type="tel" placeholder="0 (5XX) XXX XX XX" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-bold text-gray-700 mb-2">E-Posta</label>
-                  <input required type="email" placeholder="ornek@posta.com" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
+                  <input required name="email" value={formData.email} onChange={handleInputChange} type="email" placeholder="ornek@posta.com" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
                 </div>
               </div>
 
@@ -139,16 +178,16 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-2 gap-5 mb-5">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">İl</label>
-                  <input required type="text" placeholder="Örn: Trabzon" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
+                  <input required name="city" value={formData.city} onChange={handleInputChange} type="text" placeholder="Örn: Trabzon" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">İlçe</label>
-                  <input required type="text" placeholder="Örn: Ortahisar" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
+                  <input required name="district" value={formData.district} onChange={handleInputChange} type="text" placeholder="Örn: Ortahisar" className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Açık Adres</label>
-                <textarea required placeholder="Mahalle, sokak, bina ve daire numaranızı giriniz..." rows={3} className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white"></textarea>
+                <textarea required name="fullAddress" value={formData.fullAddress} onChange={handleInputChange} placeholder="Mahalle, sokak, bina ve daire numaranızı giriniz..." rows={3} className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition bg-gray-50 hover:bg-white"></textarea>
               </div>
             </div>
 

@@ -1,9 +1,19 @@
-// app/api/admin/brands/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { currentUser } from "@clerk/nextjs/server";
 
 export async function POST(request: Request) {
   try {
+    // --- GÜVENLİK DUVARI BAŞLANGICI ---
+    const clerkUser = await currentUser();
+    if (!clerkUser) return NextResponse.json({ error: "Giriş yapmalısınız." }, { status: 401 });
+
+    const dbUser = await prisma.user.findUnique({
+      where: { email: clerkUser.emailAddresses[0].emailAddress },
+    });
+    if (!dbUser || dbUser.role !== "ADMIN") return NextResponse.json({ error: "Yetkiniz yok." }, { status: 403 });
+    // --- GÜVENLİK DUVARI BİTİŞİ ---
+
     const formData = await request.formData();
     const name = (formData.get("name") as string)?.trim();
 
@@ -11,7 +21,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Marka adı zorunludur." }, { status: 400 });
     }
 
-    // Marka zaten var mı diye kontrol ediyoruz
     const existingBrand = await prisma.brand.findUnique({
       where: { name }
     });
@@ -20,7 +29,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Bu marka zaten mevcut." }, { status: 409 });
     }
 
-    // Yeni markayı kaydediyoruz
     const newBrand = await prisma.brand.create({
       data: { name }
     });

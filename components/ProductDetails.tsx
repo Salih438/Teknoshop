@@ -7,16 +7,19 @@ import Link from "next/link";
 export default function ProductDetails({ product }: { product: any }) {
   const addItem = useCartStore((state) => state.addItem);
   
-  // Etkileşim State'leri (Hafızaları)
-  const [mainImage, setMainImage] = useState(product.imageUrls?.[0] || "");
+  // 1. KUSURSUZ VERİ DÖNÜŞÜMÜ: Prisma'nın karmaşık resim nesnesini temiz bir string dizisine çeviriyoruz
+  const imageList = product?.images?.map((img: any) => img.imageUrl) || [];
+  
+  // Etkileşim State'leri
+  const [mainImage, setMainImage] = useState(imageList[0] || "");
   const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState("desc"); // desc, specs, reviews
+  const [activeTab, setActiveTab] = useState("desc");
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Veritabanında henüz olmayan özellikler için şimdilik Mock (Sahte) Veriler
-  const stock = product.stock ?? 25; // Gerçek stok gelene kadar 25 varsayıyoruz
-  const brand = product.brand || "Sony";
-  const category = product.category || "Oyun Konsolu";
+  // 2. GÜVENLİ NESNE ÇEKİMİ: React'ın çökmesini engellemek için objelerin sadece '.name' değerlerini alıyoruz
+  const stock = product?.stock ?? 25; 
+  const brandName = product?.brand?.name || "Belirtilmemiş";
+  const categoryName = product?.category?.name || "Kategori Yok";
   const inStock = stock > 0;
 
   const handleAddToCart = () => {
@@ -24,8 +27,9 @@ export default function ProductDetails({ product }: { product: any }) {
       id: product.id,
       name: product.name,
       price: product.price,
-      imageUrls: product.imageUrls || [],
-      quantity: quantity, // Seçilen miktarı doğrudan sepete yolluyoruz
+      // 3. HATASIZ SEPET: Artık boş veri değil, dolu resim dizisi (imageList) gidiyor
+      imageUrls: imageList, 
+      quantity: quantity, 
     });
     alert(`${quantity} adet ${product.name} sepete eklendi! 🛒`);
   };
@@ -58,7 +62,7 @@ export default function ProductDetails({ product }: { product: any }) {
               <span className="text-gray-400">Görsel Yok</span>
             )}
             
-            {/* Favori Butonu (Resmin Üzerinde) */}
+            {/* Favori Butonu */}
             <button 
               onClick={() => setIsFavorite(!isFavorite)}
               className="absolute top-4 right-4 bg-white p-3 rounded-full shadow-md hover:scale-110 transition-transform"
@@ -70,15 +74,15 @@ export default function ProductDetails({ product }: { product: any }) {
           </div>
 
           {/* Küçük Resimler (Thumbnails) */}
-          {product.imageUrls && product.imageUrls.length > 1 && (
+          {imageList.length > 1 && (
             <div className="flex gap-4 overflow-x-auto py-2 custom-scrollbar">
-              {product.imageUrls.map((img: string, idx: number) => (
+              {imageList.map((img: string, idx: number) => (
                 <div 
                   key={idx} 
                   onClick={() => setMainImage(img)}
                   className={`w-24 h-24 flex-shrink-0 rounded-xl bg-gray-50 p-2 cursor-pointer border-2 transition-all ${mainImage === img ? 'border-blue-600 shadow-md' : 'border-transparent hover:border-gray-300'}`}
                 >
-                  <img src={img} alt="Thumbnail" className="w-full h-full object-contain" />
+                  <img src={img} alt={`Görsel ${idx + 1}`} className="w-full h-full object-contain" />
                 </div>
               ))}
             </div>
@@ -87,7 +91,6 @@ export default function ProductDetails({ product }: { product: any }) {
 
         {/* SAĞ TARAF: ÜRÜN DETAYLARI VE SATIN ALMA */}
         <div className="flex flex-col">
-          {/* Başlık ve Yıldızlar */}
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2 leading-tight">{product.name}</h1>
           
           <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-6">
@@ -98,7 +101,6 @@ export default function ProductDetails({ product }: { product: any }) {
             </div>
           </div>
 
-          {/* Fiyat ve Badgeler */}
           <div className="mb-8">
             <div className="text-4xl font-extrabold text-blue-600 mb-4">{product.price.toLocaleString('tr-TR')} ₺</div>
             <div className="flex flex-wrap gap-3">
@@ -114,15 +116,14 @@ export default function ProductDetails({ product }: { product: any }) {
             </div>
           </div>
 
-          {/* Kısa Özellikler (Specs) */}
           <div className="bg-gray-50 p-6 rounded-2xl mb-8 space-y-3 border border-gray-100">
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500 font-medium">Marka</span>
-              <span className="text-gray-900 font-bold">{brand}</span>
+              <span className="text-gray-900 font-bold">{brandName}</span>
             </div>
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500 font-medium">Kategori</span>
-              <span className="text-gray-900 font-bold">{category}</span>
+              <span className="text-gray-900 font-bold">{categoryName}</span>
             </div>
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500 font-medium">Garanti</span>
@@ -139,7 +140,6 @@ export default function ProductDetails({ product }: { product: any }) {
           {/* Sepete Ekle Aksiyonları */}
           <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center p-6 bg-white border border-gray-200 rounded-2xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] sticky bottom-4 z-10">
             
-            {/* Miktar Seçici */}
             <div className="flex items-center border-2 border-gray-200 rounded-xl bg-gray-50 w-full sm:w-auto">
               <button 
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
@@ -154,7 +154,6 @@ export default function ProductDetails({ product }: { product: any }) {
               >+</button>
             </div>
 
-            {/* Sepete Ekle Butonu */}
             <button 
               onClick={handleAddToCart}
               disabled={!inStock}
@@ -197,42 +196,40 @@ export default function ProductDetails({ product }: { product: any }) {
         </div>
 
         <div className="p-8">
+          
+          {/* 1. ÜRÜN AÇIKLAMASI (Sadece TEK BİR TANE ve Düzgün Olan) */}
           {activeTab === "desc" && (
             <div className="prose max-w-none text-gray-700 leading-relaxed">
               <h3 className="text-xl font-bold text-gray-900 mb-4">{product.name} Hakkında</h3>
-              <p>{product.description || "Bu ürün için henüz detaylı bir açıklama girilmemiştir. Lütfen daha sonra tekrar kontrol ediniz."}</p>
+              <div className="whitespace-pre-wrap">
+                {product.description || "Bu ürün için henüz detaylı bir açıklama girilmemiştir."}
+              </div>
             </div>
           )}
+
+          {/* 2. TEKNİK ÖZELLİKLER */}
           {activeTab === "specs" && (
             <div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Donanım ve Teknik Özellikler</h3>
               <table className="w-full text-sm text-left text-gray-500 border-collapse">
                 <tbody>
-                  <tr className="border-b border-gray-100"><th className="py-3 px-4 font-medium text-gray-900 bg-gray-50 w-1/3">Marka</th><td className="py-3 px-4">{brand}</td></tr>
+                  <tr className="border-b border-gray-100"><th className="py-3 px-4 font-medium text-gray-900 bg-gray-50 w-1/3">Marka</th><td className="py-3 px-4">{brandName}</td></tr>
                   <tr className="border-b border-gray-100"><th className="py-3 px-4 font-medium text-gray-900 bg-gray-50 w-1/3">Model</th><td className="py-3 px-4">{product.name}</td></tr>
-                  <tr className="border-b border-gray-100"><th className="py-3 px-4 font-medium text-gray-900 bg-gray-50 w-1/3">Bağlantı</th><td className="py-3 px-4">Wi-Fi 6, Bluetooth 5.1</td></tr>
                   <tr className="border-b border-gray-100"><th className="py-3 px-4 font-medium text-gray-900 bg-gray-50 w-1/3">Garanti Süresi</th><td className="py-3 px-4">24 Ay</td></tr>
                 </tbody>
               </table>
             </div>
           )}
+
+          {/* 3. DEĞERLENDİRMELER */}
           {activeTab === "reviews" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                <h3 className="text-xl font-bold text-gray-900">Müşteri Yorumları</h3>
-                <button className="text-blue-600 font-bold hover:underline">Yorum Yap</button>
-              </div>
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex text-yellow-400 text-sm">★★★★★</div>
-                  <span className="font-bold text-gray-900">Ahmet Y.</span>
-                  <span className="text-xs text-gray-400 flex items-center gap-1"><span className="text-green-500">✔</span> Onaylı Alıcı</span>
-                </div>
-                <p className="text-gray-700 text-sm">Ürün elime çok hızlı ulaştı. Paketleme harikaydı, kesinlikle tavsiye ederim. Fiyat performans olarak piyasanın en iyisi.</p>
-                <span className="text-xs text-gray-400 mt-2 block">12 Mayıs 2026</span>
+                <p className="text-gray-700 text-sm">Ürün elime çok hızlı ulaştı. Paketleme harikaydı, kesinlikle tavsiye ederim.</p>
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>
