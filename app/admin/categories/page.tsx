@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import CategoryForm from "./CategoryForm";
 import { Toaster } from "react-hot-toast";
+import DeleteCategoryButton from "./DeleteCategoryButton";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,8 @@ export default async function AdminCategoriesPage() {
                     </span>
                   </td>
                   <td className="p-4 text-center">
-                    <button className="text-gray-400 hover:text-red-600 transition" title="Sil">🗑️</button>
+                    {/* İŞTE DÜZELTİLEN KISIM BURASI: Gerçek işlevsel bileşenimizi buraya koyduk */}
+                    <DeleteCategoryButton id={category.id} />
                   </td>
                 </tr>
               ))}

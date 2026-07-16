@@ -15,11 +15,11 @@ enum Role {
 }
 
 enum OrderStatus {
-  PENDING // Bekliyor
+  PENDING    // Bekliyor
   PROCESSING // Hazırlanıyor
-  SHIPPED // Kargoya Verildi
-  DELIVERED // Teslim Edildi
-  CANCELLED // İptal Edildi
+  SHIPPED    // Kargoya Verildi
+  DELIVERED  // Teslim Edildi
+  CANCELLED  // İptal Edildi
 }
 
 enum PaymentStatus {
@@ -33,18 +33,19 @@ enum PaymentStatus {
 
 // 1. KULLANICI YÖNETİMİ
 model User {
-  id       String  @id @default(uuid())
-  name     String
-  email    String  @unique
-  password String? // OAuth (Google vs) ile girişler için nullable olabilir
-  phone    String?
-  role     Role    @default(USER)
-  isActive Boolean @default(true)
+  id        String  @id @default(uuid())
+  name      String
+  email     String  @unique
+  password  String? // OAuth (Google vs) ile girişler için nullable olabilir
+  phone     String?
+  role      Role    @default(USER)
+  isActive  Boolean @default(true)
+  avatarUrl String? // <-- Profil fotoğrafı URL'si (Zaten eklemişsin, harika!)
 
   // İlişkiler
   addresses Address[]
   orders    Order[]
-  cart      Cart? // Bir kullanıcının 1 sepeti olur (1-to-1)
+  cart      Cart?     // Bir kullanıcının 1 sepeti olur (1-to-1)
   reviews   Review[]
   favorites Favorite[]
 
@@ -54,14 +55,17 @@ model User {
 
 model Address {
   id         String  @id @default(uuid())
-  title      String // Ev, İş vb.
+  title      String  // Ev, İş vb.
   city       String
   district   String
   address    String
   postalCode String?
 
+  // YENİ EKLENEN PROFESYONEL ÖZELLİK
+  isDefault  Boolean @default(false) // Bu kullanıcının varsayılan adresi mi?
+
   userId String
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   orders Order[] // Bu adrese verilen siparişler
 
   createdAt DateTime @default(now())
@@ -89,7 +93,8 @@ model Product {
   price       Float
   stock       Int    @default(0)
 
-  // --- YENİ EKLENEN GELİŞMİŞ E-TİCARET ALANLARI ---
+  // --- YENİ EKLENEN E-TİCARET ALANLARI ---
+  imageUrl    String   // <-- YENİ EKLENDİ: Katalog ve sepet için ana kapak fotoğrafı
   sku         String?  @unique          // Stok Kodu / Barkod (Örn: SMS25-256)
   isActive    Boolean  @default(true)   // Ürün yayında mı? (Aktif/Pasif)
   salesCount  Int      @default(0)      // Satış sayısı istatistiği
@@ -103,7 +108,7 @@ model Product {
   brandId String
   brand   Brand  @relation(fields: [brandId], references: [id])
 
-  images     ProductImage[]
+  images     ProductImage[] // <-- Senin yapın korundu: Çoklu fotoğraf galerisi burada tutulacak
   cartItems  CartItem[]
   orderItems OrderItem[]
   reviews    Review[]
@@ -113,6 +118,7 @@ model Product {
   updatedAt DateTime @updatedAt
 }
 
+// Ürün Çoklu Galeri Tablosu
 model ProductImage {
   id       String @id @default(uuid())
   imageUrl String
@@ -195,9 +201,9 @@ model Shipment {
 
 // 5. ETKİLEŞİM VE KAMPANYA
 model Review {
-  id      String  @id @default(uuid())
-  rating  Int // 1-5 arası
-  comment String?
+  id        String  @id @default(uuid())
+  rating    Int // 1-5 arası
+  comment   String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

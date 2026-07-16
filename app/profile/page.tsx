@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import ProfileStats from "@/components/profile/ProfileStats";
 import OrderProgressBar from "@/components/profile/OrderProgressBar";
+import AddressManager from "@/components/profile/AddressManager";
+import EditProfileModal from "@/components/profile/EditProfileModal";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,7 @@ export default async function ProfilePage() {
     );
   }
 
-  // IDOR KORUMALI SİPARİŞ SORGUSU
+  // 1. SİPARİŞ SORGUSU
   const userOrders = await prisma.order.findMany({
     where: { userId: dbUser.id },
     orderBy: { createdAt: "desc" },
@@ -38,6 +40,12 @@ export default async function ProfilePage() {
         include: { product: { select: { name: true } } }
       }
     }
+  });
+
+  // 2. ADRES SORGUSU
+  const userAddresses = await prisma.address.findMany({
+    where: { userId: dbUser.id },
+    orderBy: { createdAt: "desc" }
   });
 
   // İSTATİSTİKLERİ HESAPLAMA
@@ -51,11 +59,13 @@ export default async function ProfilePage() {
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900">Hesabım</h1>
-          <p className="text-gray-500 mt-1">Kişisel bilgilerinizi ve sipariş geçmişinizi buradan takip edebilirsiniz.</p>
+          <p className="text-gray-500 mt-1">Kişisel bilgilerinizi, adreslerinizi ve sipariş geçmişinizi buradan takip edebilirsiniz.</p>
         </div>
-        <button className="bg-white border border-gray-200 text-gray-700 px-5 py-2.5 rounded-xl font-bold hover:bg-gray-50 transition shadow-sm text-sm">
-          ⚙️ Profili Düzenle
-        </button>
+        <EditProfileModal 
+          initialName={dbUser.name} 
+          initialPhone={dbUser.phone} 
+          email={dbUser.email} 
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -63,9 +73,22 @@ export default async function ProfilePage() {
         {/* SOL KOLON: KULLANICI BİLGİLERİ */}
         <div className="lg:col-span-1">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
-            <div className="w-24 h-24 bg-blue-50 border-2 border-blue-100 rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold mb-4 mx-auto">
-              {dbUser.name.charAt(0).toUpperCase()}
+            
+            {/* ✨ DİNAMİK PROFİL FOTOĞRAFI ALANI ✨ */}
+            <div className="w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center overflow-hidden border-2 border-blue-100 shadow-sm relative group bg-blue-50">
+              {dbUser.avatarUrl ? (
+                <img 
+                  src={dbUser.avatarUrl} 
+                  alt={dbUser.name} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-blue-600 text-3xl font-bold">
+                  {dbUser.name.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
+
             <div className="text-center mb-6">
               <h2 className="text-xl font-bold text-gray-900">{dbUser.name}</h2>
               <p className="text-gray-500 text-sm">{dbUser.email}</p>
@@ -84,10 +107,9 @@ export default async function ProfilePage() {
           </div>
         </div>
 
-        {/* SAĞ KOLON: İSTATİSTİKLER VE SİPARİŞ GEÇMİŞİ */}
+        {/* SAĞ KOLON: İSTATİSTİKLER, SİPARİŞLER VE ADRESLER */}
         <div className="lg:col-span-2">
           
-          {/* Yeni Eklenen Modül: Hesap Özeti */}
           <ProfileStats 
             totalOrders={totalOrders} 
             totalSpent={totalSpent} 
@@ -95,6 +117,7 @@ export default async function ProfilePage() {
             favoritesCount={favoritesCount} 
           />
 
+          {/* SİPARİŞ GEÇMİŞİ */}
           <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             📦 Sipariş Geçmişim
           </h3>
@@ -122,12 +145,11 @@ export default async function ProfilePage() {
                       <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Tutar</p>
                       <p className="font-extrabold text-blue-600 text-lg">{order.totalPrice.toLocaleString("tr-TR")} ₺</p>
                     </div>
-                    {/* DETAYA GİT BUTONU EKLENDİ */}
-                  <div className="mb-4">
-                     <Link href={`/profile/orders/${order.id}`} className="inline-block bg-blue-50 text-blue-700 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-100 transition">
-                       🔍 Detayları Gör
-                     </Link>
-                  </div>
+                    <div>
+                      <Link href={`/profile/orders/${order.id}`} className="inline-block bg-blue-50 text-blue-700 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-100 transition">
+                        🔍 Detayları Gör
+                      </Link>
+                    </div>
                   </div>
 
                   <div className="mb-4">
@@ -141,15 +163,17 @@ export default async function ProfilePage() {
                     </div>
                   </div>
                   
-                  {/* Yeni Eklenen Modül: Sipariş İlerleme Çubuğu */}
                   <OrderProgressBar status={order.status} />
                   
                 </div>
               ))}
             </div>
           )}
-        </div>
 
+          {/* ADRES YÖNETİMİ MODÜLÜ */}
+          <AddressManager initialAddresses={userAddresses} />
+
+        </div>
       </div>
     </div>
   );

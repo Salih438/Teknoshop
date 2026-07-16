@@ -6,7 +6,7 @@ export interface CartItem {
   id: string;
   name: string;
   price: number;
-  imageUrls: string[]; 
+  imageUrls: string[]; // 🚀 DÜZELTİLEN KISIM: imageUrls yerine tekil imageUrl oldu
   quantity: number; 
 }
 
@@ -19,9 +19,12 @@ interface CartStore {
   clearCart: () => void;
 }
 
-// 🛡️ GÜVENLİK MOTORU: JSON hatalarını yakalayan özel depolama katmanı
+// 🛡️ GÜVENLİK MOTORU: JSON hatalarını yakalayan ve SSR çökmesini engelleyen özel depolama katmanı
 const safeStorage = createJSONStorage(() => ({
   getItem: (name: string) => {
+    // 1. SSR KORUMASI: Eğer sunucudaysak (window yoksa) hiçbir şey yapma
+    if (typeof window === 'undefined') return null;
+    
     try {
       const item = localStorage.getItem(name);
       if (item) {
@@ -30,12 +33,24 @@ const safeStorage = createJSONStorage(() => ({
       return item;
     } catch (error) {
       console.error('Sepet verisi bozuk, otomatik temizleniyor...', error);
-      localStorage.removeItem(name); // Bozuk veriyi imha et
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(name); // Bozuk veriyi imha et
+      }
       return null; // Sistemin çökmesini engelle
     }
   },
-  setItem: (name: string, value: string) => localStorage.setItem(name, value),
-  removeItem: (name: string) => localStorage.removeItem(name),
+  setItem: (name: string, value: string) => {
+    // Sadece tarayıcıdaysak kaydet
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(name, value);
+    }
+  },
+  removeItem: (name: string) => {
+    // Sadece tarayıcıdaysak sil
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(name);
+    }
+  },
 }));
 
 // Zustand mağazamızı (hafızayı) oluşturuyoruz

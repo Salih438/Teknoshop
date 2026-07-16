@@ -8,8 +8,7 @@ export default function ProductDetails({ product }: { product: any }) {
   const addItem = useCartStore((state) => state.addItem);
   
   // 1. KUSURSUZ VERİ DÖNÜŞÜMÜ: Prisma'nın karmaşık resim nesnesini temiz bir string dizisine çeviriyoruz
-  const imageList = product?.images?.map((img: any) => img.imageUrl) || [];
-  
+const imageList = product?.imageUrl ? [product.imageUrl] : [];  
   // Etkileşim State'leri
   const [mainImage, setMainImage] = useState(imageList[0] || "");
   const [quantity, setQuantity] = useState(1);

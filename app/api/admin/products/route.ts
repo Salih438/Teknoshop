@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const stock = parseInt(formData.get("stock") as string, 10);
     const categoryId = formData.get("categoryId") as string;
     const brandId = formData.get("brandId") as string;
-    const imageUrl = formData.get("imageUrl") as string;
+    const imageUrl = formData.get("imageUrl") as string; // UploadThing'den gelen link
 
     const skuData = formData.get("sku") as string;
     const sku = skuData ? skuData.trim() : undefined; 
@@ -44,10 +44,11 @@ export async function POST(request: Request) {
         categoryId: categoryId,
         brandId: brandId,
         sku: sku,               
-        isActive: isActive,     
+        isActive: isActive,
+        imageUrl: imageUrl, // <--- İŞTE EKSİK OLAN HAYAT KURTARICI SATIR BURASIYDI!
         images: {
           create: [
-            { imageUrl: imageUrl }
+            { imageUrl: imageUrl } // Galeriye de kopyasını atıyoruz
           ]
         }
       }

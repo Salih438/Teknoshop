@@ -34,17 +34,24 @@ export default function CartPage() {
             {items.map((item) => (
               <div key={item.id} className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
                 
-                {/* Resim kaynağı yeni yapımıza göre güncellendi (imageUrls[0]) */}
-                <div className="w-24 h-24 flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center p-2">
-                  {item.imageUrls && item.imageUrls.length > 0 ? (
-                    <img src={item.imageUrls[0]} alt={item.name} className="max-w-full max-h-full object-contain" />
-                  ) : (
-                    <span className="text-xs text-gray-400">Görsel Yok</span>
-                  )}
+                {/* 🚀 LİNK EKLENDİ & imageUrls (DİZİ) YAPISI KORUNDU */}
+                <div className="w-24 h-24 flex-shrink-0 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center p-2 relative group cursor-pointer">
+                  <Link href={`/products/${item.id}`} className="w-full h-full flex items-center justify-center">
+                    {item.imageUrls && item.imageUrls.length > 0 ? (
+                      <img src={item.imageUrls[0]} alt={item.name} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <span className="text-xs text-gray-400 font-medium">Görsel Yok</span>
+                    )}
+                  </Link>
                 </div>
                 
                 <div className="flex-grow text-center sm:text-left w-full">
-                  <h3 className="font-bold text-lg text-gray-900 truncate max-w-[200px] md:max-w-xs">{item.name}</h3>
+                  {/* 🚀 LİNK EKLENDİ: İsme tıklayınca da ürün detayına gider */}
+                  <Link href={`/products/${item.id}`}>
+                    <h3 className="font-bold text-lg text-gray-900 truncate max-w-[200px] md:max-w-xs hover:text-blue-600 hover:underline transition-colors">
+                      {item.name}
+                    </h3>
+                  </Link>
                   <p className="text-blue-600 font-bold mt-1">{item.price.toLocaleString('tr-TR')} TL</p>
                 </div>
                 

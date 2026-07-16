@@ -1,6 +1,7 @@
 // app/admin/brands/page.tsx
 import { prisma } from "@/lib/prisma";
 import BrandForm from "./BrandForm";
+import DeleteBrandButton from "./DeleteBrandButton"; // YENİ: Akıllı silme butonumuzu içeri aktardık
 import { Toaster } from "react-hot-toast";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,8 @@ export default async function AdminBrandsPage() {
                     </span>
                   </td>
                   <td className="p-4 text-center">
-                    <button className="text-gray-400 hover:text-red-600 transition" title="Sil">🗑️</button>
+                    {/* YENİ: Gerçek ve güvenli silme butonumuz */}
+                    <DeleteBrandButton id={brand.id} />
                   </td>
                 </tr>
               ))}

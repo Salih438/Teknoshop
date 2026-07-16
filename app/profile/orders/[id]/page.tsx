@@ -19,8 +19,9 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
   });
   if (!dbUser) redirect("/");
 
-  // --- 2. GÜVENLİK DUVARI (IDOR Koruması) ---
+  // --- 2. GÜVENLİK DUVARI VE GERÇEK VERİLERİ ÇEKME ---
   // Sadece bu ID'ye sahip VE siparişi veren kişi giriş yapan kişiyle aynıysa veriyi getir!
+  // include ile siparişin içindeki Adres ve Kargo (Shipment) bilgilerini de çekiyoruz.
   const order = await prisma.order.findFirst({
     where: {
       id: orderId,
@@ -29,17 +30,24 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
     include: {
       items: {
         include: { product: true }
-      }
+      },
+      address: true,   // YENİ: Gerçek teslimat adresi bağlantısı
+      shipment: true   // YENİ: Gerçek kargo ve takip no bağlantısı
     }
   });
 
   // Sipariş yoksa veya başkasına aitse doğrudan 404 sayfasına fırlat
   if (!order) return notFound();
 
-  // --- 3. MOCK (SAHTE) VERİLER ---
-  // (Bunları 3. Aşama olan Adres Yönetiminde gerçek veritabanına bağlayacağız)
-  const kargoTakipNo = "YK" + Math.floor(10000000 + Math.random() * 90000000);
-  const teslimatAdresi = "Kadıköy / İstanbul (Adres eklenince güncellenecek)";
+  // --- 3. DİNAMİK VERİ BAĞLANTILARI ---
+  // Artık sahte veriler yerine doğrudan veritabanından çekilen bilgileri kullanıyoruz.
+  const kargoTakipNo = order.shipment?.trackingNumber || "Bekleniyor...";
+  const kargoFirmasi = order.shipment?.company || "Belirtilmedi";
+  
+  const teslimatBasligi = order.address?.title || "Teslimat Adresi";
+  const teslimatAdresi = order.address 
+    ? `${order.address.address}, ${order.address.district} / ${order.address.city}`
+    : "Adres bilgisi bulunamadı.";
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 min-h-screen">
@@ -62,7 +70,6 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
       {/* İlerleme Çubuğu */}
       <div className="bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-100 mb-8">
         <h3 className="font-bold text-gray-900 mb-6">Sipariş Durumu</h3>
-        {/* 1. Aşamada yaptığımız modülü burada da tekrar kullanıyoruz! */}
         <OrderProgressBar status={order.status} />
       </div>
 
@@ -79,7 +86,6 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
               {order.items.map((item) => (
                 <div key={item.id} className="flex gap-4 items-center">
                   <div className="w-20 h-20 bg-gray-50 rounded-xl border border-gray-100 flex-shrink-0 flex items-center justify-center p-2">
-                    {/* Resim alanı (Eğer product.imageUrls eklenirse buraya basılacak) */}
                     <span className="text-2xl">📦</span>
                   </div>
                   <div className="flex-1">
@@ -105,14 +111,23 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
             </h3>
             <div className="space-y-4 text-sm">
               <div>
-                <p className="text-gray-500 font-medium mb-1">Adres</p>
-                <p className="font-bold text-gray-900">{teslimatAdresi}</p>
+                <p className="text-gray-500 font-medium mb-1">Adres Başlığı</p>
+                <p className="font-bold text-gray-900">{teslimatBasligi}</p>
               </div>
               <div>
-                <p className="text-gray-500 font-medium mb-1">Kargo Takip No</p>
+                <p className="text-gray-500 font-medium mb-1">Açık Adres</p>
+                <p className="font-bold text-gray-900 leading-relaxed">{teslimatAdresi}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 font-medium mb-1">Kargo Firması & Takip No</p>
                 <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-                  <span className="font-mono font-bold text-blue-600">{kargoTakipNo}</span>
-                  <button className="text-gray-400 hover:text-gray-700 transition" title="Kopyala">📋</button>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-gray-500">{kargoFirmasi}</span>
+                    <span className="font-mono font-bold text-blue-600">{kargoTakipNo}</span>
+                  </div>
+                  {kargoTakipNo !== "Bekleniyor..." && (
+                    <button className="text-gray-400 hover:text-gray-700 transition" title="Kopyala">📋</button>
+                  )}
                 </div>
               </div>
             </div>
@@ -125,12 +140,12 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
             </h3>
             <div className="space-y-3 text-sm border-b border-gray-100 pb-4 mb-4">
               <div className="flex justify-between text-gray-600">
-                <span>Ara Toplam</span>
+                <span>Sipariş Tutarı</span>
                 <span className="font-medium">{order.totalPrice.toLocaleString("tr-TR")} ₺</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Kargo Ücreti</span>
-                <span className="font-medium text-green-600">Ücretsiz</span>
+                <span className="font-medium text-green-600">Fiyata Dahil</span>
               </div>
             </div>
             <div className="flex justify-between items-center">
