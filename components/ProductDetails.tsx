@@ -3,19 +3,23 @@
 import { useState } from "react";
 import { useCartStore } from "@/lib/store";
 import Link from "next/link";
+// 1. DİNAMİK FAVORİ BUTONU İÇERİ AKTARILIYOR
+import FavoriteButton from "@/components/FavoriteButton"; 
+// 2. YENİ YORUM (REVIEW) BİLEŞENİMİZ İÇERİ AKTARILIYOR
+import ProductReviews from "@/components/ProductReviews";
 
 export default function ProductDetails({ product }: { product: any }) {
   const addItem = useCartStore((state) => state.addItem);
   
-  // 1. KUSURSUZ VERİ DÖNÜŞÜMÜ: Prisma'nın karmaşık resim nesnesini temiz bir string dizisine çeviriyoruz
-const imageList = product?.imageUrl ? [product.imageUrl] : [];  
+  // Prisma'nın karmaşık resim nesnesini temiz bir string dizisine çeviriyoruz
+  const imageList = product?.imageUrl ? [product.imageUrl] : [];  
+  
   // Etkileşim State'leri
   const [mainImage, setMainImage] = useState(imageList[0] || "");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("desc");
-  const [isFavorite, setIsFavorite] = useState(false);
-
-  // 2. GÜVENLİ NESNE ÇEKİMİ: React'ın çökmesini engellemek için objelerin sadece '.name' değerlerini alıyoruz
+  
+  // GÜVENLİ NESNE ÇEKİMİ: React'ın çökmesini engellemek için objelerin sadece '.name' değerlerini alıyoruz
   const stock = product?.stock ?? 25; 
   const brandName = product?.brand?.name || "Belirtilmemiş";
   const categoryName = product?.category?.name || "Kategori Yok";
@@ -26,7 +30,7 @@ const imageList = product?.imageUrl ? [product.imageUrl] : [];
       id: product.id,
       name: product.name,
       price: product.price,
-      // 3. HATASIZ SEPET: Artık boş veri değil, dolu resim dizisi (imageList) gidiyor
+      // HATASIZ SEPET: Artık boş veri değil, dolu resim dizisi (imageList) gidiyor
       imageUrls: imageList, 
       quantity: quantity, 
     });
@@ -61,15 +65,13 @@ const imageList = product?.imageUrl ? [product.imageUrl] : [];
               <span className="text-gray-400">Görsel Yok</span>
             )}
             
-            {/* Favori Butonu */}
-            <button 
-              onClick={() => setIsFavorite(!isFavorite)}
-              className="absolute top-4 right-4 bg-white p-3 rounded-full shadow-md hover:scale-110 transition-transform"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 transition-colors ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400'}`} viewBox="0 0 24 24" stroke="currentColor" fill={isFavorite ? "currentColor" : "none"}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </button>
+            {/* GERÇEK (DİNAMİK) FAVORİ BUTONU */}
+            <FavoriteButton 
+              productId={product.id} 
+              // Eğer veritabanından ürünün favori durumu geliyorsa başlangıç değeri olarak veriyoruz
+              initialIsFavorite={product?.favorites?.length > 0} 
+            />
+            
           </div>
 
           {/* Küçük Resimler (Thumbnails) */}
@@ -96,7 +98,7 @@ const imageList = product?.imageUrl ? [product.imageUrl] : [];
             <div className="flex items-center gap-1">
               <div className="flex text-yellow-400 text-lg">★★★★★</div>
               <span className="text-sm font-bold text-gray-700 ml-1">4.8</span>
-              <span className="text-sm text-gray-500 underline ml-1 cursor-pointer hover:text-blue-600">(152 Değerlendirme)</span>
+              <span className="text-sm text-gray-500 underline ml-1 cursor-pointer hover:text-blue-600">Değerlendirmeler</span>
             </div>
           </div>
 
@@ -190,13 +192,13 @@ const imageList = product?.imageUrl ? [product.imageUrl] : [];
             onClick={() => setActiveTab("reviews")} 
             className={`px-8 py-4 font-bold text-sm transition-colors whitespace-nowrap ${activeTab === 'reviews' ? 'bg-white text-blue-600 border-t-2 border-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
           >
-            Değerlendirmeler (152)
+            Değerlendirmeler
           </button>
         </div>
 
         <div className="p-8">
           
-          {/* 1. ÜRÜN AÇIKLAMASI (Sadece TEK BİR TANE ve Düzgün Olan) */}
+          {/* 1. ÜRÜN AÇIKLAMASI */}
           {activeTab === "desc" && (
             <div className="prose max-w-none text-gray-700 leading-relaxed">
               <h3 className="text-xl font-bold text-gray-900 mb-4">{product.name} Hakkında</h3>
@@ -220,13 +222,9 @@ const imageList = product?.imageUrl ? [product.imageUrl] : [];
             </div>
           )}
 
-          {/* 3. DEĞERLENDİRMELER */}
+          {/* 3. DEĞERLENDİRMELER (YENİ BİLEŞENİMİZ BURADA ÇALIŞIYOR) */}
           {activeTab === "reviews" && (
-            <div className="space-y-6">
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <p className="text-gray-700 text-sm">Ürün elime çok hızlı ulaştı. Paketleme harikaydı, kesinlikle tavsiye ederim.</p>
-              </div>
-            </div>
+            <ProductReviews productId={product.id} />
           )}
 
         </div>

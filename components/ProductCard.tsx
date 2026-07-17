@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useCartStore } from "@/lib/store";
-import toast from 'react-hot-toast'; // Kullanıcıya sepete eklendi bildirimi vermek için
-
+import toast from 'react-hot-toast'; 
+import FavoriteButton from "@/components/FavoriteButton";
 export interface ProductCardProps {
   id: string;
   name: string;

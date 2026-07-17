@@ -40,7 +40,7 @@ model User {
   phone     String?
   role      Role    @default(USER)
   isActive  Boolean @default(true)
-  avatarUrl String? // <-- Profil fotoğrafı URL'si (Zaten eklemişsin, harika!)
+  avatarUrl String? // <-- Profil fotoğrafı URL'si
 
   // İlişkiler
   addresses Address[]
@@ -61,7 +61,6 @@ model Address {
   address    String
   postalCode String?
 
-  // YENİ EKLENEN PROFESYONEL ÖZELLİK
   isDefault  Boolean @default(false) // Bu kullanıcının varsayılan adresi mi?
 
   userId String
@@ -69,6 +68,9 @@ model Address {
   orders Order[] // Bu adrese verilen siparişler
 
   createdAt DateTime @default(now())
+
+  // PERFORMANS İYİLEŞTİRMESİ
+  @@index([userId])
 }
 
 // 2. KATALOG VE ÜRÜN YÖNETİMİ
@@ -93,13 +95,11 @@ model Product {
   price       Float
   stock       Int    @default(0)
 
-  // --- YENİ EKLENEN E-TİCARET ALANLARI ---
-  imageUrl    String   // <-- YENİ EKLENDİ: Katalog ve sepet için ana kapak fotoğrafı
+  imageUrl    String   // Katalog ve sepet için ana kapak fotoğrafı
   sku         String?  @unique          // Stok Kodu / Barkod (Örn: SMS25-256)
   isActive    Boolean  @default(true)   // Ürün yayında mı? (Aktif/Pasif)
   salesCount  Int      @default(0)      // Satış sayısı istatistiği
   viewCount   Int      @default(0)      // Görüntülenme istatistiği
-  // ------------------------------------------------
 
   // İlişkiler
   categoryId String
@@ -108,7 +108,7 @@ model Product {
   brandId String
   brand   Brand  @relation(fields: [brandId], references: [id])
 
-  images     ProductImage[] // <-- Senin yapın korundu: Çoklu fotoğraf galerisi burada tutulacak
+  images     ProductImage[] // Çoklu fotoğraf galerisi
   cartItems  CartItem[]
   orderItems OrderItem[]
   reviews    Review[]
@@ -116,6 +116,10 @@ model Product {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // PERFORMANS İYİLEŞTİRMESİ
+  @@index([categoryId])
+  @@index([brandId])
 }
 
 // Ürün Çoklu Galeri Tablosu
@@ -125,6 +129,9 @@ model ProductImage {
 
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // PERFORMANS İYİLEŞTİRMESİ
+  @@index([productId])
 }
 
 // 3. SEPET YÖNETİMİ
@@ -144,6 +151,10 @@ model CartItem {
 
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // PERFORMANS İYİLEŞTİRMESİ
+  @@index([cartId])
+  @@index([productId])
 }
 
 // 4. SİPARİŞ VE ÖDEME
@@ -164,6 +175,9 @@ model Order {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // PERFORMANS İYİLEŞTİRMESİ
+  @@index([userId])
 }
 
 model OrderItem {
@@ -176,6 +190,10 @@ model OrderItem {
 
   productId String
   product   Product @relation(fields: [productId], references: [id])
+
+  // PERFORMANS İYİLEŞTİRMESİ
+  @@index([orderId])
+  @@index([productId])
 }
 
 model Payment {
@@ -199,19 +217,27 @@ model Shipment {
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
-// 5. ETKİLEŞİM VE KAMPANYA
 model Review {
-  id        String  @id @default(uuid())
-  rating    Int // 1-5 arası
-  comment   String?
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(uuid())
+  rating    Int      // 1-5 arası
+  comment   String   @db.Text
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // İlişkiler
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Ekstra Profesyonel Özellikler
+  isVerified Boolean @default(false)
+  isHidden   Boolean @default(false)
+  
+  @@unique([userId, productId]) 
+  @@index([productId])
+  @@index([userId]) // YENİ EKLENDİ
 }
 
 model Favorite {
@@ -224,6 +250,8 @@ model Favorite {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId]) // Bir kullanıcı bir ürünü sadece 1 kez favoriye ekleyebilir
+  @@index([productId]) // YENİ EKLENDİ
+  @@index([userId]) // YENİ EKLENDİ
 }
 
 model Coupon {
