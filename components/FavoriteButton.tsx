@@ -8,17 +8,18 @@ import { toggleFavorite } from "@/actions/favorite";
 interface FavoriteButtonProps {
   productId: string;
   initialIsFavorite?: boolean;
+  className?: string; // 🚀 BİLEŞENİ ÖZGÜRLEŞTİREN YENİ PROP
 }
 
 export default function FavoriteButton({ 
   productId, 
-  initialIsFavorite = false 
+  initialIsFavorite = false,
+  className = "" // Varsayılan olarak boş string
 }: FavoriteButtonProps) {
   const { userId } = useAuth(); // Clerk ile aktif oturum kontrolü
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
   const [loading, setLoading] = useState(false);
 
-  // 🚀 1. PERFORMANS VE SENKRONİZASYON DÜZELTMESİ
   // Arka planda revalidatePath çalıştığında, sunucudan gelen yeni değeri anında butona yansıtır.
   useEffect(() => {
     setIsFavorite(initialIsFavorite);
@@ -26,7 +27,7 @@ export default function FavoriteButton({
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault(); 
-    // 🚀 2. BUBBLING ENGELİ: Kartın (Link) tıklanmasını kesin olarak durdurur.
+    // BUBBLING ENGELİ: Kartın (Link) tıklanmasını kesin olarak durdurur.
     e.stopPropagation(); 
     
     if (!userId) {
@@ -36,7 +37,7 @@ export default function FavoriteButton({
 
     if (loading) return;
 
-    // Optimistic UI Update: Kullanıcının internet hızı ne olursa olsun kalbi anında kırmızı/gri yapıyoruz
+    // Optimistic UI Update: Kalbi anında kırmızı/gri yapıyoruz
     const previousState = isFavorite;
     setIsFavorite(!isFavorite);
     setLoading(true);
@@ -62,7 +63,8 @@ export default function FavoriteButton({
     <button 
       onClick={handleToggle}
       disabled={loading}
-      className={`absolute top-4 right-4 bg-white p-3 rounded-full shadow-md transition-all duration-300 z-10 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-110 active:scale-95'}`}
+      // Sabit konumlandırmalar silindi, dışarıdan gelen 'className' buraya eklendi
+      className={`bg-white p-3 rounded-full shadow-md transition-all duration-300 z-10 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-110 active:scale-95'} ${className}`}
       type="button"
       aria-label="Favorilere Ekle"
     >

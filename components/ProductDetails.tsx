@@ -1,59 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useCartStore } from "@/lib/store";
 import Link from "next/link";
-// 1. DİNAMİK FAVORİ BUTONU İÇERİ AKTARILIYOR
+import toast from "react-hot-toast";
 import FavoriteButton from "@/components/FavoriteButton"; 
-// 2. YENİ YORUM (REVIEW) BİLEŞENİMİZ İÇERİ AKTARILIYOR
 import ProductReviews from "@/components/ProductReviews";
 
 export default function ProductDetails({ product }: { product: any }) {
   const addItem = useCartStore((state) => state.addItem);
+  const tabsRef = useRef<HTMLDivElement>(null); // Tıklayınca sekmelere kaydırmak için
   
-  // Prisma'nın karmaşık resim nesnesini temiz bir string dizisine çeviriyoruz
+  // Güvenli Veri Çekimi
   const imageList = product?.imageUrl ? [product.imageUrl] : [];  
-  
-  // Etkileşim State'leri
-  const [mainImage, setMainImage] = useState(imageList[0] || "");
-  const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState("desc");
-  
-  // GÜVENLİ NESNE ÇEKİMİ: React'ın çökmesini engellemek için objelerin sadece '.name' değerlerini alıyoruz
   const stock = product?.stock ?? 25; 
   const brandName = product?.brand?.name || "Belirtilmemiş";
   const categoryName = product?.category?.name || "Kategori Yok";
   const inStock = stock > 0;
 
+  // Etkileşim State'leri
+  const [mainImage, setMainImage] = useState(imageList[0] || "");
+  const [quantity, setQuantity] = useState(1);
+  const [activeTab, setActiveTab] = useState("desc");
+
+  // DİNAMİK YORUM VE YILDIZ HESAPLAMASI
+  const totalReviews = product?.reviews?.length || 0;
+  const averageRating = totalReviews > 0 
+    ? (product.reviews.reduce((acc: any, curr: any) => acc + curr.rating, 0) / totalReviews).toFixed(1)
+    : "0.0";
+
+  // Sepete Ekleme Fonksiyonu
   const handleAddToCart = () => {
     addItem({
       id: product.id,
       name: product.name,
       price: product.price,
-      // HATASIZ SEPET: Artık boş veri değil, dolu resim dizisi (imageList) gidiyor
       imageUrls: imageList, 
       quantity: quantity, 
     });
-    alert(`${quantity} adet ${product.name} sepete eklendi! 🛒`);
+    toast.success(`${quantity} adet ${product.name} sepete eklendi! 🛒`);
+  };
+
+  // Yorumlara Tıklayınca Sekmeye Kaydıran Fonksiyon
+  const scrollToReviews = () => {
+    setActiveTab("reviews");
+    tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 mt-4 animate-in fade-in duration-500">
       
-      {/* Üst Kısım (Breadcrumb) */}
+      {/* --- ÜST KISIM (BREADCRUMB) --- */}
       <div className="text-sm text-gray-500 mb-6 flex items-center gap-2">
-        <Link href="/" className="hover:text-blue-600">Ana Sayfa</Link>
+        <Link href="/" className="hover:text-blue-600 transition-colors">Ana Sayfa</Link>
         <span>/</span>
-        <Link href="/products" className="hover:text-blue-600">Ürünler</Link>
+        <Link href="/products" className="hover:text-blue-600 transition-colors">Ürünler</Link>
         <span>/</span>
         <span className="text-gray-900 font-medium truncate">{product.name}</span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         
-        {/* SOL TARAF: GÖRSEL GALERİSİ */}
+        {/* --- MODÜL 1: GÖRSEL GALERİSİ (SOL) --- */}
         <div className="space-y-4">
-          {/* Ana Büyük Görsel */}
           <div className="h-[500px] bg-gray-50 rounded-2xl flex items-center justify-center p-4 border border-gray-100 overflow-hidden relative group">
             {mainImage ? (
               <img 
@@ -62,19 +71,17 @@ export default function ProductDetails({ product }: { product: any }) {
                 className="max-w-full max-h-full object-contain transform transition-transform duration-500 group-hover:scale-125 cursor-zoom-in" 
               />
             ) : (
-              <span className="text-gray-400">Görsel Yok</span>
+              <span className="text-gray-400 font-medium">Görsel Yok</span>
             )}
             
-            {/* GERÇEK (DİNAMİK) FAVORİ BUTONU */}
-            <FavoriteButton 
-              productId={product.id} 
-              // Eğer veritabanından ürünün favori durumu geliyorsa başlangıç değeri olarak veriyoruz
-              initialIsFavorite={product?.favorites?.length > 0} 
-            />
-            
+            <div className="absolute top-4 right-4 z-10">
+              <FavoriteButton 
+                productId={product.id} 
+                initialIsFavorite={product?.favorites?.length > 0} 
+              />
+            </div>
           </div>
 
-          {/* Küçük Resimler (Thumbnails) */}
           {imageList.length > 1 && (
             <div className="flex gap-4 overflow-x-auto py-2 custom-scrollbar">
               {imageList.map((img: string, idx: number) => (
@@ -90,15 +97,31 @@ export default function ProductDetails({ product }: { product: any }) {
           )}
         </div>
 
-        {/* SAĞ TARAF: ÜRÜN DETAYLARI VE SATIN ALMA */}
+        {/* --- MODÜL 2: ÜRÜN DETAYLARI VE AKSİYONLAR (SAĞ) --- */}
         <div className="flex flex-col">
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2 leading-tight">{product.name}</h1>
           
+          {/* DİNAMİK YILDIZ ALANI */}
           <div className="flex items-center gap-4 mb-6 border-b border-gray-100 pb-6">
             <div className="flex items-center gap-1">
-              <div className="flex text-yellow-400 text-lg">★★★★★</div>
-              <span className="text-sm font-bold text-gray-700 ml-1">4.8</span>
-              <span className="text-sm text-gray-500 underline ml-1 cursor-pointer hover:text-blue-600">Değerlendirmeler</span>
+              <div className="flex text-yellow-400 text-lg">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span key={star}>{star <= Math.round(Number(averageRating)) ? "★" : "☆"}</span>
+                ))}
+              </div>
+              {totalReviews > 0 ? (
+                <>
+                  <span className="text-sm font-bold text-gray-700 ml-1">{averageRating}</span>
+                  <span 
+                    onClick={scrollToReviews}
+                    className="text-sm text-gray-500 underline ml-1 cursor-pointer hover:text-blue-600 transition-colors"
+                  >
+                    ({totalReviews} Değerlendirme)
+                  </span>
+                </>
+              ) : (
+                <span className="text-sm text-gray-400 ml-2 font-medium">Henüz değerlendirilmedi</span>
+              )}
             </div>
           </div>
 
@@ -117,6 +140,7 @@ export default function ProductDetails({ product }: { product: any }) {
             </div>
           </div>
 
+          {/* Özellikler Kartı */}
           <div className="bg-gray-50 p-6 rounded-2xl mb-8 space-y-3 border border-gray-100">
             <div className="flex justify-between border-b border-gray-200 pb-2">
               <span className="text-gray-500 font-medium">Marka</span>
@@ -140,7 +164,6 @@ export default function ProductDetails({ product }: { product: any }) {
 
           {/* Sepete Ekle Aksiyonları */}
           <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center p-6 bg-white border border-gray-200 rounded-2xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] sticky bottom-4 z-10">
-            
             <div className="flex items-center border-2 border-gray-200 rounded-xl bg-gray-50 w-full sm:w-auto">
               <button 
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
@@ -173,8 +196,8 @@ export default function ProductDetails({ product }: { product: any }) {
         </div>
       </div>
 
-      {/* ALT KISIM: SEKMELER (TABS) */}
-      <div className="mt-16 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      {/* --- MODÜL 3: SEKMELER (TABS) --- */}
+      <div ref={tabsRef} className="mt-16 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden scroll-mt-8">
         <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto">
           <button 
             onClick={() => setActiveTab("desc")} 
@@ -192,13 +215,11 @@ export default function ProductDetails({ product }: { product: any }) {
             onClick={() => setActiveTab("reviews")} 
             className={`px-8 py-4 font-bold text-sm transition-colors whitespace-nowrap ${activeTab === 'reviews' ? 'bg-white text-blue-600 border-t-2 border-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
           >
-            Değerlendirmeler
+            Değerlendirmeler ({totalReviews})
           </button>
         </div>
 
         <div className="p-8">
-          
-          {/* 1. ÜRÜN AÇIKLAMASI */}
           {activeTab === "desc" && (
             <div className="prose max-w-none text-gray-700 leading-relaxed">
               <h3 className="text-xl font-bold text-gray-900 mb-4">{product.name} Hakkında</h3>
@@ -208,7 +229,6 @@ export default function ProductDetails({ product }: { product: any }) {
             </div>
           )}
 
-          {/* 2. TEKNİK ÖZELLİKLER */}
           {activeTab === "specs" && (
             <div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Donanım ve Teknik Özellikler</h3>
@@ -222,11 +242,9 @@ export default function ProductDetails({ product }: { product: any }) {
             </div>
           )}
 
-          {/* 3. DEĞERLENDİRMELER (YENİ BİLEŞENİMİZ BURADA ÇALIŞIYOR) */}
           {activeTab === "reviews" && (
             <ProductReviews productId={product.id} />
           )}
-
         </div>
       </div>
     </div>

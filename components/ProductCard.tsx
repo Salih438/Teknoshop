@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCartStore } from "@/lib/store";
 import toast from 'react-hot-toast'; 
 import FavoriteButton from "@/components/FavoriteButton";
+
 export interface ProductCardProps {
   id: string;
   name: string;
@@ -13,20 +14,26 @@ export interface ProductCardProps {
   category?: {
     name: string;
   };
+  // DİNAMİK YILDIZLAR İÇİN EKLENDİ
+  reviews?: { rating: number }[]; 
 }
 
 export default function ProductCard({ product }: { product: ProductCardProps }) {
-  // Zustand sepetimizden ekleme fonksiyonunu çekiyoruz
   const addItem = useCartStore((state) => state.addItem);
 
+  // Yorum Hesaplamaları
+  const totalReviews = product.reviews?.length || 0;
+  const averageRating = totalReviews > 0 
+    ? (product.reviews!.reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
+    : "0.0";
+
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); // Linke tıklamayı (sayfa değişimini) engeller, sadece sepete ekler
+    e.preventDefault(); 
     
     addItem({
       id: product.id,
       name: product.name,
       price: product.price,
-      // 🚀 İŞTE SİHİRLİ DOKUNUŞ BURASI: Tekil veritabanı resmini, sepetin istediği DİZİ formatına çeviriyoruz
       imageUrls: product.imageUrl ? [product.imageUrl] : [],
     });
     
@@ -34,9 +41,13 @@ export default function ProductCard({ product }: { product: ProductCardProps }) 
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden bg-white flex flex-col hover:shadow-lg transition-shadow duration-300">
+    <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden bg-white flex flex-col hover:shadow-lg transition-shadow duration-300 relative">
       
-      {/* 🚀 Ürünün resmine veya ismine tıklanabilir olması için Link ile sardık */}
+      {/* Sağ Üstte Favori Butonu (Z-index ile üstte tutuyoruz ki Link'e tıklanmayı engellemesin) */}
+      <div className="absolute top-2 right-2 z-20">
+        <FavoriteButton productId={product.id} />
+      </div>
+
       <Link href={`/products/${product.id}`} className="flex flex-col flex-grow">
         
         {/* Ürün Görseli */}
@@ -71,11 +82,31 @@ export default function ProductCard({ product }: { product: ProductCardProps }) 
           <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
             {product.name}
           </h3>
+
+          {/* DİNAMİK YILDIZ ALANI */}
+          <div className="flex items-center gap-2 mt-auto pt-2">
+            <div className="flex text-yellow-400 text-sm">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span key={star}>
+                  {star <= Math.round(Number(averageRating)) ? "★" : "☆"}
+                </span>
+              ))}
+            </div>
+            {totalReviews > 0 ? (
+              <>
+                <span className="font-bold text-sm text-gray-900">{averageRating}</span>
+                <span className="text-gray-400 text-sm">({totalReviews})</span>
+              </>
+            ) : (
+              <span className="text-gray-400 text-xs font-medium">Değerlendirme yok</span>
+            )}
+          </div>
+
         </div>
       </Link>
         
       {/* Alt Kısım: Fiyat ve Sepete Ekle Butonu */}
-      <div className="px-4 pb-4 mt-auto flex items-center justify-between">
+      <div className="px-4 pb-4 flex items-center justify-between">
         <p className="text-xl font-bold text-blue-600">
           {product.price.toLocaleString('tr-TR')} ₺
         </p>
@@ -83,7 +114,7 @@ export default function ProductCard({ product }: { product: ProductCardProps }) 
         <button 
           onClick={handleAddToCart}
           disabled={product.stock <= 0}
-          className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm font-bold shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm font-bold shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed z-10 relative"
         >
           {product.stock > 0 ? 'Sepete Ekle' : 'Tükendi'}
         </button>
