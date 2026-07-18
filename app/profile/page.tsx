@@ -14,19 +14,27 @@ export default async function ProfilePage() {
   if (!clerkUser) redirect("/");
 
   const email = clerkUser.emailAddresses[0].emailAddress;
+  const clerkName = clerkUser.firstName || "Kullanıcı";
 
   const dbUser = await prisma.user.findUnique({
     where: { email },
   });
 
+  // VERİTABANINDA KULLANICI YOKSA VEYA YENİ KAYITSA GÖSTERİLECEK EKRAN
   if (!dbUser) {
     return (
-      <div className="max-w-4xl mx-auto py-20 px-4 text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Profilinize Hoş Geldiniz</h1>
-        <p className="text-gray-600 mb-8">Henüz sistemimizde kayıtlı bir işlem geçmişiniz bulunmuyor.</p>
-        <Link href="/products" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition">
-          Hemen Alışverişe Başla
-        </Link>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 bg-gray-50/50">
+        <div className="max-w-2xl mx-auto p-10 bg-white rounded-3xl shadow-sm border border-gray-100 text-center animate-in fade-in zoom-in duration-500">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden border-4 border-blue-50 shadow-sm">
+            <img src={clerkUser.imageUrl} alt="Profil" className="w-full h-full object-cover" />
+          </div>
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-4">Hoş Geldin, {clerkName}! 🎉</h1>
+          <p className="text-gray-500 mb-8 text-lg">Hesabın başarıyla oluşturuldu. Profil detayların ve sipariş geçmişin alışveriş yaptıkça burada listelenecek.</p>
+          <Link href="/products" className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-md hover:shadow-lg hover:-translate-y-0.5">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            Hemen Alışverişe Başla
+          </Link>
+        </div>
       </div>
     );
   }
@@ -54,12 +62,17 @@ export default async function ProfilePage() {
   const deliveredOrders = userOrders.filter(order => order.status === "DELIVERED").length;
   const favoritesCount = 8; // Gelecekte Favorite tablosundan çekeceğiz (Mock veri)
 
+  // GÖRSEL (AVATAR) BELİRLEME
+  const profileImage = dbUser.avatarUrl || clerkUser.imageUrl;
+
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 bg-gray-50/50 min-h-screen">
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-screen animate-in fade-in duration-500">
+      
+      {/* BAŞLIK VE PROFİL DÜZENLEME MODALI */}
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900">Hesabım</h1>
-          <p className="text-gray-500 mt-1">Kişisel bilgilerinizi, adreslerinizi ve sipariş geçmişinizi buradan takip edebilirsiniz.</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Hesabım</h1>
+          <p className="text-gray-500 mt-2 font-medium">Kişisel bilgilerinizi, adreslerinizi ve sipariş geçmişinizi buradan yönetin.</p>
         </div>
         <EditProfileModal 
           initialName={dbUser.name} 
@@ -68,47 +81,52 @@ export default async function ProfilePage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* SOL KOLON: KULLANICI BİLGİLERİ */}
-        <div className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
+        {/* SOL KOLON: KULLANICI BİLGİLERİ KARTI */}
+        <div className="lg:col-span-4 xl:col-span-3">
+          <div className="bg-white p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 sticky top-28">
             
-            {/* ✨ DİNAMİK PROFİL FOTOĞRAFI ALANI ✨ */}
-            <div className="w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center overflow-hidden border-2 border-blue-100 shadow-sm relative group bg-blue-50">
-              {dbUser.avatarUrl ? (
+            <div className="w-28 h-28 mx-auto mb-5 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-lg relative bg-gray-50">
+              {profileImage ? (
                 <img 
-                  src={dbUser.avatarUrl} 
+                  src={profileImage} 
                   alt={dbUser.name} 
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-blue-600 text-3xl font-bold">
+                <span className="text-blue-600 text-4xl font-extrabold">
                   {dbUser.name.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
 
             <div className="text-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">{dbUser.name}</h2>
-              <p className="text-gray-500 text-sm">{dbUser.email}</p>
+              <h2 className="text-xl font-extrabold text-gray-900">{dbUser.name}</h2>
+              <p className="text-gray-500 text-sm font-medium mt-1">{dbUser.email}</p>
             </div>
             
-            <div className="space-y-4 pt-4 border-t border-gray-100">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500 font-medium">Telefon</span>
-                <span className="font-bold text-gray-900">{dbUser.phone || "Belirtilmemiş"}</span>
+            <div className="space-y-4 pt-5 border-t border-gray-100/80">
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-2 text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                  <span className="text-sm font-bold">Telefon</span>
+                </div>
+                <span className="font-extrabold text-gray-900 text-sm">{dbUser.phone || "Eklenmemiş"}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500 font-medium">Kayıt Tarihi</span>
-                <span className="font-bold text-gray-900">{new Date(dbUser.createdAt).toLocaleDateString("tr-TR")}</span>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-2 text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <span className="text-sm font-bold">Kayıt Tarihi</span>
+                </div>
+                <span className="font-extrabold text-gray-900 text-sm">{new Date(dbUser.createdAt).toLocaleDateString("tr-TR")}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* SAĞ KOLON: İSTATİSTİKLER, SİPARİŞLER VE ADRESLER */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-8 xl:col-span-9 space-y-10">
           
           <ProfileStats 
             totalOrders={totalOrders} 
@@ -117,61 +135,86 @@ export default async function ProfilePage() {
             favoritesCount={favoritesCount} 
           />
 
-          {/* SİPARİŞ GEÇMİŞİ */}
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            📦 Sipariş Geçmişim
-          </h3>
+          <div className="space-y-6">
+            <h3 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3 border-b border-gray-100 pb-4">
+              <span className="bg-blue-50 text-blue-600 p-2 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+              </span>
+              Sipariş Geçmişim
+            </h3>
 
-          {userOrders.length === 0 ? (
-            <div className="bg-white p-12 rounded-2xl border border-gray-100 shadow-sm text-center">
-              <span className="text-6xl mb-4 block">🛍️</span>
-              <p className="text-gray-500 mb-4 text-lg">Henüz hiç sipariş vermemişsiniz.</p>
-              <Link href="/products" className="text-blue-600 font-bold hover:underline">Alışverişe Başla &rarr;</Link>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {userOrders.map((order) => (
-                <div key={order.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 border-b pb-4">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Sipariş No</p>
-                      <p className="font-mono font-bold text-gray-900 text-lg">#{order.id.slice(-8).toUpperCase()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Tarih</p>
-                      <p className="font-medium text-gray-900">{new Date(order.createdAt).toLocaleDateString("tr-TR")}</p>
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Tutar</p>
-                      <p className="font-extrabold text-blue-600 text-lg">{order.totalPrice.toLocaleString("tr-TR")} ₺</p>
-                    </div>
-                    <div>
-                      <Link href={`/profile/orders/${order.id}`} className="inline-block bg-blue-50 text-blue-700 font-bold px-4 py-2 rounded-lg text-sm hover:bg-blue-100 transition">
-                        🔍 Detayları Gör
-                      </Link>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <p className="text-sm font-bold text-gray-700 mb-2">İçerisindeki Ürünler:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {order.items.map(item => (
-                        <span key={item.id} className="bg-gray-50 border border-gray-200 px-3 py-1 rounded-lg text-sm text-gray-700 font-medium">
-                          {item.product?.name || "Silinmiş Ürün"} <span className="text-gray-400 ml-1">x{item.quantity}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <OrderProgressBar status={order.status} />
-                  
+            {userOrders.length === 0 ? (
+              <div className="bg-white p-12 rounded-3xl border border-gray-100 shadow-sm text-center">
+                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                 </div>
-              ))}
-            </div>
-          )}
+                <h4 className="text-xl font-bold text-gray-900 mb-2">Henüz Siparişiniz Yok</h4>
+                <p className="text-gray-500 mb-6">Vitrin'deki binlerce ürün sizi bekliyor.</p>
+                <Link href="/products" className="inline-block bg-gray-900 text-white font-bold px-6 py-3 rounded-xl hover:bg-gray-800 transition shadow-md">
+                  Alışverişe Başla
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {userOrders.map((order) => (
+                  <div key={order.id} className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    
+                    {/* SİPARİŞ KARTI ÜST BİLGİ */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-gray-50 pb-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 sm:gap-12 w-full sm:w-auto">
+                        <div>
+                          <p className="text-[11px] text-gray-400 uppercase font-extrabold tracking-widest mb-1">Sipariş No</p>
+                          <p className="font-mono font-bold text-gray-900">#{order.id.slice(-8).toUpperCase()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400 uppercase font-extrabold tracking-widest mb-1">Tarih</p>
+                          <p className="font-bold text-gray-900">{new Date(order.createdAt).toLocaleDateString("tr-TR")}</p>
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <p className="text-[11px] text-gray-400 uppercase font-extrabold tracking-widest mb-1">Tutar</p>
+                          <p className="font-extrabold text-blue-600">{order.totalPrice.toLocaleString("tr-TR")} ₺</p>
+                        </div>
+                      </div>
+                      
+                      <div className="w-full sm:w-auto">
+                        <Link href={`/profile/orders/${order.id}`} className="flex items-center justify-center gap-2 w-full bg-blue-50 text-blue-700 font-bold px-5 py-2.5 rounded-xl hover:bg-blue-100 transition-colors">
+                          Sipariş Detayı
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* SİPARİŞ İÇERİĞİ */}
+                    <div className="mb-6">
+                      <div className="flex flex-wrap gap-2">
+                        {order.items.map(item => (
+                          <span key={item.id} className="bg-gray-50 border border-gray-100 px-4 py-2 rounded-xl text-sm text-gray-800 font-semibold flex items-center gap-2">
+                            {item.product?.name || "Silinmiş Ürün"} 
+                            <span className="bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded text-xs">x{item.quantity}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* SİPARİŞ DURUMU ÇUBUĞU */}
+                    <OrderProgressBar status={order.status} />
+                    
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* ADRES YÖNETİMİ MODÜLÜ */}
-          <AddressManager initialAddresses={userAddresses} />
+          <div className="pt-4">
+            <h3 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
+              <span className="bg-green-50 text-green-600 p-2 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </span>
+              Kayıtlı Adreslerim
+            </h3>
+            <AddressManager initialAddresses={userAddresses} />
+          </div>
 
         </div>
       </div>
