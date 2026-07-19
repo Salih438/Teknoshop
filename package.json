@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^7.5.17",
     "@uploadthing/react": "^7.3.3",
+    "iyzipay": "^2.0.69",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@prisma/client": "^5.22.0",
     "@tailwindcss/postcss": "^4.0.0",
+    "@types/iyzipay": "^2.0.3",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

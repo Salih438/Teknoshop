@@ -1,9 +1,9 @@
 "use client";
 
+import { memo } from 'react';
 import Link from 'next/link';
-import { useCartStore } from "@/lib/store";
-import toast from 'react-hot-toast'; 
 import FavoriteButton from "@/components/FavoriteButton";
+import AddToCartButton from "@/components/AddToCartButton";
 
 export interface ProductCardProps {
   id: string;
@@ -14,48 +14,34 @@ export interface ProductCardProps {
   category?: {
     name: string;
   };
-  // DİNAMİK YILDIZLAR İÇİN EKLENDİ
   reviews?: { rating: number }[]; 
 }
 
-export default function ProductCard({ product }: { product: ProductCardProps }) {
-  const addItem = useCartStore((state) => state.addItem);
-
+// 🚀 OPTİMİZASYON 1: React.memo ile sarmalayarak gereksiz render'ları önlüyoruz
+const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
+  
   // Yorum Hesaplamaları
   const totalReviews = product.reviews?.length || 0;
   const averageRating = totalReviews > 0 
     ? (product.reviews!.reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
     : "0.0";
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); 
-    
-    addItem({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      imageUrls: product.imageUrl ? [product.imageUrl] : [],
-    });
-    
-    toast.success(`${product.name} sepete eklendi! 🛒`);
-  };
-
   return (
-    <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden bg-white flex flex-col hover:shadow-lg transition-shadow duration-300 relative">
+    <div className="border border-gray-100 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden bg-white flex flex-col hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-300 relative group">
       
-      {/* Sağ Üstte Favori Butonu (Z-index ile üstte tutuyoruz ki Link'e tıklanmayı engellemesin) */}
-      <div className="absolute top-2 right-2 z-20">
+      {/* Sağ Üstte Favori Butonu */}
+      <div className="absolute top-3 right-3 z-20">
         <FavoriteButton productId={product.id} />
       </div>
 
       <Link href={`/products/${product.id}`} className="flex flex-col flex-grow">
         
         {/* Ürün Görseli */}
-        <div className="h-48 w-full overflow-hidden bg-gray-100 relative group">
+        <div className="h-56 w-full overflow-hidden bg-white relative flex items-center justify-center p-6 border-b border-gray-50">
           
           {/* Sol Üstte Stok Rozeti */}
-          <div className="absolute top-2 left-2 z-10">
-             <span className={`px-2 py-1 text-xs font-bold rounded-md ${product.stock > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+          <div className="absolute top-3 left-3 z-10">
+             <span className={`px-2.5 py-1 text-[10px] uppercase tracking-widest font-extrabold rounded-lg ${product.stock > 0 ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
                {product.stock > 0 ? 'STOKTA' : 'TÜKENDİ'}
              </span>
           </div>
@@ -64,41 +50,44 @@ export default function ProductCard({ product }: { product: ProductCardProps }) 
             <img 
               src={product.imageUrl} 
               alt={product.name} 
-              className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300" 
+              loading="lazy"          // 🚀 OPTİMİZASYON 2: Tembel yükleme
+              decoding="async"        // Sayfa yüklenmesini engellemez
+              className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500" 
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-medium">
-              Görsel Yok
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <span className="text-xs font-medium">Görsel Yok</span>
             </div>
           )}
         </div>
 
         {/* Ürün Bilgileri */}
-        <div className="p-4 flex flex-col flex-grow">
-          <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-            {product.category?.name || "Teknoloji"}
+        <div className="p-5 flex flex-col flex-grow">
+          <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-1.5">
+            {product.category?.name || "Kategori Yok"}
           </span>
           
-          <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
             {product.name}
           </h3>
 
-          {/* DİNAMİK YILDIZ ALANI */}
-          <div className="flex items-center gap-2 mt-auto pt-2">
-            <div className="flex text-yellow-400 text-sm">
+          {/* DİNAMİK YILDIZ ALANI (SVG ile profesyonelleştirildi) */}
+          <div className="flex items-center gap-1.5 mt-auto pt-3 border-t border-gray-50">
+            <div className="flex text-yellow-400">
               {[1, 2, 3, 4, 5].map((star) => (
-                <span key={star}>
-                  {star <= Math.round(Number(averageRating)) ? "★" : "☆"}
-                </span>
+                <svg key={star} className={`w-3.5 h-3.5 ${star <= Math.round(Number(averageRating)) ? "text-yellow-400" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
               ))}
             </div>
             {totalReviews > 0 ? (
               <>
-                <span className="font-bold text-sm text-gray-900">{averageRating}</span>
-                <span className="text-gray-400 text-sm">({totalReviews})</span>
+                <span className="font-bold text-xs text-gray-900">{averageRating}</span>
+                <span className="text-gray-400 text-[10px] font-bold tracking-wider">({totalReviews})</span>
               </>
             ) : (
-              <span className="text-gray-400 text-xs font-medium">Değerlendirme yok</span>
+              <span className="text-gray-400 text-[10px] font-medium">Değerlendirme yok</span>
             )}
           </div>
 
@@ -106,20 +95,31 @@ export default function ProductCard({ product }: { product: ProductCardProps }) 
       </Link>
         
       {/* Alt Kısım: Fiyat ve Sepete Ekle Butonu */}
-      <div className="px-4 pb-4 flex items-center justify-between">
-        <p className="text-xl font-bold text-blue-600">
+      <div className="px-5 pb-5 flex items-center justify-between">
+        <p className="text-lg font-black text-blue-600 tracking-tight">
           {product.price.toLocaleString('tr-TR')} ₺
         </p>
         
-        <button 
-          onClick={handleAddToCart}
-          disabled={product.stock <= 0}
-          className="bg-gray-900 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors text-sm font-bold shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed z-10 relative"
-        >
-          {product.stock > 0 ? 'Sepete Ekle' : 'Tükendi'}
-        </button>
+        {/* 🚀 OPTİMİZASYON 3: Kod tekrarını sildik, yazdığımız güçlü bileşeni çağırıyoruz */}
+        <div className="w-auto z-10">
+          <AddToCartButton 
+            product={{
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              images: product.imageUrl ? [{ imageUrl: product.imageUrl }] : [],
+              stock: product.stock
+            }}
+            className="!px-3 !py-2 !text-xs !rounded-lg" // Karta özel boyutlandırma
+          />
+        </div>
       </div>
 
     </div>
   );
-}
+});
+
+// React DevTools'da isminin isimsiz (Anonymous) görünmemesi için
+ProductCard.displayName = "ProductCard";
+
+export default ProductCard;

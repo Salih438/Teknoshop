@@ -8,19 +8,19 @@ import { toggleFavorite } from "@/actions/favorite";
 interface FavoriteButtonProps {
   productId: string;
   initialIsFavorite?: boolean;
-  className?: string; // 🚀 BİLEŞENİ ÖZGÜRLEŞTİREN YENİ PROP
+  className?: string; 
 }
 
 export default function FavoriteButton({ 
   productId, 
   initialIsFavorite = false,
-  className = "" // Varsayılan olarak boş string
+  className = "" 
 }: FavoriteButtonProps) {
   const { userId } = useAuth(); // Clerk ile aktif oturum kontrolü
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
   const [loading, setLoading] = useState(false);
 
-  // Arka planda revalidatePath çalıştığında, sunucudan gelen yeni değeri anında butona yansıtır.
+  // Arka planda revalidatePath çalıştığında, sunucudan gelen yeni değeri butona yansıtır.
   useEffect(() => {
     setIsFavorite(initialIsFavorite);
   }, [initialIsFavorite]);
@@ -31,46 +31,54 @@ export default function FavoriteButton({
     e.stopPropagation(); 
     
     if (!userId) {
-      toast.error("Favorilere eklemek için lütfen giriş yapın! 🔒");
+      toast.error("Favorilere eklemek için lütfen giriş yapın.");
       return;
     }
 
     if (loading) return;
 
-    // Optimistic UI Update: Kalbi anında kırmızı/gri yapıyoruz
+    // Optimistic UI Update: Kalbi anında değiştiriyoruz
     const previousState = isFavorite;
     setIsFavorite(!isFavorite);
     setLoading(true);
 
-    const result = await toggleFavorite(productId);
+    try {
+      const result = await toggleFavorite(productId);
 
-    if (result.success) {
-      if (result.isFavorite) {
-        toast.success("Favorilerinize eklendi! ❤️");
+      if (result.success) {
+        if (result.isFavorite) {
+          toast.success("Favorilerinize eklendi!");
+        } else {
+          toast.success("Favorilerinizden çıkarıldı.");
+        }
       } else {
-        toast.success("Favorilerinizden çıkarıldı! 💔");
+        // Sunucu mantıksal bir hata döndürürse geri al
+        setIsFavorite(previousState);
+        toast.error(result.error || "İşlem gerçekleştirilemedi.");
       }
-    } else {
-      // Sunucu tarafında bir hata oluşursa kalbi eski haline geri döndürüyoruz
+    } catch (error) {
+      // Ağ hatası veya sunucu çökmesi durumunda state'i geri al ve sonsuz yüklemeyi engelle
       setIsFavorite(previousState);
-      toast.error(result.error || "Bir hata oluştu.");
+      toast.error("Sunucuya bağlanılamadı.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
     <button 
       onClick={handleToggle}
       disabled={loading}
-      // Sabit konumlandırmalar silindi, dışarıdan gelen 'className' buraya eklendi
-      className={`bg-white p-3 rounded-full shadow-md transition-all duration-300 z-10 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-110 active:scale-95'} ${className}`}
+      className={`bg-white p-2.5 sm:p-3 rounded-full shadow-md transition-all duration-300 z-10 ${
+        loading ? 'opacity-70 cursor-wait' : 'hover:scale-110 active:scale-95 hover:shadow-lg'
+      } ${className}`}
       type="button"
-      aria-label="Favorilere Ekle"
+      aria-label={isFavorite ? "Favorilerden Çıkar" : "Favorilere Ekle"}
+      title={isFavorite ? "Favorilerden Çıkar" : "Favorilere Ekle"}
     >
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
-        className={`h-6 w-6 transition-colors duration-300 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400 hover:text-red-400'}`} 
+        className={`h-5 w-5 sm:h-6 sm:w-6 transition-colors duration-300 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400 hover:text-red-500'}`} 
         viewBox="0 0 24 24" 
         stroke="currentColor" 
         fill={isFavorite ? "currentColor" : "none"}

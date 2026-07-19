@@ -1,33 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { useCartStore } from "../lib/store";
+import { useCartStore } from "@/lib/store";
 import toast from "react-hot-toast";
 
-// Butonun dışarıdan alacağı özellikleri genişlettik
 interface AddToCartProps {
   product: {
     id: string;
     name: string;
     price: number;
     images?: { imageUrl: string }[];
-    stock?: number; // Stok kontrolü eklendi
+    stock?: number; 
   };
-  className?: string; // Dışarıdan özel stil verebilmek için eklendi
+  className?: string; 
 }
 
 export default function AddToCartButton({ product, className = "" }: AddToCartProps) {
   const addItem = useCartStore((state) => state.addItem);
-  
-  // Görsel geri bildirim (Yeşil "Eklendi" animasyonu) için state
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    // Tıklamanın Link elementlerini tetikleyip sayfa değiştirmesini engeller
+    // Tıklamanın kartın üzerindeki Link elementlerini tetiklemesini engeller
     e.preventDefault();
     e.stopPropagation(); 
 
-    // Stok kontrolü
     if (product.stock !== undefined && product.stock <= 0) {
       toast.error("Bu ürün maalesef tükendi.");
       return;
@@ -44,9 +40,10 @@ export default function AddToCartButton({ product, className = "" }: AddToCartPr
       imageUrls: extractedImageUrls,
     });
     
-    toast.success(`${product.name} sepete eklendi! 🛒`);
+    // Kurumsal ve sade toast bildirimi
+    toast.success(`${product.name} sepete eklendi.`);
 
-    // Butonun yarım saniye boyunca "Eklendi" durumunda kalmasını sağlar
+    // Animasyon süresi sonrası butonu eski haline getir
     setTimeout(() => setIsAdding(false), 600);
   };
 
@@ -56,30 +53,36 @@ export default function AddToCartButton({ product, className = "" }: AddToCartPr
     <button 
       onClick={handleAddToCart}
       disabled={isOutOfStock || isAdding}
-      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold transition-all active:scale-95 w-full sm:w-auto overflow-hidden ${
+      aria-label={isOutOfStock ? "Ürün Tükendi" : "Sepete Ekle"}
+      className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-300 w-full sm:w-auto overflow-hidden ${
         isOutOfStock 
-          ? "bg-gray-200 text-gray-500 cursor-not-allowed" 
+          ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none" 
           : isAdding 
-            ? "bg-green-600 text-white" 
-            : "bg-gray-900 text-white hover:bg-blue-600 hover:shadow-md"
+            ? "bg-green-600 text-white shadow-md border border-transparent" 
+            : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 border border-transparent"
       } ${className}`}
     >
       {isOutOfStock ? (
-        "Tükendi"
+        <span className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+          Tükendi
+        </span>
       ) : isAdding ? (
-        <>
+        <span className="flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-in zoom-in duration-300" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
           Eklendi
-        </>
+        </span>
       ) : (
-        <>
+        <span className="flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
           Sepete Ekle
-        </>
+        </span>
       )}
     </button>
   );
