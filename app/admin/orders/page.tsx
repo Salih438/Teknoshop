@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import OrderStatusSelect from "./OrderStatusSelect";
 import { Toaster } from "react-hot-toast";
 import Link from "next/link";
+import { OrderStatus, Prisma } from "@prisma/client"; // 🚀 YENİ: Prisma'nın orijinal tipleri eklendi
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,12 @@ export default async function AdminOrdersPage({
   const params = await searchParams;
   const statusFilter = typeof params?.status === "string" ? params.status : "";
 
-  // 1. DİNAMİK FİLTRELEME
-  const whereCondition: { status?: string } = {};
+  // 1. DİNAMİK FİLTRELEME (🚀 DÜZELTME: Prisma tipine uygun hale getirildi)
+  const whereCondition: Prisma.OrderWhereInput = {};
+  
   if (statusFilter) {
-    whereCondition.status = statusFilter;
+    // Gelen string veriyi Prisma'nın beklediği OrderStatus Enum tipine zorluyoruz
+    whereCondition.status = statusFilter as OrderStatus;
   }
 
   // 2. İSTATİSTİKLER İÇİN VERİ ÇEKİMİ
