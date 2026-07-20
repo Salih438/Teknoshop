@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { UploadButton } from "@/lib/utils/uploadthing"; 
 import toast from "react-hot-toast";
 
-export default function ProductForm({ categories, brands }: { categories: any[], brands: any[] }) {
+export default function ProductForm({ categories, brands }: { categories: { id: string; name: string }[], brands: { id: string; name: string }[] }) {
   const router = useRouter();
   const [imageUrl, setImageUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);

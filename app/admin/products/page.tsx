@@ -18,7 +18,7 @@ export default async function AdminProductsPage({
   const brandId = resolvedParams?.brand || "";
 
   // 2. Prisma için Dinamik Filtreleme Koşulu (Gelen verilere göre şekillenir)
-  const whereCondition: any = {};
+  const whereCondition: { name?: { contains: string; mode: 'insensitive' }; categoryId?: string; brandId?: string } = {};
   if (query) {
     whereCondition.name = { contains: query, mode: "insensitive" };
   }

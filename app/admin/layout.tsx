@@ -57,6 +57,11 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <Link href="/admin/users" className="block px-4 py-3 rounded-lg hover:bg-gray-800 transition">
             👥 Kullanıcılar
           </Link>
+          
+          {/* 🚀 YENİ EKLENEN KISIM: Ödeme Yöntemleri Linki */}
+          <Link href="/admin/payment-methods" className="block px-4 py-3 rounded-lg hover:bg-gray-800 transition">
+            💳 Ödeme Yöntemleri
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-gray-800">

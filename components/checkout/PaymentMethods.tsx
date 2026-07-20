@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import type { PaymentMethod } from "@prisma/client";
+
+interface PaymentMethodsProps {
+  paymentMethods: PaymentMethod[];
+  paymentMethodId: string;
+  setPaymentMethodId: (id: string) => void;
+}
 
 export default function PaymentMethods({ 
-  paymentMethod, 
-  setPaymentMethod 
-}: { 
-  paymentMethod: string, 
-  setPaymentMethod: (method: string) => void 
-}) {
+  paymentMethods, 
+  paymentMethodId, 
+  setPaymentMethodId 
+}: PaymentMethodsProps) {
   
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -37,10 +42,23 @@ export default function PaymentMethods({
   };
   
   const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 🚀 AMEX DÜZELTMESİ: AMEX kartların güvenlik kodu 4 hanelidir
     const maxLength = cardBrand === "AMEX" ? 4 : 3;
     setCvv(e.target.value.replace(/\D/g, "").substring(0, maxLength));
   };
+
+  // Şu an seçili olan ödeme yöntemini buluyoruz ki alt formları ona göre açalım
+  const selectedMethod = paymentMethods.find(m => m.id === paymentMethodId);
+
+  if (paymentMethods.length === 0) {
+    return (
+      <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
+        <h2 className="text-xl font-extrabold text-gray-900 mb-4">Ödeme Yöntemi</h2>
+        <div className="p-4 bg-orange-50 text-orange-700 rounded-xl text-sm font-medium">
+          Şu anda aktif bir ödeme yöntemi bulunmuyor. Lütfen daha sonra tekrar deneyin.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -53,25 +71,48 @@ export default function PaymentMethods({
         Ödeme Yöntemi
       </h2>
       
+      {/* YENİ NESİL DİNAMİK BUTONLAR */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <label className={`cursor-pointer p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 font-bold transition-all ${paymentMethod === 'credit_card' ? 'border-blue-600 bg-blue-50/50 text-blue-700 shadow-sm transform scale-[1.02]' : 'border-gray-200 text-gray-500 hover:border-blue-300 hover:bg-gray-50'}`}>
-          <input type="radio" name="payment" value="credit_card" checked={paymentMethod === 'credit_card'} onChange={(e) => setPaymentMethod(e.target.value)} className="hidden" />
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-          Kredi Kartı
-        </label>
-        <label className={`cursor-pointer p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 font-bold transition-all ${paymentMethod === 'havale' ? 'border-blue-600 bg-blue-50/50 text-blue-700 shadow-sm transform scale-[1.02]' : 'border-gray-200 text-gray-500 hover:border-blue-300 hover:bg-gray-50'}`}>
-          <input type="radio" name="payment" value="havale" checked={paymentMethod === 'havale'} onChange={(e) => setPaymentMethod(e.target.value)} className="hidden" />
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
-          Havale / EFT
-        </label>
-        <label className={`cursor-pointer p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 font-bold transition-all ${paymentMethod === 'kapida' ? 'border-blue-600 bg-blue-50/50 text-blue-700 shadow-sm transform scale-[1.02]' : 'border-gray-200 text-gray-500 hover:border-blue-300 hover:bg-gray-50'}`}>
-          <input type="radio" name="payment" value="kapida" checked={paymentMethod === 'kapida'} onChange={(e) => setPaymentMethod(e.target.value)} className="hidden" />
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-          Kapıda Ödeme
-        </label>
+        {paymentMethods.map((method) => {
+          const isSelected = paymentMethodId === method.id;
+          
+          return (
+            <label 
+              key={method.id}
+              className={`cursor-pointer p-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 font-bold transition-all ${
+                isSelected 
+                  ? 'border-blue-600 bg-blue-50/50 text-blue-700 shadow-sm transform scale-[1.02]' 
+                  : 'border-gray-200 text-gray-500 hover:border-blue-300 hover:bg-gray-50'
+              }`}
+            >
+              <input 
+                type="radio" 
+                name="payment" 
+                value={method.id} 
+                checked={isSelected} 
+                onChange={() => setPaymentMethodId(method.id)} 
+                className="hidden" 
+              />
+              
+              {/* Veritabanındaki türe göre dinamik ikon gösterimi */}
+              {method.type === 'CREDIT_CARD' && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              )}
+              {method.type === 'BANK_TRANSFER' && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
+              )}
+              {method.type === 'CASH_ON_DELIVERY' && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+              )}
+              
+              <span className="text-center">{method.name}</span>
+            </label>
+          );
+        })}
       </div>
 
-      {paymentMethod === "credit_card" && (
+      {/* KREDİ KARTI FORMU */}
+      {selectedMethod?.type === "CREDIT_CARD" && (
         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2">Kart Üzerindeki İsim</label>
@@ -142,39 +183,49 @@ export default function PaymentMethods({
         </div>
       )}
 
-      {paymentMethod === "havale" && (
+      {/* HAVALE BİLGİ FORMU */}
+      {selectedMethod?.type === "BANK_TRANSFER" && (
         <div className="p-6 bg-blue-50 rounded-xl border border-blue-100 text-blue-900 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="flex items-start gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <div>
               <h3 className="font-extrabold mb-3 text-blue-800">Banka Hesap Bilgilerimiz</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between border-b border-blue-200/50 pb-2">
-                  <span className="text-sm font-medium text-blue-700">Banka</span>
-                  <span className="text-sm font-bold">Ziraat Bankası</span>
+              
+              {/* Admin panelinden girilen dinamik bir açıklama varsa onu göster, yoksa varsayılan IBAN'ı göster */}
+              {selectedMethod.description ? (
+                <p className="text-sm font-medium text-blue-800 whitespace-pre-wrap leading-relaxed">
+                  {selectedMethod.description}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between border-b border-blue-200/50 pb-2">
+                    <span className="text-sm font-medium text-blue-700">Banka</span>
+                    <span className="text-sm font-bold">Ziraat Bankası</span>
+                  </div>
+                  <div className="flex justify-between border-b border-blue-200/50 pb-2">
+                    <span className="text-sm font-medium text-blue-700">Alıcı Adı</span>
+                    <span className="text-sm font-bold">Vitrin Teknoloji A.Ş.</span>
+                  </div>
+                  <div className="flex flex-col mt-3">
+                    <span className="text-sm font-medium text-blue-700 mb-1">IBAN Numarası</span>
+                    <span className="text-base font-mono font-extrabold bg-white px-3 py-2 rounded-lg border border-blue-200 text-center tracking-wider">TR99 0001 0000 0000 0000 0000 00</span>
+                  </div>
                 </div>
-                <div className="flex justify-between border-b border-blue-200/50 pb-2">
-                  <span className="text-sm font-medium text-blue-700">Alıcı Adı</span>
-                  <span className="text-sm font-bold">Vitrin Teknoloji A.Ş.</span>
-                </div>
-                <div className="flex flex-col mt-3">
-                  <span className="text-sm font-medium text-blue-700 mb-1">IBAN Numarası</span>
-                  <span className="text-base font-mono font-extrabold bg-white px-3 py-2 rounded-lg border border-blue-200 text-center tracking-wider">TR99 0001 0000 0000 0000 0000 00</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {paymentMethod === "kapida" && (
+      {/* KAPIDA ÖDEME BİLGİLENDİRMESİ */}
+      {selectedMethod?.type === "CASH_ON_DELIVERY" && (
         <div className="p-6 bg-orange-50 rounded-xl border border-orange-200 text-orange-900 animate-in fade-in slide-in-from-bottom-2 duration-500">
           <div className="flex items-start gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             <div>
               <h3 className="font-extrabold mb-1">Önemli Bilgilendirme</h3>
               <p className="text-sm leading-relaxed">
-                Kapıda ödeme seçeneğinde, kargo firması tarafından tahsilat hizmet bedeli olarak sipariş tutarınıza ek <span className="font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded">29.90 TL</span> yansıtılacaktır. Ödemeyi kapıda nakit veya kredi kartı ile yapabilirsiniz.
+                Kapıda ödeme seçeneğinde, kargo firması tarafından tahsilat hizmet bedeli olarak sipariş tutarınıza ek <span className="font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded">{selectedMethod.fee > 0 ? selectedMethod.fee.toLocaleString('tr-TR') : '29.90'} TL</span> yansıtılacaktır. Ödemeyi kapıda nakit veya kredi kartı ile yapabilirsiniz.
               </p>
             </div>
           </div>

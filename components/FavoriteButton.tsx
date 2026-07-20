@@ -56,7 +56,7 @@ export default function FavoriteButton({
         setIsFavorite(previousState);
         toast.error(result.error || "İşlem gerçekleştirilemedi.");
       }
-    } catch (error) {
+    } catch (_error) {
       // Ağ hatası veya sunucu çökmesi durumunda state'i geri al ve sonsuz yüklemeyi engelle
       setIsFavorite(previousState);
       toast.error("Sunucuya bağlanılamadı.");

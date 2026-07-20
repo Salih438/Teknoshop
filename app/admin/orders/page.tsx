@@ -15,7 +15,7 @@ export default async function AdminOrdersPage({
   const statusFilter = typeof params?.status === "string" ? params.status : "";
 
   // 1. DİNAMİK FİLTRELEME
-  const whereCondition: any = {};
+  const whereCondition: { status?: string } = {};
   if (statusFilter) {
     whereCondition.status = statusFilter;
   }

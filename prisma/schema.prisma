@@ -29,6 +29,13 @@ enum PaymentStatus {
   REFUNDED
 }
 
+// 🚀 YENİ: Dinamik ödeme türleri için sistem seviyesi kategorizasyon
+enum PaymentType {
+  CREDIT_CARD
+  BANK_TRANSFER
+  CASH_ON_DELIVERY
+}
+
 // ================= MODELLER (TABLOLAR) =================
 
 // 1. KULLANICI YÖNETİMİ
@@ -158,6 +165,22 @@ model CartItem {
 }
 
 // 4. SİPARİŞ VE ÖDEME
+
+// 🚀 YENİ TABLO: Dinamik Ödeme Yöntemleri
+model PaymentMethod {
+  id          String      @id @default(uuid())
+  name        String      // "Kredi Kartı", "Havale / EFT", "Kapıda Nakit Ödeme"
+  description String?     // Örn: "TR00 0000 0000 0000 nolu hesaba havale yapınız."
+  type        PaymentType // Sistemin arkada ne yapacağını bilmesi için (Havale mi Kart mı?)
+  fee         Float       @default(0) // Kapıda ödemedeki o "29.90 TL" gibi ek ücretler
+  isActive    Boolean     @default(true)
+  
+  payments    Payment[]   // Bu yöntemle yapılmış ödemeler geçmişi
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
 model Order {
   id         String      @id @default(uuid())
   totalPrice Float
@@ -198,12 +221,15 @@ model OrderItem {
 
 model Payment {
   id            String        @id @default(uuid())
-  method        String // Kredi Kartı, Havale vb.
   status        PaymentStatus @default(PENDING)
   transactionId String? // İyzico/Stripe işlem ID'si
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // 🚀 DÜZELTME: Eskiden sadece String'di, şimdi yeni PaymentMethod tablomuzla ilişkili!
+  paymentMethodId String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
 
   paidAt DateTime?
 }

@@ -94,7 +94,7 @@ export default async function FavoritesPage() {
                     <FavoriteButton productId={product.id} initialIsFavorite={true} />
                   </div>
 
-                  <Link href={`/products/${product.id}`} className="block relative h-56 bg-white flex items-center justify-center p-6 overflow-hidden border-b border-gray-50">
+                  <Link href={`/products/${product.id}`} className="relative h-56 bg-white flex items-center justify-center p-6 overflow-hidden border-b border-gray-50">
                     {displayImage ? (
                       <img 
                         src={displayImage} 

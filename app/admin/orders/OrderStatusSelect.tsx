@@ -29,7 +29,7 @@ export default function OrderStatusSelect({ orderId, currentStatus }: OrderStatu
       } else {
         toast.error("Güncelleme başarısız oldu.", { id: toastId });
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("Sunucu hatası.", { id: toastId });
     }
   }

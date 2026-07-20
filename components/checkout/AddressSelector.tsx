@@ -37,7 +37,7 @@ export default function AddressSelector({
       const defaultAddr = addresses.find(a => a.isDefault) || addresses[0];
       onSelect(defaultAddr.id);
     }
-  }, [addresses, selectedAddressId, onSelect]);
+  }, [addresses, selectedAddressId, onSelect]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sipariş notu değiştiğinde üst bileşene (CheckoutPage) bildir
   useEffect(() => {

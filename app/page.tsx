@@ -35,7 +35,15 @@ export default async function Home() {
   });
 
   // Veritabanı verisini ProductCard'ın istediği formata çeviren yardımcı fonksiyon
-  const formatProductForCard = (product: any) => ({
+  const formatProductForCard = (product: {
+    id: string;
+    name: string;
+    price: number;
+    stock: number;
+    images: { imageUrl: string }[];
+    category: { name: string } | null;
+    reviews: { rating: number }[];
+  }) => ({
     id: product.id,
     name: product.name,
     price: product.price,

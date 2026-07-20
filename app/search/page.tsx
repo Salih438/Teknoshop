@@ -38,7 +38,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           </h1>
           {searchQuery ? (
             <p className="text-gray-500 text-lg">
-              "<span className="font-bold text-blue-600">{searchQuery}</span>" kelimesi için <span className="font-bold text-gray-900">{products.length}</span> ürün listeleniyor.
+              {/* 🚀 DÜZELTME: Çift tırnaklar &quot; olarak değiştirildi (ESLint Hatası Çözüldü) */}
+              &quot;<span className="font-bold text-blue-600">{searchQuery}</span>&quot; kelimesi için <span className="font-bold text-gray-900">{products.length}</span> ürün listeleniyor.
             </p>
           ) : (
             <p className="text-gray-500 text-lg">Tüm ürünler listeleniyor.</p>
@@ -63,7 +64,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             </Link>
           </div>
         ) : (
-          /* ARAMA SONUÇLARI KARTLARI (Kendi Mimarine Sadık Kalındı) */
+          /* ARAMA SONUÇLARI KARTLARI */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => {
               const extractedImageUrls = product.images.map((img) => img.imageUrl);
@@ -78,7 +79,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                     <FavoriteButton productId={product.id} initialIsFavorite={false} />
                   </div>
 
-                  <Link href={`/products/${product.id}`} className="block relative h-56 bg-white flex items-center justify-center p-6 overflow-hidden border-b border-gray-50">
+                  {/* 🚀 DÜZELTME: 'block' class'ı silindi, sadece 'flex' bırakıldı (Tailwind Çakışması Çözüldü) */}
+                  <Link href={`/products/${product.id}`} className="relative h-56 bg-white flex items-center justify-center p-6 overflow-hidden border-b border-gray-50">
                     {displayImage ? (
                       <img 
                         src={displayImage} 
@@ -112,7 +114,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                         </span>
                       </div>
                       
-                      {/* Senin AddToCart Props Mimarisi */}
                       <div className={isOutOfStock ? "opacity-50 pointer-events-none" : "hover:scale-105 transition-transform"}>
                         <AddToCartButton 
                           product={{

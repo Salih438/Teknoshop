@@ -4,7 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-export default function AddressManager({ initialAddresses }: { initialAddresses: any[] }) {
+interface AddressItem {
+  id: string;
+  title: string;
+  city: string;
+  district: string;
+  address: string;
+  isDefault: boolean;
+}
+
+export default function AddressManager({ initialAddresses }: { initialAddresses: AddressItem[] }) {
   const router = useRouter();
   const [addresses, setAddresses] = useState(initialAddresses);
   const [isAdding, setIsAdding] = useState(false);

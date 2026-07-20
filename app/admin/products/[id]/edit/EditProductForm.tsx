@@ -4,7 +4,25 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 
-export default function EditProductForm({ product, categories, brands }: { product: any, categories: any[], brands: any[] }) {
+interface EditProductFormProps {
+  product: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    price: number;
+    stock: number;
+    categoryId: string | null;
+    brandId: string | null;
+    sku: string | null;
+    isActive: boolean;
+    images: { imageUrl: string }[];
+  };
+  categories: { id: string; name: string }[];
+  brands: { id: string; name: string }[];
+}
+
+export default function EditProductForm({ product, categories, brands }: EditProductFormProps) {
   const router = useRouter();
   
   const existingImage = product.images?.length > 0 ? product.images[0].imageUrl : "";

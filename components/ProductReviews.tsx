@@ -13,7 +13,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
   
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<{ id: string; rating: number; comment: string | null; createdAt: string; isVerified: boolean; user: { name: string | null; avatarUrl: string | null; email: string | null; id: string } | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -50,6 +50,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
 
   useEffect(() => {
     fetchReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, user]);
 
   // Form Gönderme İşlemi

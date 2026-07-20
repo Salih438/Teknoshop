@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 interface OrderSummaryProps {
-  items: any[];
+  items: { id: string; name: string; price: number; quantity: number }[];
   subTotal: number;
   shippingCost: number;
   discount: number;

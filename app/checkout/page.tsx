@@ -3,9 +3,12 @@
 import { useCartStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useAuth } from "@clerk/nextjs"; // 🚀 GÜVENLİK İÇİN EKLENDİ
+import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import toast from "react-hot-toast";
+
+// 🚀 DÜZELTME 1: Prisma tiplerini içeri aktardık (Sadece tip olarak kullanıldığı için Client Component'te sorun yaratmaz)
+import type { Address, PaymentMethod } from "@prisma/client";
 
 import AddressSelector from "@/components/checkout/AddressSelector";
 import PaymentMethods from "@/components/checkout/PaymentMethods";
@@ -14,52 +17,68 @@ import OrderSummary from "@/components/checkout/OrderSummary";
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, clearCart } = useCartStore();
-  const { isLoaded, isSignedIn } = useAuth(); // Clerk Kimlik Doğrulama
+  const { isLoaded, isSignedIn } = useAuth(); 
   
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("credit_card");
+  
+  // 🚀 DÜZELTME 2: 'any' yerine 'PaymentMethod' tipini kullandık (Antigravity standartı)
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [paymentMethodId, setPaymentMethodId] = useState("");
+  
   const [isAgreed, setIsAgreed] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState(0);
   
-  const [userAddresses, setUserAddresses] = useState<any[]>([]);
+  // 🚀 DÜZELTME 3: 'any' yerine 'Address' tipini kullandık
+  const [userAddresses, setUserAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
 
-  // Hydration hatasını önleme
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Adresleri çekme işlemi (Sadece kullanıcı giriş yapmışsa tetiklenir)
   useEffect(() => {
     if (!isSignedIn) return;
 
-    const fetchAddresses = async () => {
+    const fetchCheckoutData = async () => {
       try {
-        const res = await fetch("/api/addresses");
-        if (res.ok) {
-          const data = await res.json();
+        const [addrRes, payRes] = await Promise.all([
+          fetch("/api/addresses"),
+          fetch("/api/payment-methods") 
+        ]);
+
+        if (addrRes.ok) {
+          const data = await addrRes.json();
           setUserAddresses(data.addresses || []);
-          
-          // UX İYİLEŞTİRMESİ: Kullanıcının adresi varsa ilkini otomatik seç
           if (data.addresses && data.addresses.length > 0) {
             setSelectedAddressId(data.addresses[0].id);
           }
         }
+
+        if (payRes.ok) {
+          const data = await payRes.json();
+          setPaymentMethods(data.paymentMethods || []);
+          if (data.paymentMethods && data.paymentMethods.length > 0) {
+            setPaymentMethodId(data.paymentMethods[0].id);
+          }
+        }
       } catch (error) {
-        console.error("Adresler çekilemedi", error);
+        console.error("Veriler çekilemedi", error);
       }
     };
-    fetchAddresses();
+    
+    fetchCheckoutData();
   }, [isSignedIn]);
 
-  // --- HESAPLAMALAR ---
   const subTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shippingCost = subTotal > 5000 ? 0 : 149.99;
-  const finalTotal = subTotal + shippingCost - discount;
+  
+  const selectedPayment = paymentMethods.find(p => p.id === paymentMethodId);
+  const paymentFee = selectedPayment?.fee || 0;
 
-  // --- KUPON UYGULAMA ---
+  const finalTotal = subTotal + shippingCost + paymentFee - discount;
+
   const applyCoupon = () => {
     if (couponCode.toUpperCase() === "YAZ2026") {
       setDiscount(subTotal * 0.1); 
@@ -70,12 +89,15 @@ export default function CheckoutPage() {
     }
   };
 
-  // --- SİPARİŞİ TAMAMLAMA ---
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault(); 
     
     if (!selectedAddressId) {
       toast.error("Lütfen bir teslimat adresi seçiniz.");
+      return;
+    }
+    if (!paymentMethodId) {
+      toast.error("Lütfen bir ödeme yöntemi seçiniz.");
       return;
     }
     if (!isAgreed) {
@@ -92,7 +114,7 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           addressId: selectedAddressId,
-          paymentMethod: paymentMethod,
+          paymentMethodId: paymentMethodId,
           items: items,
           totalPrice: finalTotal
         })
@@ -103,7 +125,8 @@ export default function CheckoutPage() {
         clearCart(); 
         router.push("/order-success"); 
       } else {
-        toast.error("Sipariş oluşturulamadı. Lütfen tekrar deneyin.", { id: toastId });
+        const errorData = await response.json();
+        toast.error(errorData.error || "Sipariş oluşturulamadı. Lütfen tekrar deneyin.", { id: toastId });
         setIsSubmitting(false);
       }
     } catch (error) {
@@ -112,7 +135,6 @@ export default function CheckoutPage() {
     }
   };
 
-  // 1. DURUM: EKRAN YÜKLENİYOR (SKELETON)
   if (!mounted || !isLoaded) {
     return (
       <div className="max-w-6xl mx-auto py-12 px-4 animate-pulse">
@@ -128,7 +150,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // 2. DURUM: KULLANICI GİRİŞ YAPMAMIŞ (GÜVENLİK DUVARI)
   if (!isSignedIn) {
     return (
       <div className="py-24 text-center px-4 animate-in fade-in">
@@ -146,7 +167,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // 3. DURUM: SEPET BOŞ (Sipariş oluşturma esnası hariç)
   if (items.length === 0 && !isSubmitting) {
     return (
       <div className="py-24 text-center px-4 animate-in fade-in">
@@ -164,7 +184,6 @@ export default function CheckoutPage() {
     );
   }
 
-  // 4. DURUM: ANA ÖDEME EKRANI
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 animate-in fade-in duration-500">
       
@@ -179,8 +198,6 @@ export default function CheckoutPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* SOL TARAF: FORM VE ALT MODÜLLER */}
         <div className="lg:col-span-2 space-y-8">
           <form id="checkout-form" onSubmit={handlePlaceOrder}>
             <AddressSelector 
@@ -191,14 +208,14 @@ export default function CheckoutPage() {
             
             <div className="mt-8">
               <PaymentMethods 
-                paymentMethod={paymentMethod} 
-                setPaymentMethod={setPaymentMethod} 
+                paymentMethods={paymentMethods}
+                paymentMethodId={paymentMethodId} 
+                setPaymentMethodId={setPaymentMethodId} 
               />
             </div>
           </form>
         </div>
 
-        {/* SAĞ TARAF: SİPARİŞ ÖZETİ MODÜLÜ */}
         <div className="lg:col-span-1">
           <OrderSummary 
             items={items}
@@ -215,7 +232,6 @@ export default function CheckoutPage() {
             selectedAddressId={selectedAddressId}
           />
         </div>
-
       </div>
     </div>
   );

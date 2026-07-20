@@ -7,13 +7,28 @@ import toast from "react-hot-toast";
 import FavoriteButton from "@/components/FavoriteButton"; 
 import ProductReviews from "@/components/ProductReviews";
 
-export default function ProductDetails({ product }: { product: any }) {
+interface ProductDetailsProps {
+  id: string;
+  name: string;
+  price: number;
+  description: string | null;
+  stock: number;
+  categoryId: string | null;
+  imageUrl: string;
+  images?: { imageUrl: string }[];
+  category?: { name: string } | null;
+  brand?: { name: string } | null;
+  reviews?: { rating: number }[];
+  favorites?: { id: string }[];
+}
+
+export default function ProductDetails({ product }: { product: ProductDetailsProps }) {
   const addItem = useCartStore((state) => state.addItem);
   const tabsRef = useRef<HTMLDivElement>(null); 
   
   // 🚀 KRİTİK DÜZELTME: Prisma'dan gelen resim dizisini (array) yakalıyoruz
   const imageList = product?.images?.length > 0 
-    ? product.images.map((img: any) => img.imageUrl) 
+    ? product.images.map((img) => img.imageUrl) 
     : (product?.imageUrl ? [product.imageUrl] : []);  
 
   const stock = product?.stock ?? 25; 
@@ -29,7 +44,7 @@ export default function ProductDetails({ product }: { product: any }) {
   // DİNAMİK YORUM VE YILDIZ HESAPLAMASI
   const totalReviews = product?.reviews?.length || 0;
   const averageRating = totalReviews > 0 
-    ? (product.reviews.reduce((acc: any, curr: any) => acc + curr.rating, 0) / totalReviews).toFixed(1)
+    ? (product.reviews!.reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
     : "0.0";
 
   // Sepete Ekleme Fonksiyonu

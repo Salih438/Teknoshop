@@ -22,7 +22,7 @@ export default async function AllProductsPage({
   });
 
   // 2. PRISMA FİLTRELEME MANTIĞI (Ürünler İçin)
-  let whereClause: any = {
+  let whereClause: { isActive: boolean; price?: { gte?: number; lte?: number }; category?: { name: string } } = {
     isActive: true, // Sadece aktif ürünleri getir
   };
   
@@ -40,7 +40,7 @@ export default async function AllProductsPage({
   }
 
   // 3. PRISMA SIRALAMA MANTIĞI
-  let orderByClause: any = { createdAt: "desc" };
+  let orderByClause: { createdAt?: string; price?: string } = { createdAt: "desc" };
   if (sort === "price_asc") orderByClause = { price: "asc" };
   if (sort === "price_desc") orderByClause = { price: "desc" };
 
