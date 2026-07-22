@@ -1,20 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { requireAdmin, AuthError } from "@/lib/auth";
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> } // Next.js 16 için Promise olarak tanımladık
 ) {
   try {
-    const clerkUser = await currentUser();
-    if (!clerkUser) return NextResponse.json({ error: "Giriş yapmalısınız." }, { status: 401 });
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: clerkUser.emailAddresses[0].emailAddress },
-    });
-    if (!dbUser || dbUser.role !== "ADMIN") return NextResponse.json({ error: "Yetkiniz yok." }, { status: 403 });
-
+    await requireAdmin();
     // 🚀 YENİ KURAL: params nesnesini önce await ediyoruz!
     const resolvedParams = await params;
     const brandId = resolvedParams.id;
@@ -42,6 +35,9 @@ export async function DELETE(
     return NextResponse.json({ success: true }, { status: 200 });
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     // Terminalde hata detayını görmek için log ekledik
     console.error("Marka silme hatası detay:", error);
     return NextResponse.json({ error: "Marka silinirken sistemsel bir hata oluştu." }, { status: 500 });

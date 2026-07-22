@@ -1,3 +1,7 @@
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
+import Image from "next/image";
 // app/admin/orders/[id]/page.tsx
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -11,6 +15,12 @@ export default async function OrderDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   const resolvedParams = await params;
   const orderId = resolvedParams.id;
 
@@ -77,11 +87,10 @@ export default async function OrderDetailPage({
 
                 return (
                   <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-gray-50 transition">
-                    <img 
-                      src={imageUrl} 
+                    <Image src={imageUrl} 
                       alt={item.product.name} 
                       className="w-20 h-20 object-cover rounded-xl border border-gray-200"
-                    />
+                    width={500} height={500} />
                     <div className="flex-1">
                       <h3 className="font-bold text-gray-900 text-lg mb-1">{item.product.name}</h3>
                       <p className="text-sm text-gray-500 font-mono">SKU: {item.product.sku || "Belirtilmemiş"}</p>

@@ -1,4 +1,7 @@
 // app/admin/users/[id]/page.tsx
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +13,12 @@ export default async function UserDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   const resolvedParams = await params;
   const userId = resolvedParams.id;
 

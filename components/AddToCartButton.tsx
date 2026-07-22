@@ -12,15 +12,20 @@ interface AddToCartProps {
     images?: { imageUrl: string }[];
     stock?: number; 
   };
+  // 🚀 GÜNCELLEME 1: Seçili varyasyon bilgisini dışarıdan alıyoruz
+  selectedVariant?: {
+    id: string;
+    name: string;
+    price: number;
+  } | null;
   className?: string; 
 }
 
-export default function AddToCartButton({ product, className = "" }: AddToCartProps) {
+export default function AddToCartButton({ product, selectedVariant, className = "" }: AddToCartProps) {
   const addItem = useCartStore((state) => state.addItem);
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    // Tıklamanın kartın üzerindeki Link elementlerini tetiklemesini engeller
     e.preventDefault();
     e.stopPropagation(); 
 
@@ -33,17 +38,20 @@ export default function AddToCartButton({ product, className = "" }: AddToCartPr
 
     const extractedImageUrls = product.images?.map(img => img.imageUrl) || [];
 
+    // 🚀 GÜNCELLEME 2: Fiyatı ve ismi varyasyona göre dinamik hesapla
+    const finalPrice = selectedVariant ? selectedVariant.price : product.price;
+    const finalName = selectedVariant ? `${product.name} - ${selectedVariant.name}` : product.name;
+
     addItem({
       id: product.id,
-      name: product.name,
-      price: product.price,
+      name: finalName,
+      price: finalPrice,
       imageUrls: extractedImageUrls,
+      variantId: selectedVariant?.id, // Benzersiz ID oluşumu için store'a gönderiyoruz
     });
     
-    // Kurumsal ve sade toast bildirimi
-    toast.success(`${product.name} sepete eklendi.`);
+    toast.success(`${finalName} sepete eklendi.`);
 
-    // Animasyon süresi sonrası butonu eski haline getir
     setTimeout(() => setIsAdding(false), 600);
   };
 

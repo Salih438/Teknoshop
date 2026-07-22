@@ -1,34 +1,14 @@
 // app/api/admin/orders/[id]/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { requireAdmin, AuthError } from "@/lib/auth";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. GÜVENLİK DUVARI: İstek atan kişi sisteme giriş yapmış mı?
-    const clerkUser = await currentUser();
-    if (!clerkUser) {
-      return NextResponse.json(
-        { error: "Yetkisiz erişim: Lütfen önce giriş yapın." },
-        { status: 401 }
-      );
-    }
-
-    // 2. YETKİLENDİRME DUVARI: Giriş yapan kullanıcının rolü veritabanında ADMIN mi?
-    const email = clerkUser.emailAddresses[0].emailAddress;
-    const dbUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!dbUser || dbUser.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Yetkisiz işlem: Bu işlemi gerçekleştirmek için yetkiniz yok!" },
-        { status: 403 }
-      );
-    }
+    await requireAdmin();
 
     // --- KONTROLLER BAŞARIYLA GEÇİLDİ - İŞLEM BAŞLIYOR ---
     const resolvedParams = await params;
@@ -54,9 +34,12 @@ export async function PATCH(
     return NextResponse.json({ success: true, order: updatedOrder }, { status: 200 });
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("GÜVENLİ LOGLAMA - Sipariş Durumu Güncelleme Hatası:", error);
     return NextResponse.json(
-      { error: "Sipariş güncellenirken bir hata oluştu." },
+      { error: "Sistemde bir hata oluştu, lütfen daha sonra tekrar deneyin." },
       { status: 500 }
     );
   }

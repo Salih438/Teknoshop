@@ -1,9 +1,10 @@
 // app/admin/users/page.tsx
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import UserActionButtons from "./UserActionButtons";
-import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { Prisma, Role } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +13,11 @@ export default async function AdminUsersPage({
 }: { 
   searchParams: Promise<{ [key: string]: string | string[] | undefined }> 
 }) {
-  // --- 1. KESİN GÜVENLİK DUVARI (Kimlik ve Yetki Kontrolü) ---
-  const clerkUser = await currentUser();
-  if (!clerkUser) redirect("/");
-
-  const dbUser = await prisma.user.findUnique({
-    where: { email: clerkUser.emailAddresses[0].emailAddress },
-  });
-
-  if (!dbUser || dbUser.role !== "ADMIN") {
-    redirect("/"); // Admin değilse anasayfaya fırlat
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
   }
-  // --- GÜVENLİK DUVARI BİTİŞİ ---
 
   // 2. ARAMA VE FİLTRE PARAMETRELERİNİ YAKALAMA
   const resolvedParams = await searchParams;
@@ -31,7 +25,7 @@ export default async function AdminUsersPage({
   const roleFilter = typeof resolvedParams?.role === "string" ? resolvedParams.role : "";
 
   // Dinamik Filtreleme Mantığı
-  const whereCondition: any = {};
+  const whereCondition: Prisma.UserWhereInput = {};
   if (query) {
     whereCondition.OR = [
       { name: { contains: query, mode: "insensitive" } },
@@ -39,7 +33,7 @@ export default async function AdminUsersPage({
     ];
   }
   if (roleFilter) {
-    whereCondition.role = roleFilter;
+    whereCondition.role = roleFilter as Role;
   }
 
   // 3. VERİTABANI SORGULARI (Paralel Çalıştırma ile Yüksek Hız) 

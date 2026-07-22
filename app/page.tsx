@@ -49,7 +49,7 @@ export default async function Home() {
     price: product.price,
     imageUrl: product.images?.[0]?.imageUrl || "", // İlk resmi al
     stock: product.stock,
-    category: product.category,
+    category: product.category ?? undefined,
     reviews: product.reviews
   });
 
@@ -66,10 +66,10 @@ export default async function Home() {
             YENİ SEZON İNDİRİMİ
           </span>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 max-w-2xl leading-tight">
-            Teknolojinin En Yeni Hali Şimdi Vitrin'de.
+           {"Teknolojinin En Yeni Hali Şimdi Vitrin'de."}
           </h1>
           <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-xl">
-            Seçili Apple ve premium teknoloji ürünlerinde %20'ye varan indirimleri kaçırmayın. Üstelik tüm siparişlerde ücretsiz kargo.
+           {"Seçili Apple ve premium teknoloji ürünlerinde %20'ye varan indirimleri kaçırmayın."}
           </p>
           <Link href="/products" className="bg-white text-gray-900 font-bold px-8 py-4 rounded-lg hover:bg-gray-100 hover:scale-105 transition-all shadow-lg">
             Hemen İncele

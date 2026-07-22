@@ -1,4 +1,7 @@
 // app/admin/orders/page.tsx
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import OrderStatusSelect from "./OrderStatusSelect";
 import { Toaster } from "react-hot-toast";
@@ -12,6 +15,12 @@ export default async function AdminOrdersPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   const params = await searchParams;
   const statusFilter = typeof params?.status === "string" ? params.status : "";
 

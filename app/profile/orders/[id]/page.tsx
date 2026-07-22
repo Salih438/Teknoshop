@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
@@ -118,7 +119,7 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
                   <div key={item.id} className="flex gap-4 items-center">
                     <div className="w-24 h-24 bg-gray-50 rounded-2xl border border-gray-100 flex-shrink-0 flex items-center justify-center p-2 overflow-hidden">
                       {displayImage ? (
-                        <img src={displayImage} alt={item.product?.name} className="max-w-full max-h-full object-contain" />
+                        <Image src={displayImage} alt={item.product?.name} className="max-w-full max-h-full object-contain" width={500} height={500} />
                       ) : (
                         <span className="text-3xl">📦</span>
                       )}

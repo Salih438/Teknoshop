@@ -1,9 +1,18 @@
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import ProductForm from "./ProductForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   // Prisma Studio ile eklediğimiz Kategori ve Markaları veritabanından çekiyoruz
   const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
   const brands = await prisma.brand.findMany({ orderBy: { name: "asc" } });

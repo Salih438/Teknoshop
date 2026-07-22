@@ -1,4 +1,7 @@
 // app/admin/categories/page.tsx
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import CategoryForm from "./CategoryForm";
 import { Toaster } from "react-hot-toast";
@@ -7,6 +10,12 @@ import DeleteCategoryButton from "./DeleteCategoryButton";
 export const dynamic = "force-dynamic";
 
 export default async function AdminCategoriesPage() {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   // Kategorileri, içlerinde kaç adet ürün olduğu bilgisiyle (include) birlikte çekiyoruz
   const categories = await prisma.category.findMany({
     include: {

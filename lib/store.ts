@@ -1,101 +1,146 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-// Sepetteki bir ürünün hangi bilgileri taşıyacağını belirliyoruz
+// 🚀 GÜNCELLEME 1: Sepetteki bir ürünün bilgilerine 'cartItemId' ve 'maxStock' eklendi
 export interface CartItem {
-  id: string;
+  cartItemId: string; // Sepetteki satırı benzersiz yapan ID (Örn: iphone16-512gb)
+  id: string;         // Ürünün gerçek veritabanı ID'si
   name: string;
   price: number;
-  imageUrls: string[]; // 🚀 DÜZELTİLEN KISIM: imageUrls yerine tekil imageUrl oldu
-  quantity: number; 
+  imageUrls: string[];
+  quantity: number;
+  variantId?: string; // Hangi varyasyon seçilmiş?
+  maxStock?: number;  // 🚀 YENİ: Gerçek zamanlı stok takibi için eklendi
 }
 
 interface CartStore {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void; 
-  increaseQuantity: (id: string) => void;
-  decreaseQuantity: (id: string) => void;
-  removeItem: (id: string) => void;
+  addItem: (item: Omit<CartItem, 'quantity' | 'cartItemId' | 'maxStock'> & { quantity?: number }) => void; 
+  increaseQuantity: (cartItemId: string) => void;
+  decreaseQuantity: (cartItemId: string) => void;
+  removeItem: (cartItemId: string) => void;
   clearCart: () => void;
+  // 🚀 YENİ: Sepeti veritabanından gelen güncel bilgilerle senkronize eden metod
+  syncCart: (validations: { cartItemId: string; isActive: boolean; stock: number; price: number }[]) => { removedCount: number; updatedCount: number };
 }
 
-// 🛡️ GÜVENLİK MOTORU: JSON hatalarını yakalayan ve SSR çökmesini engelleyen özel depolama katmanı
 const safeStorage = createJSONStorage(() => ({
   getItem: (name: string) => {
-    // 1. SSR KORUMASI: Eğer sunucudaysak (window yoksa) hiçbir şey yapma
     if (typeof window === 'undefined') return null;
-    
     try {
       const item = localStorage.getItem(name);
-      if (item) {
-        JSON.parse(item); // Sadece veri bozuk mu diye test ediyoruz
-      }
+      if (item) JSON.parse(item); 
       return item;
     } catch (error) {
       console.error('Sepet verisi bozuk, otomatik temizleniyor...', error);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(name); // Bozuk veriyi imha et
-      }
-      return null; // Sistemin çökmesini engelle
+      if (typeof window !== 'undefined') localStorage.removeItem(name); 
+      return null; 
     }
   },
   setItem: (name: string, value: string) => {
-    // Sadece tarayıcıdaysak kaydet
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(name, value);
-    }
+    if (typeof window !== 'undefined') localStorage.setItem(name, value);
   },
   removeItem: (name: string) => {
-    // Sadece tarayıcıdaysak sil
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(name);
-    }
+    if (typeof window !== 'undefined') localStorage.removeItem(name);
   },
 }));
 
-// Zustand mağazamızı (hafızayı) oluşturuyoruz
 export const useCartStore = create<CartStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       items: [], 
       
       addItem: (item) => set((state) => {
         const quantityToAdd = item.quantity || 1; 
-        const existingItem = state.items.find((i) => i.id === item.id);
+        const cartItemId = item.variantId ? `${item.id}-${item.variantId}` : item.id;
+        const existingItem = state.items.find((i) => i.cartItemId === cartItemId);
         
         if (existingItem) {
-          if (existingItem.quantity + quantityToAdd > 10) return state; 
+          // Eğer maxStock bilgisi varsa (stok doğrulama yapılmışsa), onu aşmamaya dikkat et
+          const maxAllowed = existingItem.maxStock ?? 10;
+          if (existingItem.quantity + quantityToAdd > maxAllowed) return state; 
+          
           return {
             items: state.items.map((i) =>
-              i.id === item.id ? { ...i, quantity: i.quantity + quantityToAdd } : i
+              i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + quantityToAdd } : i
             ),
           };
         }
         
-        return { items: [...state.items, { ...item, quantity: quantityToAdd }] };
+        return { items: [...state.items, { ...item, cartItemId, quantity: quantityToAdd }] };
       }),
 
-      increaseQuantity: (id) => set((state) => ({
+      increaseQuantity: (cartItemId) => set((state) => ({
+        items: state.items.map((i) => {
+          if (i.cartItemId === cartItemId) {
+            const limit = i.maxStock !== undefined ? Math.min(i.maxStock, 10) : 10;
+            return i.quantity < limit ? { ...i, quantity: i.quantity + 1 } : i;
+          }
+          return i;
+        })
+      })),
+
+      decreaseQuantity: (cartItemId) => set((state) => ({
         items: state.items.map((i) =>
-          i.id === id && i.quantity < 10 ? { ...i, quantity: i.quantity + 1 } : i
+          i.cartItemId === cartItemId && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i
         )
       })),
 
-      decreaseQuantity: (id) => set((state) => ({
-        items: state.items.map((i) =>
-          i.id === id && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i
-        )
-      })),
-
-      removeItem: (id) => set((state) => ({
-        items: state.items.filter((i) => i.id !== id)
+      removeItem: (cartItemId) => set((state) => ({
+        items: state.items.filter((i) => i.cartItemId !== cartItemId)
       })),
 
       clearCart: () => set({ items: [] }),
+
+      // 🚀 YENİ: Senkronizasyon Metodu
+      syncCart: (validations) => {
+        const state = get();
+        let removedCount = 0;
+        let updatedCount = 0;
+
+        const newItems = state.items.map(item => {
+          const validation = validations.find(v => v.cartItemId === item.cartItemId);
+          if (!validation) return item; // Eğer yanıt gelmediyse dokunma
+
+          // Ürün pasif olmuşsa veya tamamen stoksuz kalmışsa işaretle
+          if (!validation.isActive || validation.stock <= 0) {
+            removedCount++;
+            return { ...item, _shouldRemove: true };
+          }
+
+          let newQuantity = item.quantity;
+          let changed = false;
+
+          // Eğer istenen miktar gerçek stoğu aşıyorsa düşür
+          if (newQuantity > validation.stock) {
+            newQuantity = validation.stock;
+            changed = true;
+          }
+
+          // Fiyat değişmişse güncelle
+          if (item.price !== validation.price) {
+            changed = true;
+          }
+
+          // Max stoku veya diğer özellikleri değiştiyse güncelle
+          if (changed || item.maxStock !== validation.stock) {
+            if (changed) updatedCount++;
+            return { ...item, quantity: newQuantity, price: validation.price, maxStock: validation.stock };
+          }
+
+          return item;
+        }).filter(item => !(item as any)._shouldRemove);
+
+        if (removedCount > 0 || updatedCount > 0) {
+          set({ items: newItems });
+        }
+
+        return { removedCount, updatedCount };
+      },
     }),
     {
       name: 'cart-storage',
-      storage: safeStorage, // Güvenlik motorumuzu sisteme bağladık
+      storage: safeStorage, 
     }
   )
 );

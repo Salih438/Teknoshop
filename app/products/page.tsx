@@ -1,6 +1,8 @@
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
+import { Prisma } from "@prisma/client";
 
 export default async function AllProductsPage({ 
   searchParams 
@@ -22,7 +24,7 @@ export default async function AllProductsPage({
   });
 
   // 2. PRISMA FİLTRELEME MANTIĞI (Ürünler İçin)
-  let whereClause: { isActive: boolean; price?: { gte?: number; lte?: number }; category?: { name: string } } = {
+  const whereClause: Prisma.ProductWhereInput = {
     isActive: true, // Sadece aktif ürünleri getir
   };
   
@@ -40,7 +42,7 @@ export default async function AllProductsPage({
   }
 
   // 3. PRISMA SIRALAMA MANTIĞI
-  let orderByClause: { createdAt?: string; price?: string } = { createdAt: "desc" };
+  let orderByClause: { createdAt?: "asc" | "desc"; price?: "asc" | "desc" } = { createdAt: "desc" };
   if (sort === "price_asc") orderByClause = { price: "asc" };
   if (sort === "price_desc") orderByClause = { price: "desc" };
 
@@ -51,6 +53,7 @@ export default async function AllProductsPage({
     include: {
       images: true, 
       category: true,
+      reviews: { select: { rating: true } }
     }
   });
 
@@ -176,8 +179,11 @@ export default async function AllProductsPage({
                 const extractedImageUrls = product.images.map((img) => img.imageUrl);
                 const displayImage = extractedImageUrls.length > 0 ? extractedImageUrls[0] : null;
 
-                const mockRating = (Math.random() * (5 - 4) + 4).toFixed(1); 
-                const mockReviewCount = Math.floor(Math.random() * 200) + 15; 
+                const totalReviews = product.reviews?.length || 0;
+                const mockRating = totalReviews > 0 
+                  ? ((product.reviews ?? []).reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
+                  : "0.0";
+                const mockReviewCount = totalReviews; 
                 const isOutOfStock = product.stock <= 0; 
 
                 return (
@@ -197,11 +203,10 @@ export default async function AllProductsPage({
                     {/* Görsel */}
                     <Link href={`/products/${product.id}`} className="block relative h-60 bg-gray-50 flex items-center justify-center p-6 overflow-hidden">
                       {displayImage ? (
-                        <img 
-                          src={displayImage} 
+                        <Image src={displayImage} 
                           alt={product.name}
                           className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                        />
+                        width={500} height={500} />
                       ) : (
                         <span className="text-gray-400 font-medium">Görsel Yok</span>
                       )}

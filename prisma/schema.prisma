@@ -55,6 +55,7 @@ model User {
   cart      Cart?     // Bir kullanıcının 1 sepeti olur (1-to-1)
   reviews   Review[]
   favorites Favorite[]
+  couponUsages CouponUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -120,6 +121,9 @@ model Product {
   orderItems OrderItem[]
   reviews    Review[]
   favorites  Favorite[]
+  
+  // 🚀 YENİ: Ürünün Sahip Olduğu Varyasyonlar
+  variants   ProductVariant[] 
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -141,6 +145,25 @@ model ProductImage {
   @@index([productId])
 }
 
+// 🚀 YENİ TABLO: Ürün Varyasyonları (Örn: Siyah / 128GB)
+model ProductVariant {
+  id        String  @id @default(uuid())
+  
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  color     String? // Opsiyonel renk seçeneği
+  storage   String? // Opsiyonel hafıza seçeneği
+  
+  price     Float?  // Varyasyona özel fiyat (Boşsa ana ürünün fiyatı geçerli olur)
+  stock     Int     @default(0)
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([productId])
+}
+
 // 3. SEPET YÖNETİMİ
 model Cart {
   id     String     @id @default(uuid())
@@ -159,23 +182,26 @@ model CartItem {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  // 🚀 YENİ: Sepetteki ürünün seçilen varyasyonu (Eski sepetleri bozmamak için nullable)
+  variantId String? 
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
   // PERFORMANS İYİLEŞTİRMESİ
   @@index([cartId])
   @@index([productId])
+  @@index([variantId])
 }
 
 // 4. SİPARİŞ VE ÖDEME
-
-// 🚀 YENİ TABLO: Dinamik Ödeme Yöntemleri
 model PaymentMethod {
   id          String      @id @default(uuid())
-  name        String      // "Kredi Kartı", "Havale / EFT", "Kapıda Nakit Ödeme"
-  description String?     // Örn: "TR00 0000 0000 0000 nolu hesaba havale yapınız."
-  type        PaymentType // Sistemin arkada ne yapacağını bilmesi için (Havale mi Kart mı?)
-  fee         Float       @default(0) // Kapıda ödemedeki o "29.90 TL" gibi ek ücretler
+  name        String      
+  description String?     
+  type        PaymentType 
+  fee         Float       @default(0) 
   isActive    Boolean     @default(true)
   
-  payments    Payment[]   // Bu yöntemle yapılmış ödemeler geçmişi
+  payments    Payment[]   
   
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -184,6 +210,7 @@ model PaymentMethod {
 model Order {
   id         String      @id @default(uuid())
   totalPrice Float
+  discountAmount Float   @default(0)
   status     OrderStatus @default(PENDING)
 
   userId String
@@ -195,6 +222,7 @@ model Order {
   items    OrderItem[]
   payment  Payment?
   shipment Shipment?
+  couponUsages CouponUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -206,7 +234,7 @@ model Order {
 model OrderItem {
   id       String @id @default(uuid())
   quantity Int
-  price    Float // Ürünün sipariş anındaki fiyatı sabitlenmeli
+  price    Float 
 
   orderId String
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -214,20 +242,24 @@ model OrderItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
+  // 🚀 YENİ: Sipariş edilen ürünün seçilen varyasyonu
+  variantId String? 
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
   // PERFORMANS İYİLEŞTİRMESİ
   @@index([orderId])
   @@index([productId])
+  @@index([variantId])
 }
 
 model Payment {
   id            String        @id @default(uuid())
   status        PaymentStatus @default(PENDING)
-  transactionId String? // İyzico/Stripe işlem ID'si
+  transactionId String? 
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  // 🚀 DÜZELTME: Eskiden sadece String'di, şimdi yeni PaymentMethod tablomuzla ilişkili!
   paymentMethodId String
   paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
 
@@ -237,7 +269,7 @@ model Payment {
 model Shipment {
   id             String  @id @default(uuid())
   trackingNumber String?
-  company        String? // Yurtiçi, Aras vb.
+  company        String? 
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -245,25 +277,23 @@ model Shipment {
 
 model Review {
   id        String   @id @default(uuid())
-  rating    Int      // 1-5 arası
+  rating    Int      
   comment   String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  // İlişkiler
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Ekstra Profesyonel Özellikler
   isVerified Boolean @default(false)
   isHidden   Boolean @default(false)
   
   @@unique([userId, productId]) 
   @@index([productId])
-  @@index([userId]) // YENİ EKLENDİ
+  @@index([userId]) 
 }
 
 model Favorite {
@@ -275,18 +305,46 @@ model Favorite {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId]) // Bir kullanıcı bir ürünü sadece 1 kez favoriye ekleyebilir
-  @@index([productId]) // YENİ EKLENDİ
-  @@index([userId]) // YENİ EKLENDİ
+  @@unique([userId, productId]) 
+  @@index([productId]) 
+  @@index([userId]) 
 }
 
 model Coupon {
   id         String   @id @default(uuid())
   code       String   @unique
-  discount   Float // İndirim oranı (%10) veya sabit miktar (50 TL)
+  discount   Float 
+  minAmount  Float?
+  isSingleUse Boolean @default(false)
   usageLimit Int      @default(100)
   usedCount  Int      @default(0)
   expireDate DateTime
 
   isActive Boolean @default(true)
+  isDeleted   Boolean @default(false)
+
+  usages CouponUsage[]
+}
+
+model CouponUsage {
+  id        String   @id @default(uuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([couponId])
+  @@index([userId])
+}
+// 5. MAĞAZA VE KARGO AYARLARI (YENİ EKLENDİ)
+model StoreSettings {
+  id                String   @id @default(uuid())
+  shippingCompany   String   @default("Yurtiçi Kargo") // Kargo şirketi adı
+  shippingFee       Float    @default(149.99)          // Kargo ücreti
+  freeShippingThreshold Float @default(5000.00)        // Ücretsiz kargo limiti
+  
+  updatedAt         DateTime @updatedAt
 }

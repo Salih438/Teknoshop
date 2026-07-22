@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { UploadButton } from "@/lib/utils/uploadthing";
@@ -19,10 +19,7 @@ export default function EditProfileModal({ initialName, initialPhone, email }: E
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone || "");
 
-  useEffect(() => {
-    setName(initialName);
-    setPhone(initialPhone || "");
-  }, [initialName, initialPhone]);
+  // State'i useEffect ile senkronize etmek yerine modal açılırken set ediyoruz
 
   const isUnchanged = name.trim() === initialName.trim() && phone.trim() === (initialPhone || "").trim();
 
@@ -70,7 +67,11 @@ export default function EditProfileModal({ initialName, initialPhone, email }: E
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setName(initialName);
+          setPhone(initialPhone || "");
+          setIsOpen(true);
+        }}
         className="bg-white border border-gray-200 text-gray-700 px-5 py-2.5 rounded-xl font-bold hover:bg-gray-50 transition-all shadow-sm text-sm flex items-center gap-2 hover:scale-105 hover:border-blue-200 hover:text-blue-600"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,7 +129,7 @@ export default function EditProfileModal({ initialName, initialPhone, email }: E
                       });
                       toast.success("Profil fotoğrafı güncellendi!", { id: toastId });
                       router.refresh();
-                    } catch (err) {
+                    } catch {
                       toast.error("Fotoğraf kaydedilirken hata oluştu.", { id: toastId });
                     }
                   }

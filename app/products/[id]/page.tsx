@@ -5,7 +5,7 @@ import { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
-// 🚀 1. EKLENTİ: DİNAMİK SEO VE LİNK PAYLAŞIM GÖRÜNÜMÜ (OpenGraph)
+// DİNAMİK SEO VE LİNK PAYLAŞIM GÖRÜNÜMÜ (OpenGraph)
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const resolvedParams = await params;
   const id = resolvedParams.id;
@@ -39,11 +39,11 @@ export default async function SingleProductPage({ params }: { params: Promise<{ 
       id: id,
       isActive: true // Güvenlik: Pasif ürünler görüntülenemez
     },
-    // 🚀 2. EKLENTİ: İlişkisel verileri genişlettik (Reviews eklendi)
     include: { 
       images: true, 
       category: true, 
       brand: true,
+      variants: true, // 🚀 YENİ: Ürünün renk ve hafıza varyasyonlarını da çekiyoruz
       reviews: {
         orderBy: { createdAt: 'desc' } // Yorumları en yeniden eskiye sıralayarak çek
       }

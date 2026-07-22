@@ -1,12 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentMethodsPage() {
   // 1. GÜVENLİK: Sadece ADMIN rolüne sahip kişiler bu sayfayı görebilir
-  await requireAdmin();
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
 
   // 2. VERİ ÇEKME: Mevcut ödeme yöntemlerini getir
   const paymentMethods = await prisma.paymentMethod.findMany({

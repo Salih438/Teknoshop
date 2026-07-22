@@ -1,17 +1,65 @@
 "use client";
+import Image from "next/image";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCartStore } from "@/lib/store";
+import toast from "react-hot-toast";
 
 export default function CartPage() {
-  const { items, removeItem, increaseQuantity, decreaseQuantity } = useCartStore();
+  const { items, removeItem, increaseQuantity, decreaseQuantity, syncCart } = useCartStore();
   const [mounted, setMounted] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Next.js Hydration hatasını engellemek için bileşenin istemcide yüklendiğinden emin oluyoruz
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
+
+  // 🚀 GÖREV 12: Sayfa açıldığında sepet stok ve aktiflik durumunu doğrula
+  useEffect(() => {
+    if (!mounted || items.length === 0) return;
+
+    const validateCart = async () => {
+      setIsValidating(true);
+      try {
+        const res = await fetch("/api/cart/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            items: items.map(i => ({ 
+              id: i.id, 
+              variantId: i.variantId, 
+              cartItemId: i.cartItemId 
+            })) 
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.items) {
+            const { removedCount, updatedCount } = syncCart(data.items);
+            
+            if (removedCount > 0 && updatedCount > 0) {
+              toast.error(`${removedCount} ürün yayından kaldırıldığı için silindi, ${updatedCount} ürünün ise stok/fiyat bilgisi güncellendi.`, { duration: 6000 });
+            } else if (removedCount > 0) {
+              toast.error(`${removedCount} ürün yayından kaldırıldığı veya stok bittiği için sepetinizden silindi.`, { duration: 5000 });
+            } else if (updatedCount > 0) {
+              toast.error(`Sepetinizdeki ${updatedCount} ürünün stok veya fiyat bilgisi güncellendi.`, { duration: 5000 });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Sepet doğrulaması başarısız:", error);
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    validateCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted]);
 
   const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -34,7 +82,18 @@ export default function CartPage() {
 
   return (
     <div className="py-8 max-w-5xl mx-auto px-4 mt-4 animate-in fade-in duration-500">
-      <h1 className="text-3xl font-extrabold text-gray-900 mb-8 tracking-tight">Sepetiniz</h1>
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-8 tracking-tight flex items-center gap-3">
+        Sepetiniz
+        {isValidating && (
+          <span className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full animate-pulse">
+            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Stoklar kontrol ediliyor...
+          </span>
+        )}
+      </h1>
 
       {items.length === 0 ? (
         <div className="text-center p-16 bg-white rounded-2xl shadow-sm border border-gray-100">
@@ -55,12 +114,12 @@ export default function CartPage() {
           {/* --- SOL TARAF: ÜRÜN LİSTESİ --- */}
           <div className="lg:col-span-2 space-y-4">
             {items.map((item) => (
-              <div key={item.id} className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div key={item.cartItemId} className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative">
                 
                 <div className="w-28 h-28 flex-shrink-0 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center p-2 relative group cursor-pointer border border-gray-100">
                   <Link href={`/products/${item.id}`} className="w-full h-full flex items-center justify-center">
                     {item.imageUrls && item.imageUrls.length > 0 ? (
-                      <img src={item.imageUrls[0]} alt={item.name} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                      <Image src={item.imageUrls[0]} alt={item.name} className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500" width={500} height={500} />
                     ) : (
                       <span className="text-xs text-gray-400 font-medium">Görsel Yok</span>
                     )}
@@ -74,14 +133,17 @@ export default function CartPage() {
                     </h3>
                   </Link>
                   <p className="text-blue-600 font-extrabold mt-1 text-lg">{item.price.toLocaleString('tr-TR')} TL</p>
+                  {item.maxStock !== undefined && item.maxStock < 5 && (
+                    <p className="text-orange-500 text-xs font-bold mt-1">Son {item.maxStock} ürün!</p>
+                  )}
                 </div>
                 
                 {/* Miktar Kontrolü ve Silme Butonu */}
                 <div className="flex flex-col items-center gap-3 w-full sm:w-auto pr-2">
-                  <div className="flex items-center border-2 border-gray-100 rounded-xl bg-gray-50 overflow-hidden">
+                  <div className={`flex items-center border-2 rounded-xl bg-gray-50 overflow-hidden ${item.quantity >= (item.maxStock ?? 10) ? 'border-orange-200' : 'border-gray-100'}`}>
                     <button 
-                      onClick={() => decreaseQuantity(item.id)}
-                      disabled={item.quantity <= 1}
+                      onClick={() => decreaseQuantity(item.cartItemId)}
+                      disabled={item.quantity <= 1 || isValidating}
                       className="px-4 py-2 text-gray-600 hover:bg-gray-200 hover:text-black transition-colors disabled:opacity-30 font-bold text-lg"
                       aria-label="Azalt"
                     >-</button>
@@ -89,16 +151,18 @@ export default function CartPage() {
                       {item.quantity}
                     </span>
                     <button 
-                      onClick={() => increaseQuantity(item.id)}
-                      disabled={item.quantity >= 10}
-                      className="px-4 py-2 text-gray-600 hover:bg-gray-200 hover:text-black transition-colors disabled:opacity-30 font-bold text-lg"
+                      onClick={() => increaseQuantity(item.cartItemId)}
+                      disabled={item.quantity >= (item.maxStock ?? 10) || isValidating}
+                      className={`px-4 py-2 font-bold text-lg transition-colors ${item.quantity >= (item.maxStock ?? 10) ? 'text-gray-300 bg-gray-100 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 hover:text-black'}`}
                       aria-label="Artır"
+                      title={item.quantity >= (item.maxStock ?? 10) ? "Maksimum stoğa ulaştınız" : ""}
                     >+</button>
                   </div>
                   
                   <button 
-                    onClick={() => removeItem(item.id)}
-                    className="text-red-500 text-sm font-semibold hover:text-red-700 transition-colors flex items-center gap-1 p-1"
+                    onClick={() => removeItem(item.cartItemId)}
+                    disabled={isValidating}
+                    className="text-red-500 text-sm font-semibold hover:text-red-700 transition-colors flex items-center gap-1 p-1 disabled:opacity-50"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -130,15 +194,20 @@ export default function CartPage() {
               <span className="text-blue-600">{total.toLocaleString('tr-TR')} TL</span>
             </div>
             
-            {/* HTML hatası düzeltildi: Link elementi doğrudan buton gibi stilize edildi */}
             <Link 
-              href="/checkout" 
-              className="flex items-center justify-center w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl hover:bg-blue-700 hover:-translate-y-1 transition-all shadow-lg hover:shadow-blue-600/30"
+              href={isValidating ? "#" : "/checkout"} 
+              className={`flex items-center justify-center w-full text-white font-bold text-lg py-4 rounded-xl transition-all shadow-lg ${
+                isValidating 
+                  ? "bg-gray-400 cursor-not-allowed shadow-none" 
+                  : "bg-blue-600 hover:bg-blue-700 hover:-translate-y-1 hover:shadow-blue-600/30"
+              }`}
             >
-              Alışverişi Tamamla
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
+              {isValidating ? "Kontrol Ediliyor..." : "Alışverişi Tamamla"}
+              {!isValidating && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              )}
             </Link>
 
             {/* Güven Rozeti (Trust Badge) */}

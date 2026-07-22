@@ -1,4 +1,6 @@
 "use client";
+import Image from "next/image";
+
 
 import { useState, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
@@ -13,7 +15,8 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const { isSignedIn } = useAuth();
   const { user } = useUser();
   
-  const [reviews, setReviews] = useState<{ id: string; rating: number; comment: string | null; createdAt: string; isVerified: boolean; user: { name: string | null; avatarUrl: string | null; email: string | null; id: string } | null }[]>([]);
+  type Review = Awaited<ReturnType<typeof getProductReviews>>[number];
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -23,9 +26,17 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const [comment, setComment] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
+  const [prevProductId, setPrevProductId] = useState(productId);
+  const [prevUserId, setPrevUserId] = useState(user?.id);
+
+  if (productId !== prevProductId || user?.id !== prevUserId) {
+    setPrevProductId(productId);
+    setPrevUserId(user?.id);
+    setLoading(true);
+  }
+
   // Verileri Çek
   const fetchReviews = async () => {
-    setLoading(true);
     try {
       const data = await getProductReviews(productId);
       setReviews(data || []);
@@ -33,7 +44,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
       // Kullanıcı daha önce yorum yaptıysa formda göster (Düzenleme Modu)
       if (user && data) {
         const userEmail = user.primaryEmailAddress?.emailAddress; 
-        const existingReview = data.find((r: any) => r.user?.email === userEmail);
+        const existingReview = data.find((r) => r.user?.email === userEmail);
         
         if (existingReview) {
           setRating(existingReview.rating);
@@ -49,6 +60,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, user]);
@@ -103,7 +115,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
     return { star, count, percentage };
   });
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
     return new Date(dateString).toLocaleDateString('tr-TR', options);
   };
@@ -261,11 +273,10 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                 <div className="flex sm:flex-col items-center sm:items-start gap-4 sm:w-48 flex-shrink-0">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <img 
-                        src={review.user?.avatarUrl || `https://ui-avatars.com/api/?name=${review.user?.name || 'User'}&background=random`} 
+                      <Image src={review.user?.avatarUrl || `https://ui-avatars.com/api/?name=${review.user?.name || 'User'}&background=random`} 
                         alt={review.user?.name || 'User'} 
                         className="w-12 h-12 rounded-full object-cover border-2 border-gray-100"
-                      />
+                      width={500} height={500} />
                       {review.isVerified && (
                         <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>

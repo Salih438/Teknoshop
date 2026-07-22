@@ -1,10 +1,18 @@
-import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
+
+import { prisma } from "@/lib/prisma";
 import EditProductForm from "./EditProductForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   const resolvedParams = await params;
   const productId = resolvedParams.id;
 
@@ -27,7 +35,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Ürünü Düzenle</h1>
-        <p className="text-gray-500 mt-2">"{product.name}" isimli ürünü güncelliyorsunuz.</p>
+        <p className="text-gray-500 mt-2">&quot;{product.name}&quot; isimli ürünü güncelliyorsunuz.</p>
       </div>
       
       {/* Verileri az sonra oluşturacağımız Forma gönderiyoruz */}

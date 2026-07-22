@@ -48,7 +48,6 @@ export default function OrderProgressBar({ status }: { status: string }) {
         {stages.map((stage, index) => {
           const isCompleted = index < currentIndex;
           const isCurrent = index === currentIndex;
-          const isPending = index > currentIndex;
 
           return (
             <div key={stage.id} className="relative z-10 flex flex-col items-center group">

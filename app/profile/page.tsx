@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -14,32 +15,27 @@ export default async function ProfilePage() {
   if (!clerkUser) redirect("/");
 
   const email = clerkUser.emailAddresses[0].emailAddress;
-  const clerkName = clerkUser.firstName || "Kullanıcı";
 
-  const dbUser = await prisma.user.findUnique({
+  // 1. KULLANICIYI GETİR
+  let dbUser = await prisma.user.findUnique({
     where: { email },
   });
 
-  // VERİTABANINDA KULLANICI YOKSA VEYA YENİ KAYITSA GÖSTERİLECEK EKRAN
+  // 🚀 KISIR DÖNGÜ KIRICI (Yedek Lazy Sync)
+  // Eğer layout.tsx'teki kayıt işleminden önce buraya gelindiyse,
+  // UI'ı kilitlemek (Hoş Geldin ekranı) yerine anında kaydı oluştur.
   if (!dbUser) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 bg-gray-50/50">
-        <div className="max-w-2xl mx-auto p-10 bg-white rounded-3xl shadow-sm border border-gray-100 text-center animate-in fade-in zoom-in duration-500">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden border-4 border-blue-50 shadow-sm">
-            <img src={clerkUser.imageUrl} alt="Profil" className="w-full h-full object-cover" />
-          </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-4">Hoş Geldin, {clerkName}! 🎉</h1>
-          <p className="text-gray-500 mb-8 text-lg">Hesabın başarıyla oluşturuldu. Profil detayların ve sipariş geçmişin alışveriş yaptıkça burada listelenecek.</p>
-          <Link href="/products" className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-md hover:shadow-lg hover:-translate-y-0.5">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-            Hemen Alışverişe Başla
-          </Link>
-        </div>
-      </div>
-    );
+    dbUser = await prisma.user.create({
+      data: {
+        email: email,
+        name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || "Değerli Müşterimiz",
+        avatarUrl: clerkUser.imageUrl || null,
+        role: "USER",
+      },
+    });
   }
 
-  // 1. SİPARİŞ SORGUSU
+  // 2. SİPARİŞ SORGUSU
   const userOrders = await prisma.order.findMany({
     where: { userId: dbUser.id },
     orderBy: { createdAt: "desc" },
@@ -50,7 +46,7 @@ export default async function ProfilePage() {
     }
   });
 
-  // 2. ADRES SORGUSU
+  // 3. ADRES SORGUSU
   const userAddresses = await prisma.address.findMany({
     where: { userId: dbUser.id },
     orderBy: { createdAt: "desc" }
@@ -89,11 +85,10 @@ export default async function ProfilePage() {
             
             <div className="w-28 h-28 mx-auto mb-5 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-lg relative bg-gray-50">
               {profileImage ? (
-                <img 
-                  src={profileImage} 
+                <Image src={profileImage} 
                   alt={dbUser.name} 
                   className="w-full h-full object-cover"
-                />
+                width={500} height={500} />
               ) : (
                 <span className="text-blue-600 text-4xl font-extrabold">
                   {dbUser.name.charAt(0).toUpperCase()}
@@ -149,7 +144,7 @@ export default async function ProfilePage() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                 </div>
                 <h4 className="text-xl font-bold text-gray-900 mb-2">Henüz Siparişiniz Yok</h4>
-                <p className="text-gray-500 mb-6">Vitrin'deki binlerce ürün sizi bekliyor.</p>
+                <p className="text-gray-500 mb-6">Vitrin&apos;deki binlerce ürün sizi bekliyor.</p>
                 <Link href="/products" className="inline-block bg-gray-900 text-white font-bold px-6 py-3 rounded-xl hover:bg-gray-800 transition shadow-md">
                   Alışverişe Başla
                 </Link>

@@ -1,10 +1,19 @@
 // app/admin/page.tsx
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   // 1. MEVCUT VERİLERİN (Katalog ve Envanter)
   const totalProducts = await prisma.product.count();
   const totalCategories = await prisma.category.count();

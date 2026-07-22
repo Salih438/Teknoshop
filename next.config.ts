@@ -5,12 +5,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "images.unsplash.com", // Unsplash test resimleri için
+        hostname: "**", // Tüm https domainlerine izin ver
       },
-      {
-        protocol: "https",
-        hostname: "utfs.io", // UploadThing bulut resimlerin için
-      }
     ],
   },
 };

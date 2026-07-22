@@ -1,3 +1,7 @@
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
+import Image from "next/image";
 // app/admin/products/page.tsx
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -11,6 +15,12 @@ export default async function AdminProductsPage({
   // GÜNCELLEME 1: searchParams artık bir Promise olarak tanımlandı
   searchParams: Promise<{ q?: string; category?: string; brand?: string }>;
 }) {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   // GÜNCELLEME 2: URL'den gelen parametreleri "await" ile bekleyerek çözümlüyoruz
   const resolvedParams = await searchParams;
   const query = resolvedParams?.q || "";
@@ -132,7 +142,7 @@ export default async function AdminProductsPage({
                     <td className="p-4">
                       <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center border border-gray-200">
                         {mainImage ? (
-                          <img src={mainImage} alt={product.name} className="w-full h-full object-cover" />
+                          <Image src={mainImage} alt={product.name} className="w-full h-full object-cover" width={500} height={500} />
                         ) : (
                           <span className="text-xs text-gray-400">Yok</span>
                         )}

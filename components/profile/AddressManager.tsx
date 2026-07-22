@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -27,9 +27,12 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
     isDefault: false
   });
 
-  useEffect(() => {
+  const [prevInitialAddresses, setPrevInitialAddresses] = useState(initialAddresses);
+
+  if (initialAddresses !== prevInitialAddresses) {
+    setPrevInitialAddresses(initialAddresses);
     setAddresses(initialAddresses);
-  }, [initialAddresses]);
+  }
 
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,10 +286,7 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                     <span className="font-bold text-gray-800">{address.district}, {address.city}</span>
                   </p>
-                  <p className="flex items-center gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                    <span className="font-bold text-gray-800">0533 795 73 29</span>
-                  </p>
+
                 </div>
                 
               </div>

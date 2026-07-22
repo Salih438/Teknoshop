@@ -38,9 +38,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
- // Sepetten ürün çıkarma mantığı (TypeScript'i susturmak için String ile garantiye alıyoruz)
-  // Sepetten ürün çıkarma mantığı (Eşit OLMAYANLARI tutarak siliyoruz)
-  // Sepetten ürün çıkarma mantığı (TypeScript'i susturmak için String ve kesin eşitsizlik kullanıyoruz)
+  // Sepetten ürün çıkarma mantığı (eşit olmayanları tutarak siler)
   const removeFromCart = (productId: number) => {
     setCart((prevCart) => prevCart.filter((item) => String(item.id) !== String(productId)));
   };

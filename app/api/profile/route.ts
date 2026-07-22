@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/prisma";
+// Dosya: app/api/profile/route.ts
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { z } from "zod";
+import { ProfileService } from "@/lib/services/profile.service"; // 🚀 Servisi içeri aldık
 
-// Zod şemasına avatarUrl eklendi
+// Zod güvenlik şeması (HTTP veri doğrulama katmanı)
 const profileSchema = z.object({
   name: z.string().min(2, "İsim en az 2 karakter olmalıdır.").max(50),
   phone: z
@@ -12,11 +13,12 @@ const profileSchema = z.object({
     .or(z.literal(""))
     .nullable()
     .optional(),
-  avatarUrl: z.string().url().optional(), // YENİ: Opsiyonel resim linki
+  avatarUrl: z.string().url().optional(),
 });
 
 export async function PUT(request: Request) {
   try {
+    // 1. Kapı Güvenliği: Kimlik Doğrulama
     const clerkUser = await currentUser();
     if (!clerkUser) {
       return NextResponse.json({ error: "Oturum açmalısınız." }, { status: 401 });
@@ -24,8 +26,9 @@ export async function PUT(request: Request) {
 
     const email = clerkUser.emailAddresses[0].emailAddress;
     const body = await request.json();
+    
+    // 2. Veri Doğrulama: Zod Kalkanı
     const validation = profileSchema.safeParse(body);
-
     if (!validation.success) {
       return NextResponse.json(
         { error: "Geçersiz form verisi.", details: validation.error.format() },
@@ -33,24 +36,10 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { name, phone, avatarUrl } = validation.data;
+    // 3. İş Katmanı: Veritabanı İşlemlerini Service Katmanına Devret (SOLID)
+    const updatedUser = await ProfileService.updateProfile(email, validation.data);
 
-    // Sadece gönderilen verileri güncellemek için dinamik data objesi oluşturuyoruz
-    const updateData: any = {
-      name,
-      phone: phone || null,
-    };
-    
-    // Eğer istekte avatarUrl geldiyse, güncelleme objesine ekle
-    if (avatarUrl) {
-      updateData.avatarUrl = avatarUrl;
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { email },
-      data: updateData,
-    });
-
+    // 4. Yanıt Döndürme
     return NextResponse.json({ success: true, user: updatedUser }, { status: 200 });
 
   } catch (error) {

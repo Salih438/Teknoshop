@@ -7,7 +7,6 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
-// 🚀 DÜZELTME 1: Prisma tiplerini içeri aktardık (Sadece tip olarak kullanıldığı için Client Component'te sorun yaratmaz)
 import type { Address, PaymentMethod } from "@prisma/client";
 
 import AddressSelector from "@/components/checkout/AddressSelector";
@@ -22,7 +21,6 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // 🚀 DÜZELTME 2: 'any' yerine 'PaymentMethod' tipini kullandık (Antigravity standartı)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
   
@@ -30,13 +28,13 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState(0);
   
-  // 🚀 DÜZELTME 3: 'any' yerine 'Address' tipini kullandık
   const [userAddresses, setUserAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  setMounted(true);
+}, []);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -79,14 +77,41 @@ export default function CheckoutPage() {
 
   const finalTotal = subTotal + shippingCost + paymentFee - discount;
 
-  const applyCoupon = () => {
-    if (couponCode.toUpperCase() === "YAZ2026") {
-      setDiscount(subTotal * 0.1); 
-      toast.success("Kupon başarıyla uygulandı! %10 İndirim kazandınız.");
-    } else {
-      toast.error("Geçersiz veya süresi dolmuş kupon kodu.");
+  const applyCoupon = async () => {
+    if (!couponCode) {
+      toast.error("Lütfen bir kupon kodu giriniz.");
+      return;
+    }
+
+    const toastId = toast.loading("Kupon doğrulanıyor...");
+
+    try {
+      const response = await fetch("/api/checkout/validate-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ couponCode, subTotal })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setDiscount(data.discount); 
+        toast.success(data.message || "Kupon başarıyla uygulandı!", { id: toastId });
+      } else {
+        toast.error(data.error || "Geçersiz veya süresi dolmuş kupon kodu.", { id: toastId });
+        setDiscount(0);
+      }
+    } catch {
+      toast.error("Sunucuya bağlanılamadı.", { id: toastId });
       setDiscount(0);
     }
+  };
+
+  // 🚀 YENİ EKLENEN: Kuponu Kaldırma Fonksiyonu
+  const removeCoupon = () => {
+    setCouponCode("");
+    setDiscount(0);
+    toast.success("Kupon başarıyla kaldırıldı.");
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -116,20 +141,21 @@ export default function CheckoutPage() {
           addressId: selectedAddressId,
           paymentMethodId: paymentMethodId,
           items: items,
-          totalPrice: finalTotal
+          couponCode: discount > 0 ? couponCode : undefined
         })
       });
+
+      const data = await response.json();
 
       if (response.ok) {
         toast.success("Sipariş başarıyla alındı!", { id: toastId });
         clearCart(); 
-        router.push("/order-success"); 
+        router.push(`/order-success?orderId=${data.orderId}`); 
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.error || "Sipariş oluşturulamadı. Lütfen tekrar deneyin.", { id: toastId });
+        toast.error(data.error || "Sipariş oluşturulamadı. Lütfen tekrar deneyin.", { id: toastId });
         setIsSubmitting(false);
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin.", { id: toastId });
       setIsSubmitting(false);
     }
@@ -226,6 +252,7 @@ export default function CheckoutPage() {
             couponCode={couponCode}
             setCouponCode={setCouponCode}
             applyCoupon={applyCoupon}
+            removeCoupon={removeCoupon} // 🚀 YENİ EKLENEN PROP
             isAgreed={isAgreed}
             setIsAgreed={setIsAgreed}
             isSubmitting={isSubmitting}

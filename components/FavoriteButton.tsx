@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import toast from "react-hot-toast";
 import { toggleFavorite } from "@/actions/favorite";
@@ -20,10 +20,13 @@ export default function FavoriteButton({
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
   const [loading, setLoading] = useState(false);
 
+  const [prevInitial, setPrevInitial] = useState(initialIsFavorite);
+
   // Arka planda revalidatePath çalıştığında, sunucudan gelen yeni değeri butona yansıtır.
-  useEffect(() => {
+  if (initialIsFavorite !== prevInitial) {
+    setPrevInitial(initialIsFavorite);
     setIsFavorite(initialIsFavorite);
-  }, [initialIsFavorite]);
+  }
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault(); 
@@ -56,7 +59,7 @@ export default function FavoriteButton({
         setIsFavorite(previousState);
         toast.error(result.error || "İşlem gerçekleştirilemedi.");
       }
-    } catch (_error) {
+    } catch {
       // Ağ hatası veya sunucu çökmesi durumunda state'i geri al ve sonsuz yüklemeyi engelle
       setIsFavorite(previousState);
       toast.error("Sunucuya bağlanılamadı.");

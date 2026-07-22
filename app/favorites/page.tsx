@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
@@ -96,11 +97,10 @@ export default async function FavoritesPage() {
 
                   <Link href={`/products/${product.id}`} className="relative h-56 bg-white flex items-center justify-center p-6 overflow-hidden border-b border-gray-50">
                     {displayImage ? (
-                      <img 
-                        src={displayImage} 
+                      <Image src={displayImage} 
                         alt={product.name}
                         className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500"
-                      />
+                      width={500} height={500} />
                     ) : (
                       <span className="text-gray-300 font-medium text-sm">Görsel Yok</span>
                     )}

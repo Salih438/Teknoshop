@@ -1,4 +1,6 @@
 "use client";
+import Image from "next/image";
+
 
 import { memo } from 'react';
 import Link from 'next/link';
@@ -23,7 +25,7 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
   // Yorum Hesaplamaları
   const totalReviews = product.reviews?.length || 0;
   const averageRating = totalReviews > 0 
-    ? (product.reviews!.reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
+    ? ((product.reviews ?? []).reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
     : "0.0";
 
   return (
@@ -47,13 +49,12 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
           </div>
 
           {product.imageUrl ? (
-            <img 
-              src={product.imageUrl} 
+            <Image src={product.imageUrl} 
               alt={product.name} 
               loading="lazy"          // 🚀 OPTİMİZASYON 2: Tembel yükleme
               decoding="async"        // Sayfa yüklenmesini engellemez
               className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500" 
-            />
+            width={500} height={500} />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>

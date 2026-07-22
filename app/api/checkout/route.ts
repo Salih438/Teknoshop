@@ -12,6 +12,7 @@ const checkoutSchema = z.object({
   items: z.array(
     z.object({
       id: z.string().uuid("Geçersiz ürün ID'si."),
+      variantId: z.string().uuid("Geçersiz varyasyon ID'si.").optional(),
       quantity: z.number().int().positive("Adet sayısı en az 1 olmalıdır."),
     })
   ).nonempty("Sepetiniz boş olamaz."),
@@ -26,8 +27,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Siparişi tamamlamak için giriş yapmalısınız." }, { status: 401 });
     }
 
+    const email = clerkUser.emailAddresses?.[0]?.emailAddress;
+    if (!email) {
+      return NextResponse.json({ error: "Kullanıcı e-posta adresi bulunamadı." }, { status: 400 });
+    }
+
     const dbUser = await prisma.user.findUnique({
-      where: { email: clerkUser.emailAddresses[0].emailAddress },
+      where: { email },
       select: { id: true } // Sadece gerekli alanı çekiyoruz
     });
     

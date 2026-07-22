@@ -1,17 +1,45 @@
 "use client";
+import Image from "next/image";
+
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadButton } from "@/lib/utils/uploadthing"; 
 import toast from "react-hot-toast";
 
+// Varyasyon tipimizi tanımlıyoruz
+interface VariantInfo {
+  id: number;
+  color: string;
+  storage: string;
+  price: string;
+  stock: string;
+}
+
 export default function ProductForm({ categories, brands }: { categories: { id: string; name: string }[], brands: { id: string; name: string }[] }) {
   const router = useRouter();
   const [imageUrl, setImageUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // YENİ: Resim ekleme yöntemini tutan state (upload veya url)
   const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+
+  // 🚀 YENİ: Varyasyon State'leri
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variants, setVariants] = useState<VariantInfo[]>([]);
+
+  // Yeni varyasyon satırı ekleme fonksiyonu
+  const addVariant = () => {
+    setVariants([...variants, { id: Date.now(), color: "", storage: "", price: "", stock: "0" }]);
+  };
+
+  // Varyasyon satırını silme fonksiyonu
+  const removeVariant = (id: number) => {
+    setVariants(variants.filter((v) => v.id !== id));
+  };
+
+  // Varyasyon inputlarındaki değişiklikleri yakalama
+  const updateVariant = (id: number, field: keyof VariantInfo, value: string) => {
+    setVariants(variants.map((v) => (v.id === id ? { ...v, [field]: value } : v)));
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -21,14 +49,23 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
       return;
     }
 
+    if (hasVariants && variants.length === 0) {
+      toast.error("Varyasyon seçeneğini aktif ettiniz ancak varyasyon eklemediniz.");
+      return;
+    }
+
     setIsSubmitting(true);
     const toastId = toast.loading("Ürün veritabanına kaydediliyor...");
     
     const formData = new FormData(e.currentTarget);
     const isActive = e.currentTarget.isActive.checked;
     formData.set("isActive", isActive.toString());
-    
     formData.set("imageUrl", imageUrl);
+    
+    // 🚀 YENİ: Varyasyonları JSON string olarak API'ye gönderiyoruz
+    if (hasVariants && variants.length > 0) {
+      formData.set("variants", JSON.stringify(variants));
+    }
     
     try {
       const res = await fetch("/api/admin/products", {
@@ -92,13 +129,13 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
 
         {/* Fiyat */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Fiyat (TL)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Ana Fiyat (TL)</label>
           <input type="number" name="price" step="0.01" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="4500" />
         </div>
 
         {/* Stok */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Stok Miktarı</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Ana Stok Miktarı</label>
           <input type="number" name="stock" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="15" />
         </div>
 
@@ -124,6 +161,63 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
         </div>
       </div>
 
+      {/* 🚀 YENİ: VARYASYON YÖNETİM MODÜLÜ */}
+      <div className="border border-blue-200 rounded-xl p-6 bg-blue-50/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <label className="block text-base font-bold text-gray-900">🎨 Ürün Varyasyonları</label>
+            <p className="text-xs text-gray-500 mt-1">Renk, Hafıza veya Beden gibi seçenekler ekleyin.</p>
+          </div>
+          
+          {/* Toggle Switch */}
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" className="sr-only peer" checked={hasVariants} onChange={(e) => {
+              setHasVariants(e.target.checked);
+              if (e.target.checked && variants.length === 0) addVariant();
+            }} />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <span className="ml-3 text-sm font-bold text-gray-700">Seçenekleri Aç</span>
+          </label>
+        </div>
+
+        {hasVariants && (
+          <div className="mt-6 space-y-4">
+            {variants.map((variant) => (
+              <div key={variant.id} className="flex flex-wrap md:flex-nowrap items-start gap-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm relative animate-in fade-in slide-in-from-top-2">
+                
+                <div className="flex-1 min-w-[120px]">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Renk Seçeneği</label>
+                  <input type="text" value={variant.color} onChange={(e) => updateVariant(variant.id, "color", e.target.value)} placeholder="Siyah, Kırmızı vs." className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white" />
+                </div>
+                
+                <div className="flex-1 min-w-[120px]">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Hafıza / Beden</label>
+                  <input type="text" value={variant.storage} onChange={(e) => updateVariant(variant.id, "storage", e.target.value)} placeholder="128GB, XL vs." className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white" />
+                </div>
+                
+                <div className="flex-1 min-w-[120px]">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Özel Fiyat (₺)</label>
+                  <input type="number" step="0.01" value={variant.price} onChange={(e) => updateVariant(variant.id, "price", e.target.value)} placeholder="Boşsa ana fiyat" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white" />
+                </div>
+                
+                <div className="w-24 min-w-[80px]">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Stok</label>
+                  <input type="number" required={hasVariants} value={variant.stock} onChange={(e) => updateVariant(variant.id, "stock", e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white" />
+                </div>
+
+                <button type="button" onClick={() => removeVariant(variant.id)} className="mt-6 p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Bu seçeneği sil">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
+            ))}
+
+            <button type="button" onClick={addVariant} className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition px-2 py-1">
+              <span>+</span> Yeni Seçenek Ekle
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Açıklama */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Ürün Özellikleri / Açıklama</label>
@@ -135,7 +229,6 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
           <label className="block text-sm font-bold text-gray-800">📷 Görsel Yönetimi</label>
           
-          {/* Sekme Butonları */}
           <div className="flex bg-gray-200 p-1 rounded-lg">
             <button
               type="button"
@@ -155,14 +248,12 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
         </div>
 
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          {/* Sol Taraf: Giriş Alanı */}
           <div className="flex-1 w-full bg-white border border-gray-200 p-6 rounded-xl flex flex-col items-center justify-center min-h-[160px]">
             {imageMode === "upload" ? (
-              // UploadThing Modu
               imageUrl && !imageUrl.startsWith("https://utfs.io") && imageUrl !== "" ? (
                  <div className="text-center w-full">
-                  <p className="text-sm text-amber-600 mb-3">Şu an bir dış URL kullanıyorsunuz. Buluta resim yüklemek için mevcut URL'i temizleyin.</p>
-                  <button type="button" onClick={() => setImageUrl("")} className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-200 transition">URL'i Temizle</button>
+                  <p className="text-sm text-amber-600 mb-3">Şu an bir dış URL kullanıyorsunuz. Buluta resim yüklemek için mevcut URL&apos;i temizleyin.</p>
+                  <button type="button" onClick={() => setImageUrl("")} className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-200 transition">URL&apos;i Temizle</button>
                  </div>
               ) : imageUrl ? (
                 <div className="text-center">
@@ -190,7 +281,6 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
                 </>
               )
             ) : (
-              // URL Modu
               <div className="w-full flex flex-col items-start">
                 <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Resim Linki (URL)</label>
                 <input 
@@ -205,11 +295,10 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
             )}
           </div>
           
-          {/* Sağ Taraf: Önizleme Kutusu */}
           <div className="w-full md:w-64 h-48 bg-white border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden relative">
             {imageUrl ? (
               <>
-                <img src={imageUrl} alt="Önizleme" className="max-w-full max-h-full object-contain" />
+                <Image src={imageUrl} alt="Önizleme" className="max-w-full max-h-full object-contain" width={500} height={500} />
                 <button type="button" onClick={() => setImageUrl("")} className="absolute top-2 right-2 bg-white/90 text-red-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-red-50 transition" title="Görseli Kaldır">✕</button>
               </>
             ) : (
@@ -219,7 +308,6 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
         </div>
       </div>
 
-      {/* Kaydet Butonu */}
       <button 
         type="submit" 
         disabled={isSubmitting || !imageUrl}

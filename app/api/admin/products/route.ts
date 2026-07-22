@@ -1,18 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { requireAdmin, AuthError } from "@/lib/auth";
+
+// 🚀 DÜZELTME 1: 'any' hatasından kurtulmak için verinin tipini önden tanımlıyoruz
+type ParsedVariant = {
+  color: string | null;
+  storage: string | null;
+  price: number | null;
+  stock: number;
+};
 
 export async function POST(request: Request) {
   try {
-    // --- GÜVENLİK DUVARI BAŞLANGICI ---
-    const clerkUser = await currentUser();
-    if (!clerkUser) return NextResponse.json({ error: "Giriş yapmalısınız." }, { status: 401 });
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: clerkUser.emailAddresses[0].emailAddress },
-    });
-    if (!dbUser || dbUser.role !== "ADMIN") return NextResponse.json({ error: "Yetkiniz yok." }, { status: 403 });
-    // --- GÜVENLİK DUVARI BİTİŞİ ---
+    await requireAdmin();
 
     const formData = await request.formData();
     
@@ -23,15 +23,52 @@ export async function POST(request: Request) {
     const stock = parseInt(formData.get("stock") as string, 10);
     const categoryId = formData.get("categoryId") as string;
     const brandId = formData.get("brandId") as string;
-    const imageUrl = formData.get("imageUrl") as string; // UploadThing'den gelen link
+    const imageUrl = formData.get("imageUrl") as string; 
 
     const skuData = formData.get("sku") as string;
     const sku = skuData ? skuData.trim() : undefined; 
     
     const isActive = formData.get("isActive") === "true"; 
 
+    // Frontend'den gelen varyasyon JSON verisini yakalıyoruz
+    const variantsData = formData.get("variants") as string | null;
+
     if (!name || !slug || !price || !categoryId || !brandId || !imageUrl) {
       return NextResponse.json({ error: "Lütfen tüm zorunlu alanları doldurun." }, { status: 400 });
+    }
+
+    // 🚀 DÜZELTME 2: Tanımladığımız 'ParsedVariant' tipini kullanıyoruz
+    let parsedVariants: ParsedVariant[] = [];
+    
+    if (variantsData) {
+      try {
+        // Gelen JSON stringini Record (Obje) dizisi olarak işliyoruz
+        const rawVariants = JSON.parse(variantsData) as Record<string, string>[];
+        
+        parsedVariants = rawVariants.map((v) => ({
+          color: v.color?.trim() || null,
+          storage: v.storage?.trim() || null,
+          price: v.price ? parseFloat(v.price) : null,
+          stock: parseInt(v.stock, 10) || 0,
+        }));
+      // 🚀 DÜZELTME 3: Kullanılmayan 'err' değişkenini tamamen kaldırdık (Sadece catch yazdık)
+      } catch {
+        return NextResponse.json({ error: "Varyasyon verisi işlenemedi veya bozuk formatta." }, { status: 400 });
+      }
+    }
+
+    // 🚀 GÜVENLİK DUVARI: Mükerrer (Duplicate) Varyasyon Kontrolü
+    if (parsedVariants.length > 0) {
+      const seenVariants = new Set<string>();
+      for (const v of parsedVariants) {
+        const key = `${v.color || "null"}-${v.storage || "null"}`;
+        if (seenVariants.has(key)) {
+          return NextResponse.json({ 
+            error: `Aynı renk ve hafıza kombinasyonu birden fazla kez eklenemez: ${v.color || "Belirtilmemiş"} / ${v.storage || "Belirtilmemiş"}` 
+          }, { status: 400 });
+        }
+        seenVariants.add(key);
+      }
     }
 
     const newProduct = await prisma.product.create({
@@ -45,18 +82,27 @@ export async function POST(request: Request) {
         brandId: brandId,
         sku: sku,               
         isActive: isActive,
-        imageUrl: imageUrl, // <--- İŞTE EKSİK OLAN HAYAT KURTARICI SATIR BURASIYDI!
+        imageUrl: imageUrl, 
         images: {
           create: [
-            { imageUrl: imageUrl } // Galeriye de kopyasını atıyoruz
+            { imageUrl: imageUrl } 
           ]
-        }
+        },
+        // Eğer admin varyasyon eklediyse, Prisma bunları da tek seferde (Atomic) ürüne bağlayıp kaydedecek
+        ...(parsedVariants.length > 0 && {
+          variants: {
+            create: parsedVariants
+          }
+        })
       }
     });
 
     return NextResponse.json(newProduct, { status: 201 });
     
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Ürün eklenirken sunucu hatası oluştu:", error);
     return NextResponse.json({ error: "Sunucu hatası yaşandı." }, { status: 500 });
   }

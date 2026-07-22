@@ -11,6 +11,7 @@ interface OrderSummaryProps {
   couponCode: string;
   setCouponCode: (code: string) => void;
   applyCoupon: () => void;
+  removeCoupon: () => void;
   isAgreed: boolean;
   setIsAgreed: (agreed: boolean) => void;
   isSubmitting: boolean;
@@ -26,6 +27,7 @@ export default function OrderSummary({
   couponCode,
   setCouponCode,
   applyCoupon,
+  removeCoupon, 
   isAgreed,
   setIsAgreed,
   isSubmitting,
@@ -55,22 +57,47 @@ export default function OrderSummary({
       {/* KUPON KODU ALANI */}
       <div className="mb-6">
         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">İndirim Kuponu</label>
-        <div className="flex gap-2">
-          <input 
-            type="text" 
-            value={couponCode} 
-            onChange={(e) => setCouponCode(e.target.value)} 
-            placeholder="KOD GIR" 
-            className="w-full border border-gray-200 bg-gray-50 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase font-bold" 
-          />
-          <button 
-            type="button" 
-            onClick={applyCoupon} 
-            className="bg-gray-900 text-white px-5 rounded-xl text-sm font-bold hover:bg-blue-600 transition-all"
-          >
-            Uygula
-          </button>
-        </div>
+        
+        {discount > 0 ? (
+          // 🚀 DÜZELTME BURADA: relative z-10 eklendi ve onClick event korumaya alındı
+          <div className="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-xl p-3 relative">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="text-sm font-extrabold text-emerald-800 uppercase tracking-wider">{couponCode}</span>
+            </div>
+            <button 
+              type="button" 
+              onClick={(e) => {
+                e.preventDefault(); // Sayfa yenilemesini veya form tetiklemesini engeller
+                e.stopPropagation(); // Tıklamanın kaybolmasını engeller
+                removeCoupon(); // Asıl fonksiyonumuzu çalıştırır
+              }}
+              className="relative z-10 cursor-pointer text-xs font-bold text-red-600 hover:text-red-800 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-all"
+            >
+              Kaldır
+            </button>
+          </div>
+        ) : (
+          // KUPON GİRİŞ DURUMU (Standart Input)
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              value={couponCode} 
+              onChange={(e) => setCouponCode(e.target.value)} 
+              placeholder="KOD GIR" 
+              className="w-full border border-gray-200 bg-gray-50 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase font-bold" 
+            />
+            <button 
+              type="button" 
+              onClick={applyCoupon} 
+              className="bg-gray-900 text-white px-5 rounded-xl text-sm font-bold hover:bg-blue-600 transition-all"
+            >
+              Uygula
+            </button>
+          </div>
+        )}
       </div>
       
       {/* FİYAT DAĞILIMI */}
@@ -81,8 +108,8 @@ export default function OrderSummary({
         </div>
         
         {discount > 0 && (
-          <div className="flex justify-between text-green-600">
-            <span>İndirim</span>
+          <div className="flex justify-between text-emerald-600">
+            <span>İndirim Kazancı</span>
             <span className="font-bold">-{discount.toLocaleString('tr-TR')} TL</span>
           </div>
         )}
@@ -90,7 +117,7 @@ export default function OrderSummary({
         <div className="flex justify-between">
           <span>Kargo</span>
           {shippingCost === 0 ? (
-            <span className="text-green-600 font-bold">Ücretsiz</span>
+            <span className="text-emerald-600 font-bold">Ücretsiz</span>
           ) : (
             <span className="font-bold text-gray-900">{shippingCost.toLocaleString('tr-TR')} TL</span>
           )}
@@ -112,7 +139,7 @@ export default function OrderSummary({
           className="mt-1 w-5 h-5 border-2 border-gray-300 rounded text-blue-600 focus:ring-blue-500 cursor-pointer" 
         />
         <span className="text-xs text-gray-500 leading-relaxed">
-          <Link href="#" className="text-blue-600 font-bold hover:underline">Mesafeli Satış Sözleşmesi</Link>'ni okudum, onaylıyorum ve ön bilgilendirme formunu kabul ediyorum.
+          <Link href="#" className="text-blue-600 font-bold hover:underline">Mesafeli Satış Sözleşmesi</Link>&apos;ni okudum, onaylıyorum ve ön bilgilendirme formunu kabul ediyorum.
         </span>
       </label>
 

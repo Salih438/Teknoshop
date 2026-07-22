@@ -1,4 +1,7 @@
 // app/admin/brands/page.tsx
+import { requireAdmin } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
 import { prisma } from "@/lib/prisma";
 import BrandForm from "./BrandForm";
 import DeleteBrandButton from "./DeleteBrandButton"; // YENİ: Akıllı silme butonumuzu içeri aktardık
@@ -7,6 +10,12 @@ import { Toaster } from "react-hot-toast";
 export const dynamic = "force-dynamic";
 
 export default async function AdminBrandsPage() {
+  try {
+    await requireAdmin();
+  } catch {
+    redirect("/");
+  }
+
   // Markaları, onlara ait ürün sayısıyla birlikte çekiyoruz
   const brands = await prisma.brand.findMany({
     include: {
