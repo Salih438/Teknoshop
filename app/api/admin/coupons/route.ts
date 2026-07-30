@@ -1,12 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { AuditLogService } from "@/lib/services/audit-log.service";
+import { AuditRiskLevel } from "@prisma/client";
 
 export async function GET() {
   try {
     await requireAdmin();
 
     const coupons = await prisma.coupon.findMany({
+      where: { isDeleted: false },
       orderBy: { expireDate: "desc" },
     });
 
@@ -21,7 +24,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_COUPONS");
 
     const body = await request.json();
     const {
@@ -75,6 +78,16 @@ export async function POST(request: Request) {
         expireDate: new Date(expireDate),
         isActive: isActive !== undefined ? isActive : true,
       },
+    });
+
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "CREATE_COUPON",
+      entityType: "Coupon",
+      entityId: newCoupon.id,
+      entityName: newCoupon.code,
+      riskLevel: AuditRiskLevel.MEDIUM,
+      newValue: { code: newCoupon.code, discount: newCoupon.discount },
     });
 
     return NextResponse.json(

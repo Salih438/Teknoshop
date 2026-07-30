@@ -1,14 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { AuditLogService } from "@/lib/services/audit-log.service";
+import { AuditRiskLevel } from "@prisma/client";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> } // Next.js 16 için Promise olarak tanımladık
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
-    // 🚀 YENİ KURAL: params nesnesini önce await ediyoruz!
+    await requireAdmin("MANAGE_CATEGORIES");
     const resolvedParams = await params;
     const categoryId = resolvedParams.id;
 
@@ -28,8 +29,22 @@ export async function DELETE(
       );
     }
 
+    const categoryToDelete = await prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { name: true },
+    });
+
     await prisma.category.delete({
       where: { id: categoryId },
+    });
+
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "DELETE_CATEGORY",
+      entityType: "Category",
+      entityId: categoryId,
+      entityName: categoryToDelete?.name || categoryId,
+      riskLevel: AuditRiskLevel.LOW,
     });
 
     return NextResponse.json({ success: true, message: "Kategori başarıyla silindi." }, { status: 200 });

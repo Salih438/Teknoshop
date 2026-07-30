@@ -1,4 +1,3 @@
-// app/admin/categories/page.tsx
 import { requireAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -16,7 +15,6 @@ export default async function AdminCategoriesPage() {
     redirect("/");
   }
 
-  // Kategorileri, içlerinde kaç adet ürün olduğu bilgisiyle (include) birlikte çekiyoruz
   const categories = await prisma.category.findMany({
     include: {
       _count: {
@@ -27,61 +25,61 @@ export default async function AdminCategoriesPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6 w-full overflow-x-clip">
       <Toaster position="bottom-right" />
       
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Kategori Yönetimi</h1>
-        <p className="text-gray-500 mt-2">Ürünlerinizi sınıflandırmak için yeni kategoriler ekleyin.</p>
+      <div className="mb-2">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">Kategori Yönetimi</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Ürünlerinizi sınıflandırmak için yeni kategoriler ekleyin.</p>
       </div>
 
-      {/* İKİYE BÖLÜNMÜŞ EKRAN TASARIMI (Grid) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         
-        {/* SOL TARAF: Form Bileşeni (1 Birim) */}
+        {/* SOL TARAF: Form Bileşeni */}
         <div className="lg:col-span-1">
           <CategoryForm />
         </div>
 
-        {/* SAĞ TARAF: Kategoriler Tablosu (2 Birim) */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-500 uppercase tracking-wider">
-                <th className="p-4 font-medium">Kategori Adı</th>
-                <th className="p-4 font-medium">Açıklama</th>
-                <th className="p-4 font-medium text-center">Bağlı Ürün</th>
-                <th className="p-4 font-medium text-center">İşlemler</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {categories.map((category) => (
-                <tr key={category.id} className="hover:bg-gray-50 transition">
-                  <td className="p-4 font-bold text-gray-900">{category.name}</td>
-                  <td className="p-4 text-sm text-gray-500 truncate max-w-[200px]">
-                    {category.description || "-"}
-                  </td>
-                  <td className="p-4 text-center">
-                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
-                      {category._count.products} Ürün
-                    </span>
-                  </td>
-                  <td className="p-4 text-center">
-                    {/* İŞTE DÜZELTİLEN KISIM BURASI: Gerçek işlevsel bileşenimizi buraya koyduk */}
-                    <DeleteCategoryButton id={category.id} />
-                  </td>
+        {/* SAĞ TARAF: Kategoriler Tablosu */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[500px]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider font-extrabold">
+                  <th className="p-3.5">Kategori Adı</th>
+                  <th className="p-3.5">Açıklama</th>
+                  <th className="p-3.5 text-center">Bağlı Ürün</th>
+                  <th className="p-3.5 text-center">İşlemler</th>
                 </tr>
-              ))}
-              
-              {categories.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-gray-500">
-                    Henüz hiç kategori eklenmemiş. Soldaki formu kullanarak ilk kategorinizi oluşturun.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
+                {categories.map((category) => (
+                  <tr key={category.id} className="hover:bg-gray-50/80 transition">
+                    <td className="p-3.5 font-bold text-gray-900">{category.name}</td>
+                    <td className="p-3.5 text-gray-500 truncate max-w-[180px]">
+                      {category.description || "-"}
+                    </td>
+                    <td className="p-3.5 text-center">
+                      <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-xs font-extrabold">
+                        {category._count.products} Ürün
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-center">
+                      <DeleteCategoryButton id={category.id} />
+                    </td>
+                  </tr>
+                ))}
+                
+                {categories.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-gray-500 font-medium">
+                      Henüz hiç kategori eklenmemiş. Soldaki formu kullanarak ilk kategorinizi oluşturun.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>

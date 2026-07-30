@@ -1,14 +1,17 @@
 "use client";
-import Image from "next/image";
-
 
 import { useState, useRef } from "react";
 import { useCartStore } from "@/lib/store";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import FavoriteButton from "@/components/FavoriteButton"; 
 import ProductReviews from "@/components/ProductReviews";
 import VariantSelector, { ProductVariant } from "@/components/VariantSelector";
+import ProductGallery from "@/components/product/ProductGallery";
+import StickyBuyBar from "@/components/product/StickyBuyBar";
+import InstallmentModal from "@/components/product/InstallmentModal";
+import RelatedProductsSlider from "@/components/product/RelatedProductsSlider";
+import RecentlyViewedProducts from "@/components/product/RecentlyViewedProducts";
+import { ProductCardProps } from "@/components/ProductCard";
 
 interface ProductDetailsProps {
   id: string;
@@ -23,38 +26,51 @@ interface ProductDetailsProps {
   brand?: { name: string } | null;
   reviews?: { rating: number }[];
   favorites?: { id: string }[];
-  variants?: ProductVariant[]; 
+  comparePrice?: number | null;
+  variants?: ProductVariant[];
 }
 
-export default function ProductDetails({ product }: { product: ProductDetailsProps }) {
+export default function ProductDetails({
+  product,
+  relatedProducts = [],
+}: {
+  product: ProductDetailsProps;
+  relatedProducts?: ProductCardProps[];
+}) {
   const addItem = useCartStore((state) => state.addItem);
-  const tabsRef = useRef<HTMLDivElement>(null); 
-  
-  const imageList = (product?.images?.length ?? 0) > 0
-    ? product.images!.map((img) => img.imageUrl)
-    : (product?.imageUrl ? [product.imageUrl] : []);  
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  const imageList = [product.imageUrl, ...(product.images?.map((img) => img.imageUrl) || [])].filter(Boolean);
 
   const brandName = product?.brand?.name || "Belirtilmemiş";
   const categoryName = product?.category?.name || "Kategori Yok";
 
-  // Etkileşim State'leri
-  const [mainImage, setMainImage] = useState(imageList[0] || "");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("desc");
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
-  // Dinamik Hesaplamalar (Seçim iptal edilirse null döner, ana fiyata ve ana stoka geçeriz)
   const currentPrice = selectedVariant?.discountedPrice || selectedVariant?.price || product.price;
   const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
   const inStock = currentStock > 0;
 
   const totalReviews = product?.reviews?.length || 0;
-  const averageRating = totalReviews > 0 
-    ? ((product.reviews ?? []).reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
-    : "0.0";
+  const averageRating =
+    totalReviews > 0
+      ? ((product.reviews ?? []).reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
+      : "0.0";
+
+  const currentProductForCard: ProductCardProps = {
+    id: product.id,
+    name: product.name,
+    price: currentPrice,
+    comparePrice: product.comparePrice,
+    imageUrl: imageList[0] || "",
+    stock: currentStock,
+    category: product.category ?? undefined,
+    reviews: product.reviews,
+  };
 
   const handleAddToCart = () => {
-    // Ürünün varyasyonları tanımlıysa ama tam seçilmediyse uyar
     if (product.variants && product.variants.length > 0 && !selectedVariant) {
       toast.error("Lütfen sepete eklemeden önce renk ve hafıza seçimi yapın.", { icon: "⚠️" });
       return;
@@ -62,7 +78,9 @@ export default function ProductDetails({ product }: { product: ProductDetailsPro
 
     let finalProductName = product.name;
     if (selectedVariant) {
-      const options = selectedVariant.combination || [selectedVariant.color, selectedVariant.storage].filter(Boolean).join(" • ");
+      const options =
+        selectedVariant.combination ||
+        [selectedVariant.color, selectedVariant.storage].filter(Boolean).join(" • ");
       if (options) finalProductName = `${product.name} (${options})`;
     }
 
@@ -70,256 +88,251 @@ export default function ProductDetails({ product }: { product: ProductDetailsPro
       id: product.id,
       name: finalProductName,
       price: currentPrice,
-      imageUrls: imageList, 
-      quantity: quantity, 
-      variantId: selectedVariant?.id 
+      imageUrls: imageList,
+      quantity: quantity,
+      variantId: selectedVariant?.id,
+      maxStock: currentStock,
     });
-    
+
     toast.success(`${quantity} adet ürün sepete eklendi! 🛒`);
   };
 
-  const scrollToReviews = () => {
-    setActiveTab("reviews");
-    setTimeout(() => {
-      tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Ürün bağlantısı panoya kopyalandı! 📋");
+    }
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32 sm:pb-8 animate-in fade-in duration-500 w-full overflow-x-clip text-left">
       
-      {/* --- ÜST KISIM (BREADCRUMB) --- */}
-      <div className="text-xs sm:text-sm text-gray-500 mb-6 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 custom-scrollbar">
-        <Link href="/" className="hover:text-blue-600 transition-colors">Ana Sayfa</Link>
+      {/* 1. BREADCRUMB */}
+      <div className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 custom-scrollbar">
+        <Link href="/" className="hover:text-blue-600 transition-colors">
+          Ana Sayfa
+        </Link>
         <span>/</span>
-        <Link href="/products" className="hover:text-blue-600 transition-colors">Ürünler</Link>
+        <Link href="/products" className="hover:text-blue-600 transition-colors">
+          Ürünler
+        </Link>
         {categoryName !== "Kategori Yok" && (
           <>
             <span>/</span>
-            <Link href={`/products?category=${product.categoryId}`} className="hover:text-blue-600 transition-colors">{categoryName}</Link>
+            <Link
+              href={`/products?category=${product.categoryId}`}
+              className="hover:text-blue-600 transition-colors"
+            >
+              {categoryName}
+            </Link>
           </>
         )}
         <span>/</span>
         <span className="text-gray-900 font-bold truncate">{product.name}</span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+      {/* 2. ÜRÜN BİLGİLERİ VE SATIN ALMA ALANI */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16">
         
-        {/* --- MODÜL 1: GÖRSEL GALERİSİ (SOL) --- */}
-        <div className="space-y-4">
-          <div className="h-[400px] sm:h-[500px] bg-white rounded-3xl flex items-center justify-center p-6 shadow-sm border border-gray-100 overflow-hidden relative group">
-            {mainImage ? (
-              <Image src={mainImage} 
-                alt={product.name} 
-                className="max-w-full max-h-full object-contain transform transition-transform duration-700 group-hover:scale-110" 
-              width={500} height={500} />
-            ) : (
-              <div className="flex flex-col items-center text-gray-300">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                <span className="font-medium">Görsel Bulunamadı</span>
-              </div>
-            )}
-            
-            <div className="absolute top-5 right-5 z-10 bg-white/80 backdrop-blur-sm rounded-full p-1 shadow-sm">
-              <FavoriteButton 
-                productId={product.id} 
-                initialIsFavorite={product?.favorites?.length ? true : false} 
-              />
-            </div>
-          </div>
-
-          {imageList.length > 1 && (
-            <div className="flex gap-4 overflow-x-auto py-2 custom-scrollbar">
-              {imageList.map((img: string, idx: number) => (
-                <div 
-                  key={idx} 
-                  onClick={() => setMainImage(img)}
-                  className={`w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-2xl bg-white p-2 cursor-pointer border-2 transition-all duration-300 ${mainImage === img ? 'border-blue-600 shadow-md scale-105' : 'border-gray-100 hover:border-gray-300 hover:shadow-sm'}`}
-                >
-                  <Image src={img} alt={`Görsel ${idx + 1}`} className="w-full h-full object-contain" width={500} height={500} />
-                </div>
-              ))}
-            </div>
-          )}
+        {/* PREMİUM GÖRSEL GALERİSİ */}
+        <div>
+          <ProductGallery images={imageList} productName={product.name} />
         </div>
 
-        {/* --- MODÜL 2: ÜRÜN DETAYLARI VE AKSİYONLAR (SAĞ) --- */}
-        <div className="flex flex-col">
-          <div className="mb-2">
-            <span className="text-sm font-bold text-blue-600 uppercase tracking-wider">{brandName}</span>
+        {/* SATIN ALMA DETAYLARI */}
+        <div className="flex flex-col space-y-4">
+          <div className="flex justify-between items-center">
+            <span className="text-xs sm:text-sm font-extrabold text-blue-600 uppercase tracking-wider">
+              {brandName}
+            </span>
+            <button
+              onClick={handleShare}
+              className="text-xs font-bold text-gray-500 hover:text-blue-600 flex items-center gap-1 bg-gray-100 hover:bg-blue-50 px-3 py-1.5 rounded-xl transition min-h-[36px]"
+            >
+              <span>🔗 Paylaş</span>
+            </button>
           </div>
-          
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 leading-tight">{product.name}</h1>
-          
-          {/* Seçilen varyasyon özeti (Apple Tarzı) */}
-          {selectedVariant && (
-            <p className="text-sm font-bold text-gray-500 mt-1">
-              Seçilen: {selectedVariant.combination || [selectedVariant.color, selectedVariant.storage].filter(Boolean).join(" • ")}
-            </p>
-          )}
-          
-          {/* Yıldızlar ve Değerlendirme */}
-          <div className="flex flex-wrap items-center gap-3 mt-3 mb-6 border-b border-gray-100 pb-6">
-            <div className="flex items-center gap-1 cursor-pointer" onClick={scrollToReviews}>
+
+          <h1 className="text-xl sm:text-3xl lg:text-4xl font-black text-gray-900 leading-snug sm:leading-tight">
+            {product.name}
+          </h1>
+
+          {/* CRO ROZETLERİ */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="bg-amber-100 text-amber-900 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-amber-200">
+              🔥 Çok Satan Ürün
+            </span>
+            <span className="bg-emerald-100 text-emerald-900 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-emerald-200">
+              🚚 Bugün Kargoda
+            </span>
+            <span className="bg-blue-100 text-blue-900 text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-blue-200">
+              👁️ 14 Kişi İncelemekte
+            </span>
+          </div>
+
+          {/* YILDIZ VE DEĞERLENDİRME */}
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+            <div className="flex items-center gap-1 cursor-pointer" onClick={() => setActiveTab("reviews")}>
               <div className="flex text-yellow-400">
                 {[1, 2, 3, 4, 5].map((star) => (
-                  <svg key={star} className={`w-5 h-5 ${star <= Math.round(Number(averageRating)) ? "text-yellow-400" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    key={star}
+                    className={`w-4 h-4 ${
+                      star <= Math.round(Number(averageRating)) ? "text-yellow-400" : "text-gray-200"
+                    }`}
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                 ))}
               </div>
-              {totalReviews > 0 ? (
-                <>
-                  <span className="text-sm font-bold text-gray-900 ml-1">{averageRating}</span>
-                  <span className="text-sm text-gray-500 hover:text-blue-600 transition-colors ml-1">
-                    ({totalReviews} Değerlendirme)
-                  </span>
-                </>
-              ) : (
-                <span className="text-sm text-gray-400 ml-2 font-medium">Henüz değerlendirilmedi</span>
-              )}
+              <span className="text-xs font-extrabold text-gray-900 ml-1">
+                {averageRating} ({totalReviews} Değerlendirme)
+              </span>
             </div>
           </div>
 
-          {/* VARYASYON SEÇİCİ (Renk Swatch ve Hafıza Çipleri) */}
+          {/* VARYASYON SEÇİCİ */}
           {product.variants && product.variants.length > 0 && (
-            <VariantSelector 
-              variants={product.variants} 
+            <VariantSelector
+              variants={product.variants}
               onSelect={(variant) => {
                 setSelectedVariant(variant);
-                setQuantity(1); 
-              }} 
+                setQuantity(1);
+              }}
             />
           )}
 
-          {/* GÜÇLENDİRİLMİŞ PROFESYONEL FİYAT VE AVANTAJ KUTUSU */}
-          <div className="mb-8 p-6 bg-white border border-gray-100 rounded-3xl shadow-sm">
-            <div className="text-4xl sm:text-5xl font-black text-gray-900 mb-1 tracking-tight transition-all">
-              {currentPrice.toLocaleString('tr-TR')} <span className="text-3xl text-gray-400">₺</span>
-            </div>
-            <p className="text-xs font-medium text-gray-400 mb-4">KDV Dahil</p>
-            
-            <div className="space-y-2 border-t border-gray-50 pt-4">
-              <div className={`text-sm font-bold flex items-center gap-2 ${inStock ? 'text-green-600' : 'text-red-600'}`}>
-                <span className={`w-2.5 h-2.5 rounded-full ${inStock ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                {inStock ? `Stokta Var (${currentStock} adet)` : 'Tükendi'}
-              </div>
-              <div className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-                Ücretsiz Kargo
-              </div>
-              <div className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Bugün Kargoda
+          {/* FİYAT VE TAKSİT BİLGİSİ */}
+          <div className="p-5 sm:p-6 bg-white border border-gray-200 rounded-3xl shadow-xs space-y-3">
+            <div>
+              {product.comparePrice && product.comparePrice > currentPrice && (
+                <span className="text-sm text-gray-400 line-through font-bold block">
+                  {product.comparePrice.toLocaleString("tr-TR")} ₺
+                </span>
+              )}
+              <div className="text-3xl sm:text-5xl font-black text-gray-900 tracking-tight">
+                {currentPrice.toLocaleString("tr-TR")}{" "}
+                <span className="text-xl sm:text-2xl text-gray-400">₺</span>
               </div>
             </div>
+
+            <InstallmentModal price={currentPrice} />
+
+            {inStock && currentStock <= 5 && (
+              <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                <div className="flex justify-between text-xs font-bold text-red-600 animate-pulse">
+                  <span>⚠️ Kritik Stok Alarmı!</span>
+                  <span>Son {currentStock} Adet Kaldı</span>
+                </div>
+                <div className="w-full bg-red-100 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-red-600 h-full w-[85%] rounded-full animate-pulse" />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Özellikler Kartı */}
-          <div className="bg-white p-6 rounded-2xl mb-8 space-y-3 shadow-sm border border-gray-100">
-            <div className="flex justify-between border-b border-gray-50 pb-3">
-              <span className="text-gray-500 font-medium text-sm">Marka</span>
-              <span className="text-gray-900 font-bold text-sm">{brandName}</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-50 pb-3">
-              <span className="text-gray-500 font-medium text-sm">Kategori</span>
-              <span className="text-gray-900 font-bold text-sm">{categoryName}</span>
-            </div>
-            <div className="flex justify-between border-b border-gray-50 pb-3">
-              <span className="text-gray-500 font-medium text-sm">Garanti Süresi</span>
-              <span className="text-gray-900 font-bold text-sm">2 Yıl Türkiye Garantili</span>
-            </div>
-            <div className="flex justify-between pt-1">
-              <span className="text-gray-500 font-medium text-sm">Stok Kodu</span>
-              <span className="text-gray-500 font-mono font-bold text-xs bg-gray-100 px-2 py-1 rounded">#{product.id.substring(0, 8).toUpperCase()}</span>
-            </div>
-          </div>
-
-          <div className="flex-1"></div>
-
-          {/* Sepete Ekle Aksiyonları */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center p-5 sm:p-6 bg-white sm:bg-transparent border sm:border-none border-gray-200 rounded-t-3xl sm:rounded-none shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] sm:shadow-none fixed sm:relative bottom-0 left-0 right-0 z-40 sm:z-10">
-            
-            <div className="sm:hidden w-full flex justify-between items-center mb-2">
-              <span className="text-sm font-bold text-gray-500">Toplam Fiyat</span>
-              <span className="text-2xl font-black text-gray-900">{(currentPrice * quantity).toLocaleString('tr-TR')} ₺</span>
-            </div>
-
-            <div className="flex items-center border-2 border-gray-200 rounded-xl bg-gray-50 w-full sm:w-auto overflow-hidden">
-              <button 
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="px-5 py-3.5 text-gray-500 hover:bg-gray-200 hover:text-black transition-colors font-bold text-xl"
-              >-</button>
-              <span className="px-6 py-3.5 font-extrabold text-gray-900 bg-white border-x-2 border-gray-200 w-16 text-center flex-1 sm:flex-none">
+          {/* ADET VE SEPETE EKLE BUTONU */}
+          <div className="flex gap-4 items-center pt-2">
+            <div className="flex items-center border-2 border-gray-200 rounded-2xl bg-gray-50 overflow-hidden min-h-[48px]">
+              <button
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                className="px-4 py-2.5 text-gray-600 hover:bg-gray-200 font-bold text-lg min-h-[44px] min-w-[44px]"
+              >
+                -
+              </button>
+              <span className="px-4 py-2.5 font-black text-gray-900 bg-white border-x-2 border-gray-200 w-12 text-center text-sm">
                 {quantity}
               </span>
-              <button 
-                onClick={() => setQuantity(q => Math.min(currentStock, q + 1))}
-                className="px-5 py-3.5 text-gray-500 hover:bg-gray-200 hover:text-black transition-colors font-bold text-xl"
-              >+</button>
+              <button
+                onClick={() => setQuantity((q) => Math.min(currentStock, q + 1))}
+                className="px-4 py-2.5 text-gray-600 hover:bg-gray-200 font-bold text-lg min-h-[44px] min-w-[44px]"
+              >
+                +
+              </button>
             </div>
 
-            <button 
+            <button
               onClick={handleAddToCart}
               disabled={!inStock}
-              className={`flex-1 w-full py-4 sm:py-3.5 rounded-xl font-extrabold text-lg flex items-center justify-center gap-2 transition-all shadow-md ${
-                inStock 
-                  ? 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1 hover:shadow-lg' 
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              className={`flex-1 py-4 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-lg min-h-[48px] ${
+                inStock
+                  ? "bg-blue-600 text-white hover:bg-blue-700 hover:scale-[1.02]"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
               }`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-              {inStock ? 'Sepete Ekle' : 'Tükendi'}
+              <span>🛒 {inStock ? "Sepete Ekle" : "Tükendi"}</span>
             </button>
+          </div>
+
+          {/* GÜVEN ROZETLERİ */}
+          <div className="grid grid-cols-2 gap-2 pt-4 border-t border-gray-100 text-xs font-bold text-gray-700">
+            <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-2">
+              <span>🔒 256-Bit SSL Koruma</span>
+            </div>
+            <div className="p-2.5 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-2">
+              <span>↩️ 14 Gün Ücretsiz İade</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* --- MODÜL 3: SEKMELER (TABS) --- */}
-      <div ref={tabsRef} className="mt-16 bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden scroll-mt-24 mb-24 sm:mb-0">
+      {/* 3. YORUMLAR VE SEKMELER */}
+      <div ref={tabsRef} className="mt-12 bg-white border border-gray-200 rounded-3xl shadow-xs overflow-hidden">
         <div className="flex border-b border-gray-200 bg-gray-50 overflow-x-auto custom-scrollbar">
-          <button 
-            onClick={() => setActiveTab("desc")} 
-            className={`flex items-center gap-2 px-6 sm:px-8 py-4 font-bold text-sm transition-colors whitespace-nowrap ${activeTab === 'desc' ? 'bg-white text-blue-600 border-t-2 border-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
-          >
-            Ürün Açıklaması
-          </button>
-          <button 
-            onClick={() => setActiveTab("specs")} 
-            className={`flex items-center gap-2 px-6 sm:px-8 py-4 font-bold text-sm transition-colors whitespace-nowrap ${activeTab === 'specs' ? 'bg-white text-blue-600 border-t-2 border-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
-          >
-            Teknik Özellikler
-          </button>
-          <button 
-            onClick={() => setActiveTab("reviews")} 
-            className={`flex items-center gap-2 px-6 sm:px-8 py-4 font-bold text-sm transition-colors whitespace-nowrap ${activeTab === 'reviews' ? 'bg-white text-blue-600 border-t-2 border-blue-600' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
-          >
-            Değerlendirmeler ({totalReviews})
-          </button>
+          {[
+            { id: "desc", label: "Ürün Açıklaması" },
+            { id: "specs", label: "Teknik Özellikler" },
+            { id: "reviews", label: `Değerlendirmeler (${totalReviews})` },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-4 font-extrabold text-xs sm:text-sm transition-colors whitespace-nowrap min-h-[44px] ${
+                activeTab === tab.id
+                  ? "bg-white text-blue-600 border-t-2 border-blue-600 shadow-xs"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <div className="p-6 sm:p-10 min-h-[300px]">
+        <div className="p-6 sm:p-10 min-h-[200px]">
           {activeTab === "desc" && (
-            <div className="prose max-w-none text-gray-700 leading-relaxed animate-in fade-in duration-500">
-              <h3 className="text-2xl font-extrabold text-gray-900 mb-6">{product.name} Hakkında</h3>
-              <div className="whitespace-pre-wrap font-medium">
+            <div className="prose max-w-none text-gray-700 leading-relaxed space-y-4">
+              <h3 className="text-xl font-black text-gray-900">{product.name} Hakkında</h3>
+              <div className="whitespace-pre-wrap font-medium text-sm sm:text-base">
                 {product.description || "Bu ürün için henüz detaylı bir açıklama girilmemiştir."}
               </div>
             </div>
           )}
 
           {activeTab === "specs" && (
-            <div className="animate-in fade-in duration-500">
-              <h3 className="text-2xl font-extrabold text-gray-900 mb-6">Donanım ve Teknik Özellikler</h3>
-              <div className="overflow-x-auto rounded-xl border border-gray-100">
-                <table className="w-full text-sm text-left text-gray-600">
+            <div className="space-y-4">
+              <h3 className="text-xl font-black text-gray-900">Teknik Özellikler</h3>
+              <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                <table className="w-full text-xs sm:text-sm text-left text-gray-600">
                   <tbody>
-                    <tr className="border-b border-gray-100 hover:bg-gray-50"><th className="py-4 px-6 font-bold text-gray-900 bg-gray-50/50 w-1/3 sm:w-1/4 border-r border-gray-100">Marka</th><td className="py-4 px-6 font-medium">{brandName}</td></tr>
-                    <tr className="border-b border-gray-100 hover:bg-gray-50"><th className="py-4 px-6 font-bold text-gray-900 bg-gray-50/50 w-1/3 sm:w-1/4 border-r border-gray-100">Model</th><td className="py-4 px-6 font-medium">{product.name}</td></tr>
-                    <tr className="border-b border-gray-100 hover:bg-gray-50"><th className="py-4 px-6 font-bold text-gray-900 bg-gray-50/50 w-1/3 sm:w-1/4 border-r border-gray-100">Garanti Süresi</th><td className="py-4 px-6 font-medium">24 Ay</td></tr>
-                    <tr className="hover:bg-gray-50"><th className="py-4 px-6 font-bold text-gray-900 bg-gray-50/50 w-1/3 sm:w-1/4 border-r border-gray-100">Orijinallik</th><td className="py-4 px-6 font-medium text-green-600">%100 Orijinal Ürün</td></tr>
+                    <tr className="border-b border-gray-100">
+                      <th className="py-3 px-4 font-bold text-gray-900 bg-gray-50 w-1/3">Marka</th>
+                      <td className="py-3 px-4 font-medium">{brandName}</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <th className="py-3 px-4 font-bold text-gray-900 bg-gray-50 w-1/3">Model</th>
+                      <td className="py-3 px-4 font-medium">{product.name}</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <th className="py-3 px-4 font-bold text-gray-900 bg-gray-50 w-1/3">Garanti</th>
+                      <td className="py-3 px-4 font-medium">24 Ay Resmi Üretici Garantisi</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -327,12 +340,29 @@ export default function ProductDetails({ product }: { product: ProductDetailsPro
           )}
 
           {activeTab === "reviews" && (
-            <div className="animate-in fade-in duration-500">
+            <div>
               <ProductReviews productId={product.id} />
             </div>
           )}
         </div>
       </div>
+
+      {/* 4. REVİZYON 2: BENZER ÜRÜNLER SLIDER (ProductCard Yeniden Kullanılarak) */}
+      <RelatedProductsSlider products={relatedProducts} />
+
+      {/* 5. REVİZYON 3: SON İNCELEDİKLERİNİZ SLIDER (LocalStorage Sync) */}
+      <RecentlyViewedProducts currentProduct={currentProductForCard} />
+
+      {/* STICKY BOTTOM SATIN ALMA BARI */}
+      <StickyBuyBar
+        product={{
+          id: product.id,
+          name: product.name,
+          price: currentPrice,
+          imageUrl: imageList[0] || "",
+          stock: currentStock,
+        }}
+      />
     </div>
   );
 }

@@ -24,10 +24,10 @@ export async function toggleFavorite(productId: string) {
       where: { email },
       update: {}, // Kullanıcı varsa hiçbir şeyi güncelleme, sadece getir
       create: {
-        id: clerkUser.id,
         email: email,
-        name: clerkUser.fullName || "Kullanıcı", // Clerk'in fullName metodunu kullanmak daha temizdir
+        name: clerkUser.fullName || "Kullanıcı",
         avatarUrl: clerkUser.imageUrl,
+        role: "USER",
       },
     });
 

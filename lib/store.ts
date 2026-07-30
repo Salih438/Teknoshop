@@ -15,13 +15,16 @@ export interface CartItem {
 
 interface CartStore {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity' | 'cartItemId' | 'maxStock'> & { quantity?: number }) => void; 
+  addItem: (item: Omit<CartItem, 'quantity' | 'cartItemId' | 'maxStock'> & { quantity?: number; maxStock?: number }) => void; 
   increaseQuantity: (cartItemId: string) => void;
   decreaseQuantity: (cartItemId: string) => void;
   removeItem: (cartItemId: string) => void;
   clearCart: () => void;
   // 🚀 YENİ: Sepeti veritabanından gelen güncel bilgilerle senkronize eden metod
   syncCart: (validations: { cartItemId: string; isActive: boolean; stock: number; price: number }[]) => { removedCount: number; updatedCount: number };
+  // 🚀 YENİ: Veritabanından gelen sepetle yerel sepeti tamamen değiştirmek için
+  setCart: (items: CartItem[]) => void;
+  mergeCart: (dbItems: CartItem[]) => void;
 }
 
 const safeStorage = createJSONStorage(() => ({
@@ -93,6 +96,38 @@ export const useCartStore = create<CartStore>()(
       })),
 
       clearCart: () => set({ items: [] }),
+
+      setCart: (items) => set({ items }),
+
+      mergeCart: (dbItems) => set((state) => {
+        const mergedMap = new Map<string, CartItem>();
+
+        // 1. Misafir (yerel) ürünleri ekle
+        state.items.forEach((item) => {
+          mergedMap.set(item.cartItemId, { ...item });
+        });
+
+        // 2. DB'den gelen ürünleri birleştir
+        dbItems.forEach((dbItem) => {
+          const existing = mergedMap.get(dbItem.cartItemId);
+          if (existing) {
+            const combinedQuantity = existing.quantity + dbItem.quantity;
+            const maxAllowed = dbItem.maxStock !== undefined
+              ? Math.min(dbItem.maxStock, 10)
+              : (existing.maxStock !== undefined ? Math.min(existing.maxStock, 10) : 10);
+
+            mergedMap.set(dbItem.cartItemId, {
+              ...dbItem,
+              quantity: Math.min(combinedQuantity, maxAllowed),
+              maxStock: dbItem.maxStock ?? existing.maxStock,
+            });
+          } else {
+            mergedMap.set(dbItem.cartItemId, { ...dbItem });
+          }
+        });
+
+        return { items: Array.from(mergedMap.values()) };
+      }),
 
       // 🚀 YENİ: Senkronizasyon Metodu
       syncCart: (validations) => {

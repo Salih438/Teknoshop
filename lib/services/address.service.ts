@@ -12,25 +12,27 @@ export const AddressService = {
 
   // Yeni adres ekleme
   async createAddress(userId: string, data: { title: string; city: string; district: string; address: string; isDefault?: boolean }) {
-    if (data.isDefault) {
-      await prisma.address.updateMany({
-        where: { userId, isDefault: true },
-        data: { isDefault: false }
+    return await prisma.$transaction(async (tx) => {
+      if (data.isDefault) {
+        await tx.address.updateMany({
+          where: { userId, isDefault: true },
+          data: { isDefault: false },
+        });
+      }
+
+      const existingCount = await tx.address.count({ where: { userId } });
+      const finalIsDefault = existingCount === 0 ? true : (data.isDefault || false);
+
+      return await tx.address.create({
+        data: {
+          title: data.title,
+          city: data.city,
+          district: data.district,
+          address: data.address,
+          isDefault: finalIsDefault,
+          userId,
+        },
       });
-    }
-
-    const existingCount = await prisma.address.count({ where: { userId } });
-    const finalIsDefault = existingCount === 0 ? true : (data.isDefault || false);
-
-    return await prisma.address.create({
-      data: {
-        title: data.title,
-        city: data.city,
-        district: data.district,
-        address: data.address,
-        isDefault: finalIsDefault,
-        userId,
-      },
     });
   },
 

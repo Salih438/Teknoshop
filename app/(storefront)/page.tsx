@@ -1,169 +1,259 @@
 import { prisma } from "@/lib/prisma";
-import ProductCard from "@/components/ProductCard";
+import ProductCard, { ProductCardProps } from "@/components/ProductCard";
 import Link from "next/link"; 
+import CategorySlider from "@/components/storefront/CategorySlider";
+import BrandSlider from "@/components/storefront/BrandSlider";
+import FlashSaleSection from "@/components/storefront/FlashSaleSection";
+import TrustAndNewsletter from "@/components/storefront/TrustAndNewsletter";
+import PersonalizedSection from "@/components/storefront/PersonalizedSection";
+import { getPersonalizedRecommendations } from "@/lib/recommendation-engine";
+import { currentUser } from "@clerk/nextjs/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  // 1. KATEGORİLERİ ÇEK (Sadece ilk 4 ana kategoriyi vitrinde göstermek için)
-  const categories = await prisma.category.findMany({
-    take: 4,
+  const clerkUser = await currentUser();
+  let dbUserId: string | undefined = undefined;
+
+  if (clerkUser?.emailAddresses?.[0]?.emailAddress) {
+    const dbUser = await prisma.user.findUnique({
+      where: { email: clerkUser.emailAddresses[0].emailAddress },
+      select: { id: true },
+    });
+    if (dbUser) dbUserId = dbUser.id;
+  }
+
+  // 1. PARALEL SUNUCU SORGULARI (Promise.all ile Maximum Performans)
+  const [categories, brands, newProductsRaw, popularProductsRaw, flashSaleProductsRaw, personalizedProducts] =
+    await Promise.all([
+      prisma.category.findMany({
+        include: {
+          _count: {
+            select: { products: { where: { isActive: true } } },
+          },
+        },
+        orderBy: { name: "asc" },
+      }),
+      prisma.brand.findMany({
+        orderBy: { name: "asc" },
+      }),
+      prisma.product.findMany({
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+        take: 4,
+        include: { 
+          category: { select: { name: true } },
+          reviews: { select: { rating: true } },
+        },
+      }),
+      prisma.product.findMany({
+        where: { isActive: true },
+        orderBy: { salesCount: "desc" },
+        take: 4,
+        include: { 
+          category: { select: { name: true } },
+          reviews: { select: { rating: true } },
+        },
+      }),
+      prisma.product.findMany({
+        where: { isActive: true, comparePrice: { gt: 0 } },
+        take: 4,
+        include: {
+          category: { select: { name: true } },
+          reviews: { select: { rating: true } },
+        },
+      }),
+      getPersonalizedRecommendations(dbUserId, 8),
+    ]);
+
+  const formatProductForCard = (p: any): ProductCardProps => ({
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    comparePrice: p.comparePrice,
+    imageUrl: p.imageUrl || "",
+    stock: p.stock,
+    category: p.category ?? undefined,
+    reviews: p.reviews,
   });
 
-  // 2. YENİ GELENLER (En son eklenen 4 aktif ürün)
-  const newProducts = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: 'desc' },
-    take: 4,
-    include: { 
-      images: true,
-      category: true,
-      reviews: { select: { rating: true } } // Dinamik yıldızlar için eklendi
-    }
-  });
-
-  // 3. EN ÇOK SATANLAR (Şemandaki salesCount alanını kullanarak ilk 4 ürün)
-  const popularProducts = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { salesCount: 'desc' },
-    take: 4,
-    include: { 
-      images: true,
-      category: true,
-      reviews: { select: { rating: true } }
-    }
-  });
-
-  // Veritabanı verisini ProductCard'ın istediği formata çeviren yardımcı fonksiyon
-  const formatProductForCard = (product: {
-    id: string;
-    name: string;
-    price: number;
-    stock: number;
-    images: { imageUrl: string }[];
-    category: { name: string } | null;
-    reviews: { rating: number }[];
-  }) => ({
-    id: product.id,
-    name: product.name,
-    price: product.price,
-    imageUrl: product.images?.[0]?.imageUrl || "", // İlk resmi al
-    stock: product.stock,
-    category: product.category ?? undefined,
-    reviews: product.reviews
-  });
+  const newProducts = newProductsRaw.map(formatProductForCard);
+  const popularProducts = popularProductsRaw.map(formatProductForCard);
+  const flashSaleProducts = flashSaleProductsRaw.map(formatProductForCard);
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white w-full overflow-x-clip">
       
-      {/* --- 1. BÖLÜM: HERO BANNER --- */}
-      <section className="relative bg-gray-900 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/80 to-transparent"></div>
+      {/* HERO SECTION */}
+      <section className="relative bg-gray-900 text-white overflow-hidden w-full">
+        <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/90 sm:via-gray-900/80 to-transparent" />
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 flex flex-col items-start">
-          <span className="inline-block py-1 px-3 rounded-full bg-blue-600 text-xs font-bold tracking-wider mb-4 border border-blue-400">
-            YENİ SEZON İNDİRİMİ
-          </span>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-4 max-w-2xl leading-tight">
-           {"Teknolojinin En Yeni Hali Şimdi Vitrin'de."}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36 flex flex-col items-start">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="inline-block py-1 px-3 rounded-full bg-blue-600/90 text-[11px] sm:text-xs font-black tracking-wider border border-blue-400/30 shadow-xs backdrop-blur-xs">
+              ⚡ YENİ SEZON TEKNOLOJİ FESTİVALİ
+            </span>
+            <span className="inline-block py-1 px-3 rounded-full bg-rose-600/90 text-[11px] sm:text-xs font-black tracking-wider border border-rose-400/30 shadow-xs backdrop-blur-xs">
+              %40'A VARAN İNDİRİM
+            </span>
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-4 max-w-3xl leading-tight">
+            Geleceğin Teknolojisi Şimdi Vitrin'de.
           </h1>
-          <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-xl">
-           {"Seçili Apple ve premium teknoloji ürünlerinde %20'ye varan indirimleri kaçırmayın."}
+          <p className="text-sm sm:text-lg md:text-xl text-gray-300 mb-8 max-w-xl leading-relaxed font-medium">
+            Seçili Apple, Samsung ve premium teknoloji ürünlerinde sepette ek %15 indirim fırsatını kaçırmayın.
           </p>
-          <Link href="/products" className="bg-white text-gray-900 font-bold px-8 py-4 rounded-lg hover:bg-gray-100 hover:scale-105 transition-all shadow-lg">
-            Hemen İncele
-          </Link>
-        </div>
-      </section>
 
-      {/* --- 2. BÖLÜM: AVANTAJLAR (NEDEN BİZ?) --- */}
-      <section className="border-b border-gray-100 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="flex flex-col items-center gap-2 p-4">
-              <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-              </div>
-              <span className="font-bold text-gray-900 text-sm">Ücretsiz Kargo</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-4">
-              <div className="bg-green-100 text-green-600 p-3 rounded-full">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-              </div>
-              <span className="font-bold text-gray-900 text-sm">Güvenli Ödeme</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-4">
-              <div className="bg-purple-100 text-purple-600 p-3 rounded-full">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-              <span className="font-bold text-gray-900 text-sm">Aynı Gün Teslimat</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-4">
-              <div className="bg-orange-100 text-orange-600 p-3 rounded-full">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-              </div>
-              <span className="font-bold text-gray-900 text-sm">Kolay İade</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              href="/products"
+              className="bg-white text-gray-900 font-black px-8 py-4 rounded-2xl hover:bg-gray-100 hover:scale-105 transition-all shadow-xl text-sm sm:text-base min-h-[48px] flex items-center justify-center gap-2"
+            >
+              <span>Hemen Keşfet</span>
+              <span>&rarr;</span>
+            </Link>
+
+            <Link
+              href="/products?sort=popular"
+              className="bg-white/10 hover:bg-white/20 border border-white/20 text-white font-extrabold px-6 py-4 rounded-2xl transition backdrop-blur-xs text-sm sm:text-base min-h-[48px] flex items-center justify-center gap-2"
+            >
+              🔥 Çok Satanlar
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* --- 3. BÖLÜM: EN ÇOK SATANLAR --- */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="flex justify-between items-end mb-8">
-          <div>
-            <h2 className="text-3xl font-extrabold text-gray-900">En Çok Satanlar 🔥</h2>
-            <p className="text-gray-500 mt-2">Müşterilerimizin favori ürünlerini keşfedin.</p>
-          </div>
-          <Link href="/products?sort=popular" className="hidden sm:block text-blue-600 font-bold hover:underline">
-            Tümünü Gör &rarr;
-          </Link>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {popularProducts.map((product) => (
-            <ProductCard key={product.id} product={formatProductForCard(product)} />
-          ))}
-        </div>
-      </section>
-
-      {/* --- 4. BÖLÜM: KATEGORİLER --- */}
-      <section className="bg-gray-50 py-16">
+      {/* FEATURE BAR */}
+      <section className="border-b border-gray-100 bg-gray-50/70 py-6 sm:py-8 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-extrabold text-gray-900 mb-8 text-center">Kategorilere Göz At</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.map((category) => (
-              <Link key={category.id} href={`/products?category=${category.id}`}>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center hover:shadow-md hover:border-blue-200 hover:-translate-y-1 transition-all group">
-                  <h3 className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
-                    {category.name}
-                  </h3>
-                </div>
-              </Link>
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 text-center">
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/80 shadow-2xs">
+              <div className="bg-blue-100 text-blue-600 p-2.5 rounded-xl text-xl flex-shrink-0">🚚</div>
+              <div className="text-left">
+                <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">Ücretsiz Kargo</span>
+                <span className="text-[10px] text-gray-400 font-bold block">5.000 ₺ Üzerine</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/80 shadow-2xs">
+              <div className="bg-green-100 text-green-600 p-2.5 rounded-xl text-xl flex-shrink-0">🔒</div>
+              <div className="text-left">
+                <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">Güvenli Ödeme</span>
+                <span className="text-[10px] text-gray-400 font-bold block">256-Bit SSL Koruma</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/80 shadow-2xs">
+              <div className="bg-purple-100 text-purple-600 p-2.5 rounded-xl text-xl flex-shrink-0">⚡</div>
+              <div className="text-left">
+                <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">Hızlı Teslimat</span>
+                <span className="text-[10px] text-gray-400 font-bold block">24 Saatte Kargoda</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/80 shadow-2xs">
+              <div className="bg-orange-100 text-orange-600 p-2.5 rounded-xl text-xl flex-shrink-0">↩️</div>
+              <div className="text-left">
+                <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">14 Gün İade</span>
+                <span className="text-[10px] text-gray-400 font-bold block">Kolay ve Ücretsiz</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-gray-100/80 shadow-2xs col-span-2 md:col-span-1">
+              <div className="bg-amber-100 text-amber-600 p-2.5 rounded-xl text-xl flex-shrink-0">⭐</div>
+              <div className="text-left">
+                <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">Orijinal Ürün</span>
+                <span className="text-[10px] text-gray-400 font-bold block">%100 Resmi Garanti</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* --- 5. BÖLÜM: YENİ GELENLER --- */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="flex justify-between items-end mb-8">
-          <div>
-            <h2 className="text-3xl font-extrabold text-gray-900">Yeni Gelenler ✨</h2>
-            <p className="text-gray-500 mt-2">Kataloğumuza eklenen en son teknoloji ürünleri.</p>
+      {/* 🚀 AI KİŞİSELLEŞTİRİLMİŞ ÖNERİLER BÖLÜMÜ */}
+      <PersonalizedSection products={personalizedProducts} />
+
+      {/* KATEGORİ KAYDIRICI */}
+      <section className="bg-white py-10 sm:py-16 overflow-hidden w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-end mb-6 sm:mb-8">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Kategorilere Göz At 📦</h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Aradığınız teknoloji ürününü kategorilere göre keşfedin.</p>
+            </div>
           </div>
-          <Link href="/products?sort=newest" className="hidden sm:block text-blue-600 font-bold hover:underline">
+          
+          <CategorySlider categories={categories} />
+        </div>
+      </section>
+
+      {/* FLASH SALE BÖLÜMÜ */}
+      <FlashSaleSection products={flashSaleProducts} />
+
+      {/* EN ÇOK SATANLAR */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 bg-gray-50/80 rounded-3xl mb-10 sm:mb-16 border border-gray-200/80">
+        <div className="flex justify-between items-end mb-6 sm:mb-8">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                🔥 POPÜLER ÜRÜNLER
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">En Çok Satanlar</h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Müşterilerimizin en çok tercih ettiği ürünler.</p>
+          </div>
+          <Link href="/products?sort=popular" className="hidden sm:inline-flex items-center gap-1 text-blue-600 font-extrabold hover:underline text-sm">
             Tümünü Gör &rarr;
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {newProducts.map((product) => (
-            <ProductCard key={product.id} product={formatProductForCard(product)} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {popularProducts.map((product) => (
+            <ProductCard key={product.id} product={{ ...product, badgeText: "🔥 Çok Satan" }} />
           ))}
         </div>
       </section>
+
+      {/* YENİ GELENLER */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 bg-white rounded-3xl mb-10 sm:mb-16">
+        <div className="flex justify-between items-end mb-6 sm:mb-8">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                ✨ YENİ EKLEMENENLER
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">Yeni Gelenler</h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Kataloğumuza en son eklenen yeni ürünler.</p>
+          </div>
+          <Link href="/products?sort=newest" className="hidden sm:inline-flex items-center gap-1 text-blue-600 font-extrabold hover:underline text-sm">
+            Tümünü Gör &rarr;
+          </Link>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {newProducts.map((product) => (
+            <ProductCard key={product.id} product={{ ...product, badgeText: "✨ Yeni" }} />
+          ))}
+        </div>
+      </section>
+
+      {/* MARKA DENEYİMİ */}
+      <section className="py-10 sm:py-16 overflow-hidden bg-gray-50/50 border-y border-gray-100 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-10">
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Öne Çıkan Markalar 🌟</h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Dünyanın en iyi teknoloji markaları Vitrin güvencesiyle.</p>
+          </div>
+          
+          <BrandSlider brands={brands} />
+        </div>
+      </section>
+
+      {/* TRUST VE NEWSLETTER */}
+      <TrustAndNewsletter />
 
     </main>
   );

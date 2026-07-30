@@ -1,12 +1,33 @@
-// app/admin/users/[id]/page.tsx
 import { requireAdmin } from "@/lib/auth";
-import { redirect } from "next/navigation";
-
+import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
-import Link from "next/link";
+import CustomerProfileClient, {
+  CustomerProfileDTO,
+  TimelineEvent,
+} from "@/components/admin/users/CustomerProfileClient";
 
 export const dynamic = "force-dynamic";
+
+function getCustomerSegment(totalSpent: number, ordersCount: number, createdAt: Date, isActive: boolean) {
+  if (!isActive) {
+    return { label: "Pasif / Engelli", bg: "bg-red-50", text: "text-red-700", icon: "🚫" };
+  }
+  if (totalSpent >= 10000 || ordersCount >= 5) {
+    return { label: "VIP Müşteri", bg: "bg-amber-50", text: "text-amber-700", icon: "🏆" };
+  }
+  if (ordersCount >= 3) {
+    return { label: "Sadık Müşteri", bg: "bg-purple-50", text: "text-purple-700", icon: "💎" };
+  }
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  if (createdAt >= thirtyDaysAgo) {
+    return { label: "Yeni Üye", bg: "bg-emerald-50", text: "text-emerald-700", icon: "🆕" };
+  }
+  if (ordersCount === 0) {
+    return { label: "İlk Sipariş Bekliyor", bg: "bg-blue-50", text: "text-blue-700", icon: "🎯" };
+  }
+  return { label: "Standart Müşteri", bg: "bg-gray-50", text: "text-gray-700", icon: "👤" };
+}
 
 export default async function UserDetailPage({
   params,
@@ -14,7 +35,7 @@ export default async function UserDetailPage({
   params: Promise<{ id: string }>;
 }) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_USERS");
   } catch {
     redirect("/");
   }
@@ -22,185 +43,132 @@ export default async function UserDetailPage({
   const resolvedParams = await params;
   const userId = resolvedParams.id;
 
-  // 1. KULLANICIYI TÜM İLİŞKİLERİYLE VERİTABANINDAN ÇEK
-  const user = await prisma.user.findUnique({
+  const dbUser = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      // Şemandaki ilişkilerle birebir eşleştiği için artık hepsini açtık
       addresses: true,
-      favorites: { include: { product: true } },
-      reviews: { include: { product: true } },
       orders: {
         orderBy: { createdAt: "desc" },
+        include: { items: { select: { id: true } } },
       },
-      // HATANIN ÇÖZÜLDÜĞÜ YER: Artık favorileri ve yorumları da Prisma'ya saydırıyoruz
-      _count: {
-        select: { 
-            orders: true, 
-            favorites: true, 
-            reviews: true 
-        },
-      },
+      returns: { orderBy: { createdAt: "desc" } },
+      exchanges: { orderBy: { createdAt: "desc" } },
     },
   });
 
-  if (!user) {
+  if (!dbUser) {
     return notFound();
   }
 
-  // Toplam harcamayı hesapla (Şemandaki alan adı totalPrice olduğu için ona göre uyarlandı)
-  const totalSpent = user.orders?.reduce((sum, order) => sum + (order.totalPrice || 0), 0) || 0;
-  
-  // İsim baş harfi (Avatar için)
-  const initial = user.name ? user.name.charAt(0).toUpperCase() : "U";
+  // Sadece iptal edilmemiş geçerli siparişler ciroya ve harcamaya dahil edilir
+  const validOrders = dbUser.orders.filter((ord) => ord.status !== "CANCELLED");
+  const totalSpent = validOrders.reduce((sum, ord) => sum + (ord.totalPrice || 0), 0);
+  const segment = getCustomerSegment(totalSpent, validOrders.length, dbUser.createdAt, dbUser.isActive);
+
+  // 🚀 ZAMAN TÜNELİ (TIMELINE) OLUŞTURMA
+  const timeline: TimelineEvent[] = [
+    {
+      id: `reg-${dbUser.id}`,
+      type: "REGISTER",
+      title: "Kayıt",
+      description: `Müşteri platforma kaydoldu. (${dbUser.email})`,
+      date: dbUser.createdAt.toISOString(),
+      icon: "👤",
+      badgeBg: "bg-blue-100 text-blue-800",
+    },
+  ];
+
+  dbUser.orders.forEach((ord) => {
+    timeline.push({
+      id: `ord-${ord.id}`,
+      type: "ORDER",
+      title: "Sipariş",
+      description: `#ORD-${ord.id.slice(-8).toUpperCase()} numaralı siparişi verdi. Tutar: ${ord.totalPrice.toLocaleString("tr-TR")} ₺ (${ord.status})`,
+      date: ord.createdAt.toISOString(),
+      link: `/admin/orders/${ord.id}`,
+      icon: "🛒",
+      badgeBg: ord.status === "CANCELLED" ? "bg-red-100 text-red-800" : "bg-emerald-100 text-emerald-800",
+    });
+  });
+
+  dbUser.returns.forEach((ret) => {
+    timeline.push({
+      id: `ret-${ret.id}`,
+      type: "RETURN",
+      title: "İade",
+      description: `İade talebi oluşturdu. (Durum: ${ret.status})`,
+      date: ret.createdAt.toISOString(),
+      link: `/admin/returns`,
+      icon: "↩️",
+      badgeBg: "bg-amber-100 text-amber-800",
+    });
+  });
+
+  dbUser.exchanges.forEach((exc) => {
+    timeline.push({
+      id: `exc-${exc.id}`,
+      type: "EXCHANGE",
+      title: "Değişim",
+      description: `Ürün değişim talebi oluşturdu. (Durum: ${exc.status})`,
+      date: exc.createdAt.toISOString(),
+      link: `/admin/exchanges`,
+      icon: "🔁",
+      badgeBg: "bg-purple-100 text-purple-800",
+    });
+  });
+
+  dbUser.addresses.forEach((addr) => {
+    timeline.push({
+      id: `addr-${addr.id}`,
+      type: "ADDRESS",
+      title: "Adres",
+      description: `Yeni teslimat adresi ekledi: ${addr.title} (${addr.city})`,
+      date: addr.createdAt.toISOString(),
+      icon: "🏠",
+      badgeBg: "bg-gray-100 text-gray-800",
+    });
+  });
+
+  // Tarihe göre sırala (en yeniden en eskiye)
+  timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const customerDTO: CustomerProfileDTO = {
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    phone: dbUser.phone,
+    role: dbUser.role,
+    isActive: dbUser.isActive,
+    avatarUrl: dbUser.avatarUrl,
+    createdAt: dbUser.createdAt.toISOString(),
+    totalSpent,
+    segment,
+    addresses: dbUser.addresses,
+    orders: dbUser.orders.map((o) => ({
+      id: o.id,
+      totalPrice: o.totalPrice,
+      status: o.status,
+      createdAt: o.createdAt.toISOString(),
+      itemsCount: o.items.length,
+    })),
+    returns: dbUser.returns.map((r) => ({
+      id: r.id,
+      status: r.status,
+      createdAt: r.createdAt.toISOString(),
+      orderId: r.orderId,
+    })),
+    exchanges: dbUser.exchanges.map((e) => ({
+      id: e.id,
+      status: e.status,
+      createdAt: e.createdAt.toISOString(),
+      orderId: e.orderId,
+    })),
+    timeline,
+  };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      
-      {/* ÜST BİLGİ VE GERİ DÖN BUTONU */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/users" className="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-sm">
-            <span>←</span> Geri Dön
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-800">Kullanıcı Detayı</h1>
-        </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition shadow-sm">
-          Profili Düzenle
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* SOL KOLON: PROFİL KARTI */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col items-center text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 text-4xl font-extrabold rounded-full flex items-center justify-center mb-4 shadow-inner">
-              {initial}
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">{user.name || "İsimsiz Kullanıcı"}</h2>
-            <p className="text-gray-500 font-medium mb-4">{user.email}</p>
-            
-            <span className={`px-4 py-1.5 rounded-full text-sm font-bold tracking-wide ${user.role === 'ADMIN' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-              {user.role}
-            </span>
-
-            <div className="w-full mt-8 space-y-4 text-left border-t border-gray-100 pt-6">
-              <div>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Telefon</p>
-                <p className="text-gray-800 font-medium">{user.phone || "Belirtilmemiş"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Kayıt Tarihi</p>
-                <p className="text-gray-800 font-medium">{new Date(user.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ADRESLER KARTI */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span>📍</span> Kayıtlı Adresler
-            </h3>
-            
-            {user.addresses && user.addresses.length > 0 ? (
-              <div className="space-y-3">
-                {user.addresses.map((address) => (
-                  <div key={address.id} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    <p className="text-sm font-bold text-gray-800 mb-1">{address.title}</p>
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {address.address}, {address.district} / {address.city}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <p className="text-sm text-gray-500 font-medium">Kayıtlı adres bulunmuyor.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* SAĞ KOLON: İSTATİSTİKLER VE SİPARİŞLER */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* İSTATİSTİK KARTLARI */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Toplam Sipariş</p>
-              <p className="text-2xl font-extrabold text-gray-900">{user._count?.orders || 0}</p>
-            </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Toplam Harcama</p>
-              <p className="text-2xl font-extrabold text-blue-600">{totalSpent.toLocaleString('tr-TR')} ₺</p>
-            </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Favoriler</p>
-              <p className="text-2xl font-extrabold text-red-500">{user._count?.favorites || 0}</p>
-            </div>
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Yorumlar</p>
-              <p className="text-2xl font-extrabold text-yellow-500">{user._count?.reviews || 0}</p>
-            </div>
-          </div>
-
-          {/* SON SİPARİŞLER TABLOSU */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-gray-800">📦 Son Siparişleri</h3>
-            </div>
-            
-            {user.orders && user.orders.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-white">
-                    <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-wider">
-                      <th className="p-4 font-bold">Sipariş No</th>
-                      <th className="p-4 font-bold">Tarih</th>
-                      <th className="p-4 font-bold">Tutar</th>
-                      <th className="p-4 font-bold">Durum</th>
-                      <th className="p-4 font-bold text-right">Detay</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {user.orders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50 transition">
-                        <td className="p-4 font-medium text-gray-900 text-sm">#{order.id.slice(-6).toUpperCase()}</td>
-                        <td className="p-4 text-sm text-gray-500">
-                          {new Date(order.createdAt).toLocaleDateString('tr-TR')}
-                        </td>
-                        <td className="p-4 font-bold text-gray-900 text-sm">
-                          {order.totalPrice?.toLocaleString('tr-TR')} ₺
-                        </td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-md text-xs font-bold
-                            ${order.status === 'PENDING' ? 'bg-orange-100 text-orange-700' : ''}
-                            ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : ''}
-                            ${order.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : ''}
-                            ${!['PENDING', 'DELIVERED', 'CANCELLED'].includes(order.status) ? 'bg-blue-100 text-blue-700' : ''}
-                          `}>
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-right">
-                          <button className="text-blue-600 hover:text-blue-800 font-medium text-sm transition">İncele →</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-12 text-center">
-                <div className="text-4xl mb-3">🛒</div>
-                <p className="text-gray-500 font-medium">Bu kullanıcının henüz siparişi bulunmuyor.</p>
-              </div>
-            )}
-          </div>
-
-        </div>
-      </div>
+    <div className="w-full">
+      <CustomerProfileClient customer={customerDTO} />
     </div>
   );
 }

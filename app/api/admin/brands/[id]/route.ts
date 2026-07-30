@@ -1,14 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { AuditLogService } from "@/lib/services/audit-log.service";
+import { AuditRiskLevel } from "@prisma/client";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> } // Next.js 16 için Promise olarak tanımladık
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
-    // 🚀 YENİ KURAL: params nesnesini önce await ediyoruz!
+    await requireAdmin("MANAGE_BRANDS");
     const resolvedParams = await params;
     const brandId = resolvedParams.id;
 
@@ -28,8 +29,22 @@ export async function DELETE(
       );
     }
 
+    const brandToDelete = await prisma.brand.findUnique({
+      where: { id: brandId },
+      select: { name: true },
+    });
+
     await prisma.brand.delete({
       where: { id: brandId },
+    });
+
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "DELETE_BRAND",
+      entityType: "Brand",
+      entityId: brandId,
+      entityName: brandToDelete?.name || brandId,
+      riskLevel: AuditRiskLevel.LOW,
     });
 
     return NextResponse.json({ success: true }, { status: 200 });
@@ -38,7 +53,6 @@ export async function DELETE(
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    // Terminalde hata detayını görmek için log ekledik
     console.error("Marka silme hatası detay:", error);
     return NextResponse.json({ error: "Marka silinirken sistemsel bir hata oluştu." }, { status: 500 });
   }

@@ -8,42 +8,21 @@ import { UploadButton } from "@/lib/utils/uploadthing";
 import toast from "react-hot-toast";
 import DynamicVariantBuilder from "@/components/admin/variants/DynamicVariantBuilder";
 
-// Varyasyon tipimizi tanımlıyoruz
-interface VariantInfo {
-  id: number;
-  color: string;
-  storage: string;
-  price: string;
-  stock: string;
-}
 
 export default function ProductForm({ categories, brands }: { categories: { id: string; name: string }[], brands: { id: string; name: string }[] }) {
   const router = useRouter();
   const [imageUrl, setImageUrl] = useState("");
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const [galleryImageMode, setGalleryImageMode] = useState<"upload" | "url">("upload");
+  const [galleryUrlInput, setGalleryUrlInput] = useState("");
 
-  // 🚀 YENİ: Varyasyon State'leri
-  const [hasVariants, setHasVariants] = useState(false);
-  const [variants, setVariants] = useState<VariantInfo[]>([]);
   const [resetSignal, setResetSignal] = useState(0);
-
   const [dynamicVariants, setDynamicVariants] = useState<any[]>([]);
 
-  // Yeni varyasyon satırı ekleme fonksiyonu
-  const addVariant = () => {
-    setVariants([...variants, { id: Date.now(), color: "", storage: "", price: "", stock: "0" }]);
-  };
-
-  // Varyasyon satırını silme fonksiyonu
-  const removeVariant = (id: number) => {
-    setVariants(variants.filter((v) => v.id !== id));
-  };
-
-  // Varyasyon inputlarındaki değişiklikleri yakalama
-  const updateVariant = (id: number, field: keyof VariantInfo, value: string) => {
-    setVariants(variants.map((v) => (v.id === id ? { ...v, [field]: value } : v)));
-  };
+  const [priceInput, setPriceInput] = useState<string>("");
+  const [comparePriceInput, setComparePriceInput] = useState<string>("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,10 +32,6 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
       return;
     }
 
-    if (hasVariants && variants.length === 0) {
-      toast.error("Varyasyon seçeneğini aktif ettiniz ancak varyasyon eklemediniz.");
-      return;
-    }
 
     setIsSubmitting(true);
     const toastId = toast.loading("Ürün veritabanına kaydediliyor...");
@@ -76,6 +51,11 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
         stock: parseInt(v.stock, 10) || 0,
       }));
       formData.set("variants", JSON.stringify(formattedVariants));
+    }
+    
+    // 🚀 YENİ: Galeri görsellerini JSON olarak API'ye gönderiyoruz
+    if (galleryImages.length > 0) {
+      formData.set("galleryImages", JSON.stringify(galleryImages));
     }
     
     try {
@@ -141,8 +121,36 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
 
         {/* Fiyat */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Ana Fiyat (TL)</label>
-          <input type="number" name="price" step="0.01" required className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="4500" />
+          <label className="block text-sm font-medium text-gray-700 mb-2">Ana Fiyat (Satış Fiyatı - TL)</label>
+          <input 
+            type="number" 
+            name="price" 
+            step="0.01" 
+            required 
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+            placeholder="4500" 
+          />
+        </div>
+
+        {/* İndirim Öncesi Fiyat */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">İndirim Öncesi Fiyat (Opsiyonel - TL)</label>
+          <input 
+            type="number" 
+            name="comparePrice" 
+            step="0.01" 
+            value={comparePriceInput}
+            onChange={(e) => setComparePriceInput(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+            placeholder="5500" 
+          />
+          {comparePriceInput && parseFloat(comparePriceInput) <= parseFloat(priceInput || "0") && (
+            <p className="text-xs text-amber-600 font-medium mt-1">
+              ⚠️ İndirim öncesi fiyat satış fiyatından yüksek olmalıdır.
+            </p>
+          )}
         </div>
 
         {/* Stok */}
@@ -179,64 +187,7 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
         onVariantsChange={setDynamicVariants}
       />
 
-      {/* ⚠️ ESKİ MANUEL VARYASYON MODÜLÜ (GEÇİCİ OLARAK GİZLENDİ) ⚠️ */}
-      {false && (
-      <div className="border border-blue-200 rounded-xl p-6 bg-blue-50/30">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <label className="block text-base font-bold text-gray-900">🎨 Ürün Varyasyonları</label>
-            <p className="text-xs text-gray-500 mt-1">Renk, Hafıza veya Beden gibi seçenekler ekleyin.</p>
-          </div>
-          
-          {/* Toggle Switch */}
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" className="sr-only peer" checked={hasVariants} onChange={(e) => {
-              setHasVariants(e.target.checked);
-              if (e.target.checked && variants.length === 0) addVariant();
-            }} />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            <span className="ml-3 text-sm font-bold text-gray-700">Seçenekleri Aç</span>
-          </label>
-        </div>
 
-        {hasVariants && (
-          <div className="mt-6 space-y-4">
-            {variants.map((variant) => (
-              <div key={variant.id} className="flex flex-wrap md:flex-nowrap items-start gap-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm relative animate-in fade-in slide-in-from-top-2">
-                
-                <div className="flex-1 min-w-[120px]">
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Renk Seçeneği</label>
-                  <input type="text" value={variant.color} onChange={(e) => updateVariant(variant.id, "color", e.target.value)} placeholder="Siyah, Kırmızı vs." className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white" />
-                </div>
-                
-                <div className="flex-1 min-w-[120px]">
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Hafıza / Beden</label>
-                  <input type="text" value={variant.storage} onChange={(e) => updateVariant(variant.id, "storage", e.target.value)} placeholder="128GB, XL vs." className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white" />
-                </div>
-                
-                <div className="flex-1 min-w-[120px]">
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Özel Fiyat (₺)</label>
-                  <input type="number" step="0.01" value={variant.price} onChange={(e) => updateVariant(variant.id, "price", e.target.value)} placeholder="Boşsa ana fiyat" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white" />
-                </div>
-                
-                <div className="w-24 min-w-[80px]">
-                  <label className="block text-xs font-bold text-gray-500 mb-1">Stok</label>
-                  <input type="number" required={hasVariants} value={variant.stock} onChange={(e) => updateVariant(variant.id, "stock", e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white" />
-                </div>
-
-                <button type="button" onClick={() => removeVariant(variant.id)} className="mt-6 p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Bu seçeneği sil">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
-              </div>
-            ))}
-
-            <button type="button" onClick={addVariant} className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition px-2 py-1">
-              <span>+</span> Yeni Seçenek Ekle
-            </button>
-          </div>
-        )}
-      </div>
-      )}
 
       {/* Açıklama */}
       <div>
@@ -245,86 +196,189 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
       </div>
 
       {/* ESNEK GÖRSEL YÖNETİMİ (SEKMELİ YAPI) */}
-      <div className="border border-gray-200 rounded-xl p-6 bg-gray-50">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-          <label className="block text-sm font-bold text-gray-800">📷 Görsel Yönetimi</label>
-          
-          <div className="flex bg-gray-200 p-1 rounded-lg">
-            <button
-              type="button"
-              onClick={() => setImageMode("upload")}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${imageMode === "upload" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-              ☁️ Buluttan Yükle
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageMode("url")}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${imageMode === "url" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-              🔗 URL İle Ekle
-            </button>
+      <div className="space-y-6">
+        {/* ANA KAPAK GÖRSELİ */}
+        <div className="border border-gray-200 rounded-xl p-6 bg-gray-50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+            <label className="block text-sm font-bold text-gray-800">📷 Kapak Görseli (Ana Resim)</label>
+            
+            <div className="flex bg-gray-200 p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setImageMode("upload")}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${imageMode === "upload" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                ☁️ Buluttan Yükle
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageMode("url")}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${imageMode === "url" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                🔗 URL İle Ekle
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex-1 w-full bg-white border border-gray-200 p-6 rounded-xl flex flex-col items-center justify-center min-h-[160px]">
+              {imageMode === "upload" ? (
+                imageUrl && !imageUrl.startsWith("https://utfs.io") && imageUrl !== "" ? (
+                   <div className="text-center w-full">
+                    <p className="text-sm text-amber-600 mb-3">Şu an bir dış URL kullanıyorsunuz. Buluta resim yüklemek için mevcut URL'i temizleyin.</p>
+                    <button type="button" onClick={() => setImageUrl("")} className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-200 transition">URL'i Temizle</button>
+                   </div>
+                ) : imageUrl ? (
+                  <div className="text-center">
+                    <span className="text-green-600 font-bold text-lg mb-2 block">✅ Yüklendi!</span>
+                    <button type="button" onClick={() => setImageUrl("")} className="text-sm text-red-500 hover:underline">Başka fotoğraf seç</button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-500 mb-4 text-center">Vitrinde görünecek ana kapağı seçin.</p>
+                    <UploadButton
+                      endpoint="productImageUploader"
+                      onClientUploadComplete={(res) => {
+                        if (res && res.length > 0) {
+                          setImageUrl(res[0].url);
+                          toast.success("Fotoğraf buluta başarıyla yüklendi! ☁️");
+                        }
+                      }}
+                      onUploadError={(error: Error) => {
+                        toast.error(`Yükleme hatası: ${error.message}`);
+                      }}
+                      appearance={{
+                        button: "bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg transition"
+                      }}
+                    />
+                  </>
+                )
+              ) : (
+                <div className="w-full flex flex-col items-start">
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Resim Linki (URL)</label>
+                  <input 
+                    type="url" 
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                    placeholder="https://images.unsplash.com/photo-..." 
+                  />
+                  <p className="text-[11px] text-gray-400 mt-2">Dışarıdan alınan linklerin ileride kırılabileceğini unutmayın.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="w-full md:w-64 h-48 bg-white border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden relative">
+              {imageUrl ? (
+                <>
+                  <Image src={imageUrl} alt="Önizleme" className="max-w-full max-h-full object-contain" width={500} height={500} />
+                  <button type="button" onClick={() => setImageUrl("")} className="absolute top-2 right-2 bg-white/90 text-red-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-red-50 transition" title="Görseli Kaldır">✕</button>
+                </>
+              ) : (
+                <span className="text-gray-400 text-sm font-medium">Kapak Önizleme</span>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 items-start">
-          <div className="flex-1 w-full bg-white border border-gray-200 p-6 rounded-xl flex flex-col items-center justify-center min-h-[160px]">
-            {imageMode === "upload" ? (
-              imageUrl && !imageUrl.startsWith("https://utfs.io") && imageUrl !== "" ? (
-                 <div className="text-center w-full">
-                  <p className="text-sm text-amber-600 mb-3">Şu an bir dış URL kullanıyorsunuz. Buluta resim yüklemek için mevcut URL&apos;i temizleyin.</p>
-                  <button type="button" onClick={() => setImageUrl("")} className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-200 transition">URL&apos;i Temizle</button>
-                 </div>
-              ) : imageUrl ? (
-                <div className="text-center">
-                  <span className="text-green-600 font-bold text-lg mb-2 block">✅ Yüklendi!</span>
-                  <button type="button" onClick={() => setImageUrl("")} className="text-sm text-red-500 hover:underline">Başka fotoğraf seç</button>
-                </div>
-              ) : (
-                <>
-                  <p className="text-sm text-gray-500 mb-4 text-center">Ürününüz için bilgisayarınızdan bir fotoğraf seçin.</p>
-                  <UploadButton
-                    endpoint="productImageUploader"
-                    onClientUploadComplete={(res) => {
-                      if (res && res.length > 0) {
-                        setImageUrl(res[0].url);
-                        toast.success("Fotoğraf buluta başarıyla yüklendi! ☁️");
-                      }
-                    }}
-                    onUploadError={(error: Error) => {
-                      toast.error(`Yükleme hatası: ${error.message}`);
-                    }}
-                    appearance={{
-                      button: "bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg transition"
-                    }}
-                  />
-                </>
-              )
-            ) : (
-              <div className="w-full flex flex-col items-start">
-                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Resim Linki (URL)</label>
-                <input 
-                  type="url" 
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                  placeholder="https://images.unsplash.com/photo-..." 
+        {/* GALERİ GÖRSELLERİ */}
+        <div className="border border-gray-200 rounded-xl p-6 bg-gray-50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+            <label className="block text-sm font-bold text-gray-800">📸 Ürün Galerisi (Ek Görseller)</label>
+            
+            <div className="flex bg-gray-200 p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setGalleryImageMode("upload")}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${galleryImageMode === "upload" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                ☁️ Çoklu Yükle
+              </button>
+              <button
+                type="button"
+                onClick={() => setGalleryImageMode("url")}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${galleryImageMode === "url" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                🔗 URL Ekle
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 p-6 rounded-xl flex flex-col items-center justify-center min-h-[120px] mb-6">
+            {galleryImageMode === "upload" ? (
+              <>
+                <p className="text-sm text-gray-500 mb-4 text-center">Ürününüz için ek fotoğraflar seçin. (Aynı anda birden fazla seçebilirsiniz)</p>
+                <UploadButton
+                  endpoint="productImageUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res && res.length > 0) {
+                      const newUrls = res.map(file => file.url);
+                      setGalleryImages(prev => [...prev, ...newUrls]);
+                      toast.success(`${res.length} görsel galeriye eklendi! 🎉`);
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    toast.error(`Yükleme hatası: ${error.message}`);
+                  }}
+                  appearance={{
+                    button: "bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg transition",
+                    allowedContent: "hidden"
+                  }}
                 />
-                <p className="text-[11px] text-gray-400 mt-2">Dışarıdan alınan linklerin ileride kırılabileceğini (silinebileceğini) unutmayın.</p>
+              </>
+            ) : (
+              <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-end gap-3 sm:gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Galeri İçin Resim Linki (URL)</label>
+                  <input 
+                    type="url" 
+                    value={galleryUrlInput}
+                    onChange={(e) => setGalleryUrlInput(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs sm:text-sm min-h-[44px]" 
+                    placeholder="https://images.unsplash.com/photo-..." 
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (galleryUrlInput) {
+                      setGalleryImages(prev => [...prev, galleryUrlInput]);
+                      setGalleryUrlInput("");
+                      toast.success("URL galeriye eklendi!");
+                    }
+                  }}
+                  className="bg-gray-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-900 transition min-h-[44px] flex items-center justify-center whitespace-nowrap text-xs sm:text-sm"
+                >
+                  Ekle
+                </button>
               </div>
             )}
           </div>
-          
-          <div className="w-full md:w-64 h-48 bg-white border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden relative">
-            {imageUrl ? (
-              <>
-                <Image src={imageUrl} alt="Önizleme" className="max-w-full max-h-full object-contain" width={500} height={500} />
-                <button type="button" onClick={() => setImageUrl("")} className="absolute top-2 right-2 bg-white/90 text-red-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-red-50 transition" title="Görseli Kaldır">✕</button>
-              </>
-            ) : (
-              <span className="text-gray-400 text-sm font-medium">Resim Önizleme</span>
-            )}
-          </div>
+
+          {/* GALERİ ÖNİZLEME LİSTESİ */}
+          {galleryImages.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {galleryImages.map((url, index) => (
+                <div key={index} className="relative aspect-square bg-white border border-gray-200 rounded-lg overflow-hidden group">
+                  <Image src={url} alt={`Galeri ${index + 1}`} fill className="object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button 
+                      type="button" 
+                      onClick={() => setGalleryImages(prev => prev.filter((_, i) => i !== index))} 
+                      className="bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all shadow-lg"
+                      title="Kaldır"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+             <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg text-gray-400 text-sm">
+                Henüz galeriye görsel eklenmedi.
+             </div>
+          )}
         </div>
       </div>
 

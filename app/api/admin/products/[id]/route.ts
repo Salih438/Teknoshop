@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { AuditLogService } from "@/lib/services/audit-log.service";
+import { AuditRiskLevel } from "@prisma/client";
 
 type ParsedVariant = {
   id?: string;
@@ -18,10 +20,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireAdmin("DELETE_PRODUCTS");
 
     const resolvedParams = await params;
     const productId = resolvedParams.id;
+
+    const productToDelete = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { name: true },
+    });
 
     await prisma.product.delete({
       where: {
@@ -29,11 +36,31 @@ export async function DELETE(
       },
     });
 
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "DELETE_PRODUCT",
+      entityType: "Product",
+      entityId: productId,
+      entityName: productToDelete?.name || productId,
+      riskLevel: AuditRiskLevel.HIGH,
+    });
+
     return NextResponse.json({ message: "Ürün başarıyla silindi." }, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
+
+    if (
+      error?.code === "P2003" ||
+      (typeof error?.message === "string" && (error.message.includes("Foreign key") || error.message.includes("OrderItem") || error.message.includes("cartItem")))
+    ) {
+      return NextResponse.json(
+        { error: "Bu ürün geçmiş siparişlerde yer aldığı için silinemez. Ürünü silmek yerine pasife alabilirsiniz." },
+        { status: 400 }
+      );
+    }
+
     console.error("Ürün silinirken hata:", error);
     return NextResponse.json({ error: "Silme işlemi başarısız oldu." }, { status: 500 });
   }
@@ -45,7 +72,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_PRODUCTS");
 
     const resolvedParams = await params;
     const productId = resolvedParams.id;
@@ -55,6 +82,8 @@ export async function PUT(
     const slug = formData.get("slug") as string;
     const description = formData.get("description") as string;
     const price = parseFloat(formData.get("price") as string);
+    const comparePriceInput = formData.get("comparePrice") as string | null;
+    const comparePrice = comparePriceInput && comparePriceInput.trim() !== "" ? parseFloat(comparePriceInput) : null;
     const stock = parseInt(formData.get("stock") as string, 10);
     const categoryId = formData.get("categoryId") as string;
     const brandId = formData.get("brandId") as string;
@@ -64,11 +93,27 @@ export async function PUT(
     const sku = skuData ? skuData.trim() : undefined; 
     const isActive = formData.get("isActive") === "true";
     
-    // 🚀 YENİ: Frontend'den gelen varyasyon JSON verisini yakalıyoruz
     const variantsData = formData.get("variants") as string | null;
 
     if (!name || !slug || !price || !categoryId || !brandId || !imageUrl) {
       return NextResponse.json({ error: "Lütfen tüm zorunlu alanları doldurun." }, { status: 400 });
+    }
+
+    if (comparePrice !== null && !isNaN(comparePrice) && comparePrice <= price) {
+      return NextResponse.json(
+        { error: "Karşılaştırma fiyatı (eski fiyat), satış fiyatından büyük olmalıdır." },
+        { status: 400 }
+      );
+    }
+
+    const galleryImagesData = formData.get("galleryImages") as string | null;
+    let galleryImages: string[] = [];
+    if (galleryImagesData) {
+      try {
+        galleryImages = JSON.parse(galleryImagesData);
+      } catch {
+        galleryImages = [];
+      }
     }
 
     let parsedVariants: ParsedVariant[] = [];
@@ -89,7 +134,6 @@ export async function PUT(
       }
     }
 
-    // 🚀 GÜVENLİK DUVARI: Mükerrer (Duplicate) Varyasyon Kontrolü
     if (parsedVariants.length > 0) {
       const seenVariants = new Set<string>();
       for (const v of parsedVariants) {
@@ -103,23 +147,18 @@ export async function PUT(
       }
     }
 
-    // 🚀 TRANSACTION MANTIĞI: Yabancı anahtar (Foreign Key) çökmesini engelleyen akıllı upsert algoritması
     const updatedProduct = await prisma.$transaction(async (tx) => {
-      
       const existingVariants = await tx.productVariant.findMany({ where: { productId } });
       const variantsToCreate = [];
       const variantsToUpdate = [];
 
-      // Sadece DB'den gelmiş ve hala DB'de olan ID'leri belirlemek için
       const existingIds = new Set(existingVariants.map(v => v.id));
 
       for (const pv of parsedVariants) {
         if (pv.id && existingIds.has(pv.id)) {
           variantsToUpdate.push(pv);
-          existingIds.delete(pv.id); // Kalanlar silinecek
+          existingIds.delete(pv.id);
         } else {
-          // Frontend crypto.randomUUID() vermiş olabilir, DB id'si değilse create atıyoruz
-          // Ancak kombinasyon ismi eşleşirse onu update edebiliriz (Zero data loss fallback)
           const matchIndex = existingVariants.findIndex(
             (ev) => ev.combination === pv.combination || 
             (ev.color && ev.storage && `${ev.color} / ${ev.storage}` === pv.combination)
@@ -128,7 +167,6 @@ export async function PUT(
             variantsToUpdate.push({ ...pv, id: existingVariants[matchIndex].id });
             existingIds.delete(existingVariants[matchIndex].id);
           } else {
-            // DB id'si yok, yeni insert
             const { id, ...createData } = pv;
             variantsToCreate.push(createData);
           }
@@ -137,9 +175,7 @@ export async function PUT(
 
       const variantIdsToDelete = Array.from(existingIds);
 
-      // 1. Silinen varyasyonların N+1 yaratmayan (Toplu / IN) şekilde yönetimi
       if (variantIdsToDelete.length > 0) {
-        // Kullanımda olanları tek sorguda bul
         const [usedInOrders, usedInCarts] = await Promise.all([
           tx.orderItem.findMany({ 
             where: { variantId: { in: variantIdsToDelete } }, 
@@ -159,7 +195,6 @@ export async function PUT(
         const idsToSoftDelete = variantIdsToDelete.filter(id => usedIds.has(id));
         const idsToHardDelete = variantIdsToDelete.filter(id => !usedIds.has(id));
 
-        // Satılmışsa (kullanımdaysa) sadece aktifliği kapat ve stoğu sıfırla (Soft-Delete)
         if (idsToSoftDelete.length > 0) {
           await tx.productVariant.updateMany({
             where: { id: { in: idsToSoftDelete } },
@@ -167,7 +202,6 @@ export async function PUT(
           });
         }
 
-        // Hiç kullanılmamışsa fiziksel olarak sil (Hard-Delete)
         if (idsToHardDelete.length > 0) {
           await tx.productVariant.deleteMany({
             where: { id: { in: idsToHardDelete } }
@@ -175,7 +209,6 @@ export async function PUT(
         }
       }
 
-      // 2. Eşleşenleri güncelle
       for (const vu of variantsToUpdate) {
         await tx.productVariant.update({
           where: { id: vu.id },
@@ -190,7 +223,6 @@ export async function PUT(
         });
       }
 
-      // 3. Ürünü, görselleri ve YENİ varyasyonları güncelliyoruz
       return await tx.product.update({
         where: { id: productId },
         data: {
@@ -198,6 +230,7 @@ export async function PUT(
           slug, 
           description, 
           price, 
+          comparePrice,
           stock, 
           categoryId, 
           brandId,
@@ -205,7 +238,9 @@ export async function PUT(
           isActive,        
           images: {
             deleteMany: {}, 
-            create: [{ imageUrl }] 
+            ...(galleryImages.length > 0 && {
+              create: galleryImages.map(url => ({ imageUrl: url }))
+            })
           },
           variants: variantsToCreate.length > 0 ? {
             create: variantsToCreate
@@ -214,10 +249,26 @@ export async function PUT(
       });
     });
 
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "UPDATE_PRODUCT",
+      entityType: "Product",
+      entityId: updatedProduct.id,
+      entityName: updatedProduct.name,
+      riskLevel: AuditRiskLevel.LOW,
+      newValue: { name: updatedProduct.name, price: updatedProduct.price, stock: updatedProduct.stock },
+    });
+
     return NextResponse.json(updatedProduct, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    if (error?.code === "P2002") {
+      return NextResponse.json(
+        { error: "Bu SKU veya URL adresi (slug) zaten başka bir ürün tarafından kullanılıyor." },
+        { status: 400 }
+      );
     }
     console.error("Güncelleme hatası:", error);
     return NextResponse.json({ error: "Güncelleme işlemi başarısız oldu." }, { status: 500 });

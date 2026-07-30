@@ -1,12 +1,12 @@
 import { requireAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
-
 import Image from "next/image";
-// app/admin/orders/[id]/page.tsx
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import OrderStatusSelect from "../OrderStatusSelect"; // Yolunu kendi klasör yapına göre ./ veya ../ olarak ayarlayabilirsin
+import OrderStatusSelect from "../OrderStatusSelect";
+import AdminShipmentForm from "@/components/admin/orders/AdminShipmentForm";
+import OrderInvoiceModal from "@/components/admin/orders/OrderInvoiceModal";
 
 export const dynamic = "force-dynamic";
 
@@ -24,22 +24,24 @@ export default async function OrderDetailPage({
   const resolvedParams = await params;
   const orderId = resolvedParams.id;
 
-  // SİPARİŞİ TÜM DETAYLARIYLA ÇEKİYORUZ (Müşteri, Adres, Ürünler)
+  // SİPARİŞİ TÜM DETAYLARIYLA ÇEKİYORUZ (Müşteri, Adres, Kargo, Ürünler)
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
       user: true,
       address: true,
+      shipment: true,
       items: {
         include: {
           product: {
             include: {
-              images: true // Ürün resimlerini de getiriyoruz
-            }
-          }
-        }
-      }
-    }
+              images: true,
+            },
+          },
+          variant: true,
+        },
+      },
+    },
   });
 
   if (!order) {
@@ -50,9 +52,12 @@ export default async function OrderDetailPage({
     <div className="max-w-6xl mx-auto space-y-6">
       
       {/* ÜST BİLGİ VE GERİ DÖN BUTONU */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
-          <Link href="/admin/orders" className="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-sm">
+          <Link
+            href="/admin/orders"
+            className="bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 shadow-sm text-xs sm:text-sm"
+          >
             <span>←</span> Siparişlere Dön
           </Link>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
@@ -60,9 +65,19 @@ export default async function OrderDetailPage({
           </h1>
         </div>
         
-        {/* SİPARİŞ DURUMUNU BURADAN DA DEĞİŞTİREBİLSİN */}
-        <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-          <OrderStatusSelect orderId={order.id} currentStatus={order.status} />
+        {/* SİPARİŞ DURUMU SEÇİCİ VE FATURA BUTONU */}
+        <div className="flex items-center gap-3">
+          <OrderInvoiceModal
+            orderId={order.id}
+            customerName={order.user?.name || "Değerli Müşterimiz"}
+            customerEmail={order.user?.email || "-"}
+            totalPrice={order.totalPrice}
+            createdAt={order.createdAt.toISOString()}
+            status={order.status}
+          />
+          <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+            <OrderStatusSelect orderId={order.id} currentStatus={order.status} />
+          </div>
         </div>
       </div>
 
@@ -82,34 +97,44 @@ export default async function OrderDetailPage({
             
             <div className="divide-y divide-gray-100">
               {order.items.map((item) => {
-                // Ürünün ilk görselini alıyoruz, yoksa placeholder gösteriyoruz
-                const imageUrl = item.product.images?.[0]?.imageUrl || "https://via.placeholder.com/150";
+                const imageUrl = item.product?.images?.[0]?.imageUrl || "https://via.placeholder.com/150";
+                const productName = item.product?.name || "Silinmiş Ürün";
+                const productSku = item.product?.sku || "Belirtilmemiş";
+                const variantText = item.variant
+                  ? [item.variant.color, item.variant.storage, item.variant.combination].filter(Boolean).join(" / ")
+                  : null;
 
                 return (
                   <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-gray-50 transition">
-                    <Image src={imageUrl} 
-                      alt={item.product.name} 
-                      className="w-20 h-20 object-cover rounded-xl border border-gray-200"
-                    width={500} height={500} />
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900 text-lg mb-1">{item.product.name}</h3>
-                      <p className="text-sm text-gray-500 font-mono">SKU: {item.product.sku || "Belirtilmemiş"}</p>
+                    <Image
+                      src={imageUrl}
+                      alt={productName}
+                      className="w-20 h-20 object-cover rounded-xl border border-gray-200 flex-shrink-0"
+                      width={500}
+                      height={500}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 text-lg mb-1 truncate">{productName}</h3>
+                      {variantText && (
+                        <p className="text-xs font-bold text-blue-600 mb-0.5">Varyasyon: {variantText}</p>
+                      )}
+                      <p className="text-sm text-gray-500 font-mono">SKU: {productSku}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <p className="font-bold text-gray-900">{item.price.toLocaleString("tr-TR")} ₺</p>
                       <p className="text-sm text-gray-500 font-medium">Adet: {item.quantity}</p>
-                      <p className="font-extrabold text-blue-600 mt-1 mt-1">
+                      <p className="font-extrabold text-blue-600 mt-1">
                         {(item.price * item.quantity).toLocaleString("tr-TR")} ₺
                       </p>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
         </div>
 
-        {/* SAĞ KOLON: MÜŞTERİ, ADRES VE ÖZET BİLGİLERİ */}
+        {/* SAĞ KOLON: MÜŞTERİ, KARGO, ADRES VE ÖZET BİLGİLERİ */}
         <div className="lg:col-span-1 space-y-6">
           
           {/* MÜŞTERİ KARTI */}
@@ -120,17 +145,29 @@ export default async function OrderDetailPage({
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Ad Soyad</p>
-                <p className="font-medium text-gray-900">{order.user.name}</p>
+                <p className="font-medium text-gray-900">{order.user?.name || "Bilinmiyor"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">E-Posta</p>
-                <p className="font-medium text-gray-900">{order.user.email}</p>
+                <p className="font-medium text-gray-900">{order.user?.email || "Bilinmiyor"}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Telefon</p>
-                <p className="font-medium text-gray-900">{order.user.phone || "Belirtilmemiş"}</p>
+                <p className="font-medium text-gray-900">{order.user?.phone || "Belirtilmemiş"}</p>
               </div>
             </div>
+          </div>
+
+          {/* KARGO FİRMASI VE TAKİP NUMARASI ADMİN FORMU */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 border-b border-gray-100 pb-3">
+              🚚 Kargo & Gönderi Bilgileri
+            </h3>
+            <AdminShipmentForm
+              orderId={order.id}
+              initialCompany={order.shipment?.company}
+              initialTrackingNumber={order.shipment?.trackingNumber}
+            />
           </div>
 
           {/* TESLİMAT ADRESİ KARTI */}

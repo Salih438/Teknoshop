@@ -33,13 +33,13 @@ export default function VariantSelector({ variants, onSelect }: VariantSelectorP
   if (!variants || variants.length === 0) return null;
 
   return (
-    <div className="mb-8 space-y-6 border-b border-gray-100 pb-8 animate-in fade-in">
+    <div className="mb-6 sm:mb-8 space-y-4 border-b border-gray-100 pb-6 sm:pb-8 animate-in fade-in">
       <div>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Seçenekler</h3>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-xs sm:text-sm font-extrabold text-gray-900 uppercase tracking-wider">Seçenekler</h3>
         </div>
         
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2.5 sm:gap-3">
           {variants.map((variant) => {
             const isSelected = selectedVariantId === variant.id;
             const isOutOfStock = variant.stock <= 0;
@@ -51,12 +51,12 @@ export default function VariantSelector({ variants, onSelect }: VariantSelectorP
                 type="button"
                 onClick={() => !isOutOfStock && setSelectedVariantId(isSelected ? null : variant.id)}
                 disabled={isOutOfStock}
-                className={`relative px-5 py-3 rounded-xl border text-sm font-bold transition-all
+                className={`relative px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl border text-xs sm:text-sm font-extrabold transition-all min-h-[44px] flex items-center justify-center
                   ${isSelected 
-                    ? "border-blue-600 bg-blue-50/50 text-blue-700 shadow-sm ring-2 ring-blue-600 ring-offset-1 scale-105" 
+                    ? "border-blue-600 bg-blue-50/60 text-blue-700 shadow-sm ring-2 ring-blue-600 ring-offset-1 scale-105" 
                     : isOutOfStock 
                       ? "border-gray-100 bg-gray-50 text-gray-400 opacity-50 cursor-not-allowed" 
-                      : "border-gray-300 text-gray-700 hover:border-gray-400 bg-white hover:shadow-sm"
+                      : "border-gray-200 text-gray-700 hover:border-gray-300 bg-white hover:shadow-sm"
                   }
                 `}
               >
@@ -72,7 +72,7 @@ export default function VariantSelector({ variants, onSelect }: VariantSelectorP
         </div>
       </div>
       
-      <p className="text-xs text-gray-400 font-medium mt-2">
+      <p className="text-[11px] text-gray-400 font-medium mt-1">
         Stokta olmayan varyasyonlar pasif görünür.
       </p>
     </div>

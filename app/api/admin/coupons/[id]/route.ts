@@ -1,13 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { AuditLogService } from "@/lib/services/audit-log.service";
+import { AuditRiskLevel } from "@prisma/client";
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_COUPONS");
 
     const resolvedParams = await params;
     const couponId = resolvedParams.id;
@@ -16,16 +18,26 @@ export async function DELETE(
       return NextResponse.json({ error: "Geçersiz Kupon ID'si." }, { status: 400 });
     }
 
-    // 🚀 SOFT-DELETE MİMARİSİ
-    // Artık fiziksel silme (prisma.coupon.delete) YAPMIYORUZ.
-    // Kullanım sayısını (usageCount) kontrol edip admini engellemeye gerek kalmadı.
-    // Veriyi güvenli bir şekilde pasife ve "silinmiş" statüsüne çekiyoruz.
+    const couponToDelete = await prisma.coupon.findUnique({
+      where: { id: couponId },
+      select: { code: true },
+    });
+
     await prisma.coupon.update({
       where: { id: couponId },
       data: { 
-        isDeleted: true,  // Mantıksal olarak silindi
-        isActive: false   // Güvenlik amaçlı aynı zamanda pasife alındı
+        isDeleted: true,
+        isActive: false
       },
+    });
+
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "DELETE_COUPON",
+      entityType: "Coupon",
+      entityId: couponId,
+      entityName: couponToDelete?.code || couponId,
+      riskLevel: AuditRiskLevel.HIGH,
     });
 
     return NextResponse.json({ success: true, message: "Kupon başarıyla silindi." }, { status: 200 });
@@ -43,7 +55,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_COUPONS");
 
     const resolvedParams = await params;
     const couponId = resolvedParams.id;
@@ -58,6 +70,16 @@ export async function PATCH(
     const updatedCoupon = await prisma.coupon.update({
       where: { id: couponId },
       data: { isActive },
+    });
+
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "UPDATE_COUPON_STATUS",
+      entityType: "Coupon",
+      entityId: couponId,
+      entityName: updatedCoupon.code,
+      riskLevel: AuditRiskLevel.LOW,
+      newValue: { isActive: updatedCoupon.isActive },
     });
 
     return NextResponse.json({ success: true, data: updatedCoupon }, { status: 200 });

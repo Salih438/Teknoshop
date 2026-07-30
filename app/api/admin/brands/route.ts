@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { AuditLogService } from "@/lib/services/audit-log.service";
+import { AuditRiskLevel } from "@prisma/client";
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_BRANDS");
 
     const formData = await request.formData();
     const name = (formData.get("name") as string)?.trim();
@@ -23,6 +25,16 @@ export async function POST(request: Request) {
 
     const newBrand = await prisma.brand.create({
       data: { name }
+    });
+
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "CREATE_BRAND",
+      entityType: "Brand",
+      entityId: newBrand.id,
+      entityName: newBrand.name,
+      riskLevel: AuditRiskLevel.LOW,
+      newValue: { name: newBrand.name },
     });
 
     return NextResponse.json(

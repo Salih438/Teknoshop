@@ -3,29 +3,35 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
 import { Prisma } from "@prisma/client";
+import ProductFilterPanel from "@/components/storefront/ProductFilterPanel";
 
 export default async function AllProductsPage({ 
   searchParams 
 }: { 
-  searchParams: Promise<{ sort?: string, min?: string, max?: string, category?: string }> 
+  searchParams: Promise<{ sort?: string, min?: string, max?: string, category?: string, brand?: string }> 
 }) {
-  const { sort, min, max, category } = await searchParams;
+  const { sort, min, max, category, brand } = await searchParams;
 
-  // 🚀 1. KATEGORİLERİ DİNAMİK OLARAK ÇEKİYORUZ
+  // 1. KATEGORİLERİ DİNAMİK OLARAK ÇEKİYORUZ
   const dbCategories = await prisma.category.findMany({
     include: {
       _count: {
-        select: { products: { where: { isActive: true } } } // Sadece aktif ürünlerin sayısını rozette göster
+        select: { products: { where: { isActive: true } } }
       }
     },
     orderBy: {
-      name: 'asc' // Kategorileri A'dan Z'ye alfabetik sırala
+      name: 'asc'
     }
+  });
+
+  // MARKALARI ÇEKİYORUZ
+  const dbBrands = await prisma.brand.findMany({
+    orderBy: { name: 'asc' }
   });
 
   // 2. PRISMA FİLTRELEME MANTIĞI (Ürünler İçin)
   const whereClause: Prisma.ProductWhereInput = {
-    isActive: true, // Sadece aktif ürünleri getir
+    isActive: true,
   };
   
   if (min || max) {
@@ -34,11 +40,12 @@ export default async function AllProductsPage({
     if (max) whereClause.price.lte = parseInt(max);
   }
 
-  // URL'den kategori seçildiyse ürünleri ona göre filtrele
   if (category) {
-    whereClause.category = {
-      name: category 
-    };
+    whereClause.categoryId = category;
+  }
+
+  if (brand) {
+    whereClause.brandId = brand;
   }
 
   // 3. PRISMA SIRALAMA MANTIĞI
@@ -57,194 +64,127 @@ export default async function AllProductsPage({
     }
   });
 
-  // 🛠️ YARDIMCI FONKSİYON: Filtreleri kaybetmeden yeni URL oluşturur
-  const buildUrl = (updates: Record<string, string | undefined>) => {
-    const params = new URLSearchParams();
-    if (sort) params.set('sort', sort);
-    if (min) params.set('min', min);
-    if (max) params.set('max', max);
-    if (category) params.set('category', category);
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === undefined) {
-        params.delete(key);
-      } else {
-        params.set(key, value);
-      }
-    });
-
-    return `/products?${params.toString()}`;
-  };
+  // Kategori adını bul (Başlık için)
+  const selectedCategoryName = category 
+    ? dbCategories.find(c => c.id === category)?.name
+    : null;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 mt-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 w-full overflow-x-clip">
       
-      {/* ÜST BİLGİ VE SIRALAMA ÇUBUĞU */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 border-b border-gray-200 pb-4 gap-4">
+      {/* ÜST BİLGİ */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-gray-200 pb-4 gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {category ? `${category} Ürünleri` : "Tüm Ürünler"}
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+            {selectedCategoryName ? `${selectedCategoryName} Ürünleri` : "Tüm Ürünler"}
           </h1>
-          <p className="text-gray-500 mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Kataloğumuzdaki <span className="font-bold text-blue-600">{products.length}</span> ürünü inceliyorsunuz.
           </p>
         </div>
-        
-        {/* Sıralama Butonları */}
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-semibold text-gray-700 hidden sm:block">Sırala:</label>
-          <div className="flex flex-wrap gap-2">
-            <Link href={buildUrl({ sort: undefined })} className={`text-sm px-3 py-1.5 rounded-lg border font-medium transition ${!sort ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-              En Yeniler
-            </Link>
-            <Link href={buildUrl({ sort: 'price_asc' })} className={`text-sm px-3 py-1.5 rounded-lg border font-medium transition ${sort === 'price_asc' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-              En Düşük Fiyat
-            </Link>
-            <Link href={buildUrl({ sort: 'price_desc' })} className={`text-sm px-3 py-1.5 rounded-lg border font-medium transition ${sort === 'price_desc' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-              En Yüksek Fiyat
-            </Link>
-          </div>
-        </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
         
-        {/* SOL TARAF: FİLTRELEME MENÜSÜ (SIDEBAR) */}
-        <div className="w-full lg:w-64 flex-shrink-0 space-y-6">
-          
-          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-2 mb-4">
-              <h3 className="font-bold text-gray-900">Kategoriler</h3>
-              {category && (
-                <Link href={buildUrl({ category: undefined })} className="text-xs text-red-500 hover:underline font-semibold">
-                  Temizle
-                </Link>
-              )}
-            </div>
-            
-            {/* 🚀 ARTIK KATEGORİLER VERİTABANINDAN OTOMATİK GELİYOR */}
-            <ul className="space-y-3 text-sm text-gray-600 font-medium">
-              {dbCategories.map((cat) => {
-                const isActive = category === cat.name;
-                
-                return (
-                  <Link href={buildUrl({ category: cat.name })} className="block" key={cat.id}>
-                    <li className={`cursor-pointer flex justify-between items-center group p-2 -mx-2 rounded-lg transition-colors ${isActive ? "bg-blue-50 text-blue-700 font-bold" : "hover:text-blue-600 hover:bg-gray-50"}`}>
-                      <span className="truncate pr-2">{cat.name}</span> 
-                      {/* Ürün Sayısı Rozeti */}
-                      <span className={`px-2 py-0.5 rounded-full text-xs transition ${isActive ? "bg-blue-200 text-blue-800" : "bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-700"}`}>
-                        {cat._count.products}
-                      </span>
-                    </li>
-                  </Link>
-                );
-              })}
-            </ul>
-
-          </div>
-
-          <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-4 border-b border-gray-100 pb-2">Fiyat Aralığı</h3>
-            <ul className="space-y-3 text-sm font-medium">
-              <li>
-                <Link href={buildUrl({ min: undefined, max: undefined })} className={`block hover:text-blue-600 transition ${!min && !max ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>Tüm Fiyatlar</Link>
-              </li>
-              <li>
-                <Link href={buildUrl({ min: undefined, max: '10000' })} className={`block hover:text-blue-600 transition ${max === '10000' && !min ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>10.000 TL Altı</Link>
-              </li>
-              <li>
-                <Link href={buildUrl({ min: '10000', max: '30000' })} className={`block hover:text-blue-600 transition ${min === '10000' && max === '30000' ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>10.000 TL - 30.000 TL</Link>
-              </li>
-              <li>
-                <Link href={buildUrl({ min: '30000', max: undefined })} className={`block hover:text-blue-600 transition ${min === '30000' && !max ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>30.000 TL Üzeri</Link>
-              </li>
-            </ul>
-          </div>
+        {/* SOL TARAF: FİLTRELEME MENÜSÜ (Masaüstünde Sidebar, Mobilde Drawer) */}
+        <div className="w-full lg:w-72 flex-shrink-0">
+          <ProductFilterPanel 
+            categories={dbCategories.map(c => ({ id: c.id, name: c.name }))}
+            brands={dbBrands.map(b => ({ id: b.id, name: b.name }))}
+            currentSort={sort}
+            currentCategory={category}
+            currentBrand={brand}
+            currentMin={min}
+            currentMax={max}
+          />
         </div>
 
-        {/* SAĞ TARAF: ÜRÜN LİSTESİ (GRID) */}
-        <div className="flex-1">
+        {/* SAĞ TARAF: ÜRÜN LİSTESİ (MOBILE-FIRST 2 KOLON GRID) */}
+        <div className="flex-1 min-w-0">
           {products.length === 0 ? (
-            <div className="bg-white p-12 rounded-xl border border-gray-100 text-center shadow-sm">
-              <div className="text-4xl mb-4">🔍</div>
-              <p className="text-gray-500 text-lg font-medium">Seçtiğiniz filtrelere uygun ürün bulamadık.</p>
-              <Link href="/products" className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg mt-6 inline-block hover:bg-blue-700 transition">
+            /* BOŞ DURUM (EMPTY STATE) EKRANI */
+            <div className="bg-white p-8 sm:p-12 rounded-2xl border border-gray-100 text-center shadow-xs">
+              <div className="text-4xl mb-3">🔍</div>
+              <h3 className="font-extrabold text-gray-900 text-base sm:text-lg mb-1">Ürün Bulunamadı</h3>
+              <p className="text-gray-500 text-xs sm:text-sm max-w-sm mx-auto">Seçtiğiniz filtrelere uygun ürün bulunamadı. Lütfen filtrelerinizi temizlemeyi deneyin.</p>
+              <Link
+                href="/products"
+                className="bg-blue-600 text-white font-extrabold py-3 px-6 rounded-xl mt-5 inline-flex items-center justify-center hover:bg-blue-700 transition text-xs sm:text-sm min-h-[44px]"
+              >
                 Tüm Filtreleri Temizle
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            /* MOBİL: 2 KOLON (320px - 430px) / TABLET: 3 KOLON / MASAÜSTÜ: 4 KOLON */
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {products.map((product) => {
-                
                 const extractedImageUrls = product.images.map((img) => img.imageUrl);
-                const displayImage = extractedImageUrls.length > 0 ? extractedImageUrls[0] : null;
+                const displayImage = extractedImageUrls.length > 0 ? extractedImageUrls[0] : (product.imageUrl ? product.imageUrl : null);
 
                 const totalReviews = product.reviews?.length || 0;
                 const mockRating = totalReviews > 0 
                   ? ((product.reviews ?? []).reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
                   : "0.0";
-                const mockReviewCount = totalReviews; 
                 const isOutOfStock = product.stock <= 0; 
+                const hasDiscount = Boolean(product.comparePrice && product.comparePrice > product.price);
+                const discountPercent = hasDiscount ? Math.round(((product.comparePrice! - product.price) / product.comparePrice!) * 100) : 0;
 
                 return (
-                  <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col relative group">
+                  <div key={product.id} className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col relative group h-full">
                     
-                    {/* Stok Rozeti */}
-                    {isOutOfStock ? (
-                      <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-extrabold px-3 py-1 rounded-md shadow-sm">
-                        TÜKENDİ
-                      </span>
-                    ) : (
-                      <span className="absolute top-3 left-3 z-10 bg-green-500 text-white text-xs font-extrabold px-3 py-1 rounded-md shadow-sm">
-                        STOKTA
-                      </span>
-                    )}
-
-                    {/* Görsel */}
-                    <Link href={`/products/${product.id}`} className="block relative h-60 bg-gray-50 flex items-center justify-center p-6 overflow-hidden">
+                    {/* Görsel Alanı */}
+                    <Link href={`/products/${product.id}`} className="relative h-44 sm:h-52 bg-white flex items-center justify-center p-3 overflow-hidden border-b border-gray-50">
                       {displayImage ? (
-                        <Image src={displayImage} 
-                          alt={product.name}
-                          className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                        width={500} height={500} />
+                        <Image src={displayImage} alt={product.name} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500" width={500} height={500} />
                       ) : (
-                        <span className="text-gray-400 font-medium">Görsel Yok</span>
+                        <span className="text-gray-300 font-medium text-xs">Görsel Yok</span>
+                      )}
+                      {hasDiscount && (
+                        <div className="absolute top-2 left-2 bg-red-600 text-white font-extrabold text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md shadow-xs z-10">
+                          %{discountPercent} İndirim
+                        </div>
+                      )}
+                      {isOutOfStock && (
+                        <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex items-center justify-center z-10">
+                          <span className="bg-red-600 text-white font-extrabold px-3 py-1 rounded-lg text-xs shadow-md">Tükendi</span>
+                        </div>
                       )}
                     </Link>
 
                     {/* Detaylar */}
-                    <div className="p-5 flex flex-col flex-1 border-t border-gray-100">
+                    <div className="p-3 sm:p-4 flex flex-col flex-1">
                       
                       {/* Yıldızlar */}
-                      <div className="flex items-center gap-1 mb-3">
-                        <div className="flex text-yellow-400 text-sm">
-                          {'★'.repeat(Math.floor(Number(mockRating)))}
+                      <div className="flex items-center gap-1 mb-1.5">
+                        <div className="flex text-yellow-400 text-xs">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <span key={s} className={s <= Math.round(Number(mockRating)) ? "text-yellow-400" : "text-gray-200"}>★</span>
+                          ))}
                         </div>
-                        <span className="text-xs font-bold text-gray-700 ml-1">{mockRating}</span>
-                        <span className="text-xs text-gray-400 ml-1">({mockReviewCount})</span>
+                        <span className="text-[10px] font-bold text-gray-700">{mockRating}</span>
                       </div>
 
                       {/* Başlık */}
                       <Link href={`/products/${product.id}`}>
-                        <h2 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2 hover:text-blue-600 transition-colors cursor-pointer">
+                        <h2 className="text-xs sm:text-sm font-bold text-gray-900 mb-1 line-clamp-2 h-[2.5rem] sm:h-[2.75rem] flex items-start hover:text-blue-600 transition-colors cursor-pointer leading-snug">
                           {product.name}
                         </h2>
                       </Link>
-                      
-                      <div className="flex-1"></div>
 
                       {/* Fiyat ve Buton */}
-                      <div className="flex justify-between items-end mt-4 pt-4 border-t border-gray-50">
-                        <div className="flex flex-col">
-                          <span className="text-xs text-gray-400 line-through mb-0.5">
-                            {(product.price * 1.20).toLocaleString('tr-TR')} ₺
-                          </span>
-                          <span className="text-xl font-extrabold text-blue-600">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mt-auto pt-3 border-t border-gray-50 gap-2">
+                        <div className="flex flex-col justify-end min-h-[2.5rem]">
+                          {hasDiscount && (
+                            <span className="text-[10px] text-gray-400 line-through font-medium leading-none mb-0.5">
+                              {product.comparePrice!.toLocaleString('tr-TR')} ₺
+                            </span>
+                          )}
+                          <span className="text-sm sm:text-base font-extrabold text-blue-600 leading-none">
                             {product.price.toLocaleString('tr-TR')} ₺
                           </span>
                         </div>
                         
-                        <div className={isOutOfStock ? "opacity-50 pointer-events-none" : ""}>
+                        <div className={`w-full sm:w-auto ${isOutOfStock ? "opacity-50 pointer-events-none" : ""}`}>
                           <AddToCartButton 
                             product={{
                               id: product.id,
@@ -252,6 +192,7 @@ export default async function AllProductsPage({
                               price: product.price,
                               images: product.images, 
                             }} 
+                            className="!w-full sm:!w-auto !px-2.5 !py-2 !text-xs !rounded-xl min-h-[44px] flex items-center justify-center"
                           />
                         </div>
                       </div>

@@ -1,14 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { AuditLogService } from "@/lib/services/audit-log.service";
+import { AuditRiskLevel } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentMethodsPage() {
-  // 1. GÜVENLİK: Sadece ADMIN rolüne sahip kişiler bu sayfayı görebilir
+  // 1. GÜVENLİK: MANAGE_PAYMENT_METHODS iznine sahip kullanıcılar erişebilir
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_PAYMENT_METHODS");
   } catch {
     redirect("/");
   }
@@ -21,30 +23,88 @@ export default async function AdminPaymentMethodsPage() {
   // 3. SERVER ACTION: Yeni Ödeme Yöntemi Ekleme
   async function addPaymentMethod(formData: FormData) {
     "use server";
-    await requireAdmin(); // Güvenlik kontrolünü Action içinde de tekrarlıyoruz
+    const adminUser = await requireAdmin("MANAGE_PAYMENT_METHODS");
 
-    const name = formData.get("name") as string;
+    const name = (formData.get("name") as string)?.trim();
     const type = formData.get("type") as "CREDIT_CARD" | "BANK_TRANSFER" | "CASH_ON_DELIVERY";
-    const description = formData.get("description") as string;
-    const fee = parseFloat(formData.get("fee") as string) || 0;
+    const description = (formData.get("description") as string)?.trim();
+    const feeRaw = formData.get("fee") as string;
+    const fee = parseFloat(feeRaw) || 0;
 
-    await prisma.paymentMethod.create({
+    if (!name) {
+      throw new Error("Ödeme yöntemi ismi zorunludur.");
+    }
+
+    if (fee < 0) {
+      throw new Error("Ek işlem ücreti negatif bir değer olamaz.");
+    }
+
+    // 🛡️ DUPLICATE GUARD: Aynı sistem türünde başka aktif/kayıtlı yöntem var mı?
+    const existingType = await prisma.paymentMethod.findFirst({
+      where: { type },
+    });
+
+    if (existingType) {
+      throw new Error(`'${type}' sistem türünde zaten tanımlanmış bir ödeme yöntemi bulunmaktadır.`);
+    }
+
+    const created = await prisma.paymentMethod.create({
       data: { name, type, description, fee },
     });
 
+    // 🛡️ AUDIT LOG
+    try {
+      await AuditLogService.createAuditLog({
+        adminId: adminUser.id,
+        adminName: adminUser.name,
+        adminEmail: adminUser.email,
+        action: "PAYMENT_METHOD_CREATE",
+        entityType: "PaymentMethod",
+        entityId: created.id,
+        entityName: created.name,
+        riskLevel: AuditRiskLevel.HIGH,
+        newValue: { name: created.name, type: created.type, fee: created.fee },
+      });
+    } catch (auditErr) {
+      console.error("Audit log hatası (Ödeme Yöntemi Ekle):", auditErr);
+    }
+
     revalidatePath("/admin/payment-methods");
-    revalidatePath("/checkout"); // Müşterinin ödeme ekranını da anında güncelliyoruz
+    revalidatePath("/checkout");
   }
 
   // 4. SERVER ACTION: Ödeme Yöntemini Aktif/Pasif Yapma
   async function toggleStatus(id: string, currentStatus: boolean) {
     "use server";
-    await requireAdmin();
+    const adminUser = await requireAdmin("MANAGE_PAYMENT_METHODS");
+
+    const targetMethod = await prisma.paymentMethod.findUnique({
+      where: { id },
+      select: { name: true, type: true },
+    });
     
-    await prisma.paymentMethod.update({
+    const updated = await prisma.paymentMethod.update({
       where: { id },
       data: { isActive: !currentStatus },
     });
+
+    // 🛡️ AUDIT LOG (STATUS TOGGLE)
+    try {
+      await AuditLogService.createAuditLog({
+        adminId: adminUser.id,
+        adminName: adminUser.name,
+        adminEmail: adminUser.email,
+        action: "PAYMENT_METHOD_TOGGLE",
+        entityType: "PaymentMethod",
+        entityId: updated.id,
+        entityName: targetMethod?.name || updated.name,
+        riskLevel: AuditRiskLevel.MEDIUM,
+        oldValue: { isActive: currentStatus },
+        newValue: { isActive: !currentStatus },
+      });
+    } catch (auditErr) {
+      console.error("Audit log hatası (Ödeme Yöntemi Durumu):", auditErr);
+    }
 
     revalidatePath("/admin/payment-methods");
     revalidatePath("/checkout");

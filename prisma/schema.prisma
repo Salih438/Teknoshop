@@ -29,33 +29,151 @@ enum PaymentStatus {
   REFUNDED
 }
 
-// 🚀 YENİ: Dinamik ödeme türleri için sistem seviyesi kategorizasyon
 enum PaymentType {
   CREDIT_CARD
   BANK_TRANSFER
   CASH_ON_DELIVERY
+  DIGITAL_WALLET
+  INSTALLMENT
+}
+
+enum PaymentProvider {
+  CUSTOM
+  IYZICO
+  PAYTR
+  STRIPE
+  GARANTI
+  AKBANK
+  PAPARA
+  FAST
+  APPLE_PAY
+  GOOGLE_PAY
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  SHIPPED
+  RECEIVED
+  COMPLETED
+  REJECTED
+}
+
+enum ReturnReason {
+  DEFECTIVE
+  WRONG_ITEM
+  SIZE_FIT
+  NOT_AS_DESCRIBED
+  CHANGE_OF_MIND
+  OTHER
+}
+
+enum ExchangeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WAITING_FOR_CUSTOMER
+  WAITING_STOCK
+  SHIPPED
+  RECEIVED
+  PROCESSING
+  COMPLETED
+}
+
+enum ExchangeReason {
+  SIZE_CHANGE
+  COLOR_CHANGE
+  DEFECTIVE_REPLACEMENT
+  WRONG_ITEM_SENT
+  OTHER
+}
+
+enum AdminNotificationType {
+  LOW_STOCK
+  NEW_ORDER
+  ORDER_CANCELLED
+  RETURN_REQUEST
+  EXCHANGE_REQUEST
+  SYSTEM
+  USER_REGISTERED
+}
+
+enum UserNotificationType {
+  ORDER_CREATED
+  ORDER_PREPARING
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  RETURN_APPROVED
+  RETURN_REJECTED
+  RETURN_COMPLETED
+  EXCHANGE_APPROVED
+  EXCHANGE_REJECTED
+  EXCHANGE_RECEIVED
+  EXCHANGE_SHIPPED
+  EXCHANGE_COMPLETED
+  NEW_COUPON
+  NEW_CAMPAIGN
+  SYSTEM_ANNOUNCEMENT
+}
+
+enum AuditRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum Permission {
+  VIEW_DASHBOARD
+  VIEW_ANALYTICS
+  MANAGE_PRODUCTS
+  DELETE_PRODUCTS
+  MANAGE_ORDERS
+  MANAGE_USERS
+  DELETE_USERS
+  MANAGE_COUPONS
+  MANAGE_RETURNS
+  MANAGE_EXCHANGES
+  MANAGE_NOTIFICATIONS
+  VIEW_AUDIT
+  MANAGE_SETTINGS
+  MANAGE_PAYMENT_METHODS
+  MANAGE_BRANDS
+  MANAGE_CATEGORIES
+  EXPORT_REPORTS
+  MANAGE_ROLES
+}
+
+enum SystemRole {
+  SUPER_ADMIN
+  ADMIN
+  CUSTOMER_SUPPORT
+  CONTENT_MANAGER
+  ANALYST
 }
 
 // ================= MODELLER (TABLOLAR) =================
 
-// 1. KULLANICI YÖNETİMİ
 model User {
   id        String  @id @default(uuid())
   name      String
   email     String  @unique
-  password  String? // OAuth (Google vs) ile girişler için nullable olabilir
+  password  String?
   phone     String?
-  role      Role    @default(USER)
-  isActive  Boolean @default(true)
-  avatarUrl String? // <-- Profil fotoğrafı URL'si
+  role      Role       @default(USER)
+  systemRole SystemRole @default(ADMIN)
+  isActive  Boolean    @default(true)
 
-  // İlişkiler
+  avatarUrl String?
+
   addresses Address[]
   orders    Order[]
-  cart      Cart?     // Bir kullanıcının 1 sepeti olur (1-to-1)
   reviews   Review[]
   favorites Favorite[]
   couponUsages CouponUsage[]
+  returns   ReturnRequest[]
+  exchanges ExchangeRequest[]
+  notifications UserNotification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -63,25 +181,23 @@ model User {
 
 model Address {
   id         String  @id @default(uuid())
-  title      String  // Ev, İş vb.
+  title      String
   city       String
   district   String
   address    String
   postalCode String?
 
-  isDefault  Boolean @default(false) // Bu kullanıcının varsayılan adresi mi?
+  isDefault  Boolean @default(false)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders Order[] // Bu adrese verilen siparişler
+  orders Order[]
 
   createdAt DateTime @default(now())
 
-  // PERFORMANS İYİLEŞTİRMESİ
   @@index([userId])
 }
 
-// 2. KATALOG VE ÜRÜN YÖNETİMİ
 model Category {
   id          String    @id @default(uuid())
   name        String    @unique
@@ -101,39 +217,36 @@ model Product {
   slug        String @unique
   description String
   price       Float
+  comparePrice Float?
   stock       Int    @default(0)
 
-  imageUrl    String   // Katalog ve sepet için ana kapak fotoğrafı
-  sku         String?  @unique          // Stok Kodu / Barkod (Örn: SMS25-256)
-  isActive    Boolean  @default(true)   // Ürün yayında mı? (Aktif/Pasif)
-  salesCount  Int      @default(0)      // Satış sayısı istatistiği
-  viewCount   Int      @default(0)      // Görüntülenme istatistiği
+  imageUrl    String
+  sku         String?  @unique
+  isActive    Boolean  @default(true)
+  salesCount  Int      @default(0)
+  viewCount   Int      @default(0)
 
-  // İlişkiler
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
   brandId String
   brand   Brand  @relation(fields: [brandId], references: [id])
 
-  images     ProductImage[] // Çoklu fotoğraf galerisi
+  images     ProductImage[]
   cartItems  CartItem[]
   orderItems OrderItem[]
   reviews    Review[]
   favorites  Favorite[]
-  
-  // 🚀 YENİ: Ürünün Sahip Olduğu Varyasyonlar
-  variants   ProductVariant[] 
+  requestedExchanges ExchangeItem[]
+  variants   ProductVariant[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // PERFORMANS İYİLEŞTİRMESİ
   @@index([categoryId])
   @@index([brandId])
 }
 
-// Ürün Çoklu Galeri Tablosu
 model ProductImage {
   id       String @id @default(uuid())
   imageUrl String
@@ -141,42 +254,37 @@ model ProductImage {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  // PERFORMANS İYİLEŞTİRMESİ
   @@index([productId])
 }
 
-// 🚀 YENİ TABLO: Ürün Varyasyonları (Örn: Siyah / 128GB)
 model ProductVariant {
   id        String  @id @default(uuid())
   
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  color     String? // Opsiyonel renk seçeneği
-  storage   String? // Opsiyonel hafıza seçeneği
+  color     String?
+  storage   String?
 
-  // 🚀 AŞAMA 1: ZERO DATA LOSS SCHEMA EXPANSION
-  // Mevcut kayıtları bozmamak için hepsi opsiyonel veya default değerli eklendi
   combination     String?
   discountedPrice Float?
   sku             String?
   isActive        Boolean @default(true)
   
-  price     Float?  // Varyasyona özel fiyat (Boşsa ana ürünün fiyatı geçerli olur)
+  price     Float?
   stock     Int     @default(0)
 
   cartItems  CartItem[]
   orderItems OrderItem[]
+  requestedVariantExchanges ExchangeItem[]
 
   @@index([productId])
   @@index([sku])
 }
 
-// 3. SEPET YÖNETİMİ
 model Cart {
   id     String     @id @default(uuid())
   userId String     @unique
-  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items  CartItem[]
 }
 
@@ -190,29 +298,49 @@ model CartItem {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  // 🚀 YENİ: Sepetteki ürünün seçilen varyasyonu (Eski sepetleri bozmamak için nullable)
   variantId String? 
   variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
-  // PERFORMANS İYİLEŞTİRMESİ
   @@index([cartId])
   @@index([productId])
   @@index([variantId])
 }
 
-// 4. SİPARİŞ VE ÖDEME
+// 4. SİPARİŞ VE ENTERPRISE ÖDEME MİMARİSİ
 model PaymentMethod {
-  id          String      @id @default(uuid())
-  name        String      
-  description String?     
-  type        PaymentType 
-  fee         Float       @default(0) 
-  isActive    Boolean     @default(true)
+  id           String          @id @default(uuid())
+  name         String          
+  description  String?         
+  type         PaymentType     @default(CREDIT_CARD)
+  provider     PaymentProvider @default(CUSTOM)
+  fee          Float           @default(0)
+  displayOrder Int             @default(0)
+  icon         String?         
+  isActive     Boolean         @default(true)
   
-  payments    Payment[]   
+  bankAccounts BankAccount[]
+  payments     Payment[]   
   
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model BankAccount {
+  id              String        @id @default(uuid())
+  paymentMethodId String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id], onDelete: Cascade)
+
+  bankName        String
+  accountHolder   String
+  iban            String
+  currency        String        @default("TRY")
+  branchCode      String?
+  accountNumber   String?
+  isActive        Boolean       @default(true)
+
+  createdAt       DateTime      @default(now())
+
+  @@index([paymentMethodId])
 }
 
 model Order {
@@ -231,18 +359,22 @@ model Order {
   payment  Payment?
   shipment Shipment?
   couponUsages CouponUsage[]
+  returns  ReturnRequest[]
+  exchanges ExchangeRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deliveredAt DateTime?
 
-  // PERFORMANS İYİLEŞTİRMESİ
   @@index([userId])
 }
 
 model OrderItem {
-  id       String @id @default(uuid())
-  quantity Int
-  price    Float 
+  id                String @id @default(uuid())
+  quantity          Int
+  returnedQuantity  Int    @default(0)
+  exchangedQuantity Int    @default(0)
+  price             Float 
 
   orderId String
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -250,20 +382,23 @@ model OrderItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
-  // 🚀 YENİ: Sipariş edilen ürünün seçilen varyasyonu
   variantId String? 
   variant   ProductVariant? @relation(fields: [variantId], references: [id])
 
-  // PERFORMANS İYİLEŞTİRMESİ
+  returnItems   ReturnItem[]
+  exchangeItems ExchangeItem[]
+
   @@index([orderId])
   @@index([productId])
   @@index([variantId])
 }
 
 model Payment {
-  id            String        @id @default(uuid())
-  status        PaymentStatus @default(PENDING)
-  transactionId String? 
+  id             String        @id @default(uuid())
+  status         PaymentStatus @default(PENDING)
+  transactionId  String? 
+  refundedAmount Float         @default(0)
+  refundedAt     DateTime?
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -347,12 +482,183 @@ model CouponUsage {
   @@index([couponId])
   @@index([userId])
 }
-// 5. MAĞAZA VE KARGO AYARLARI (YENİ EKLENDİ)
+
 model StoreSettings {
   id                String   @id @default(uuid())
-  shippingCompany   String   @default("Yurtiçi Kargo") // Kargo şirketi adı
-  shippingFee       Float    @default(149.99)          // Kargo ücreti
-  freeShippingThreshold Float @default(5000.00)        // Ücretsiz kargo limiti
+  shippingCompany   String   @default("Yurtiçi Kargo") 
+  shippingFee       Float    @default(149.99)          
+  freeShippingThreshold Float @default(5000.00)        
+  
+  phone             String?
+  email             String?
+  address           String?
+  workingHours      String?
   
   updatedAt         DateTime @updatedAt
+}
+
+model ReturnRequest {
+  id                   String       @id @default(uuid())
+  orderId              String
+  order                Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId               String
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  status               ReturnStatus @default(PENDING)
+  refundAmount         Float        @default(0)
+  refundMethod         String?      
+  returnTrackingNumber String?      
+  customerNote         String?      @db.Text
+  adminNote            String?      @db.Text
+  
+  approvedAt           DateTime?
+  receivedAt           DateTime?
+  completedAt          DateTime?
+  
+  items                ReturnItem[]
+  images               ReturnImage[]
+  
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status, createdAt])
+  @@index([userId, status])
+  @@index([orderId, status])
+}
+
+model ReturnItem {
+  id              String        @id @default(uuid())
+  returnRequestId String
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  orderItemId     String
+  orderItem       OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  
+  quantity        Int           @default(1)
+  reason          ReturnReason  @default(OTHER)
+  refundAmount    Float         @default(0)
+
+  createdAt       DateTime      @default(now())
+
+  @@index([returnRequestId])
+  @@index([orderItemId])
+  @@index([orderItemId, returnRequestId])
+}
+
+model ReturnImage {
+  id              String        @id @default(uuid())
+  returnRequestId String
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  imageUrl        String
+  
+  createdAt       DateTime      @default(now())
+
+  @@index([returnRequestId])
+}
+
+model ExchangeRequest {
+  id                         String         @id @default(uuid())
+  orderId                    String
+  order                      Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId                     String
+  user                       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  status                     ExchangeStatus @default(PENDING)
+  returnTrackingNumber       String?        
+  newShipmentTrackingNumber  String?        
+  customerNote               String?        @db.Text
+  adminNote                  String?        @db.Text
+  
+  approvedAt                 DateTime?
+  receivedAt                 DateTime?
+  completedAt                DateTime?
+  
+  items                      ExchangeItem[]
+  
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status, createdAt])
+  @@index([userId, status])
+  @@index([orderId, status])
+}
+
+model ExchangeItem {
+  id                 String          @id @default(uuid())
+  exchangeRequestId  String
+  exchangeRequest    ExchangeRequest @relation(fields: [exchangeRequestId], references: [id], onDelete: Cascade)
+  orderItemId        String
+  orderItem          OrderItem       @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  
+  requestedProductId String?
+  requestedProduct   Product?        @relation(fields: [requestedProductId], references: [id])
+  requestedVariantId String?
+  requestedVariant   ProductVariant? @relation(fields: [requestedVariantId], references: [id])
+  
+  quantity           Int             @default(1)
+  reason             ExchangeReason  @default(SIZE_CHANGE)
+
+  createdAt          DateTime        @default(now())
+
+  @@index([exchangeRequestId])
+  @@index([orderItemId])
+  @@index([orderItemId, exchangeRequestId])
+}
+
+model AdminNotification {
+  id        String                @id @default(uuid())
+  type      AdminNotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean               @default(false)
+  metadata  String?
+  createdAt DateTime              @default(now())
+
+  @@index([isRead, createdAt])
+  @@index([type, createdAt])
+  @@index([metadata])
+}
+
+model AuditLog {
+  id         String         @id @default(uuid())
+  adminId    String
+  adminName  String
+  adminEmail String?
+  action     String
+  entityType String
+  entityId   String?
+  entityName String?
+  riskLevel  AuditRiskLevel @default(LOW)
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime       @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([entityType, createdAt])
+  @@index([riskLevel, createdAt])
+}
+
+model UserNotification {
+  id         String               @id @default(uuid())
+  userId     String
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       UserNotificationType
+  title      String
+  message    String               @db.Text
+  linkUrl    String?
+  entityType String?
+  entityId   String?
+  isRead     Boolean              @default(false)
+  readAt     DateTime?
+  createdAt  DateTime             @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
 }

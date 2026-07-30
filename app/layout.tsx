@@ -6,13 +6,12 @@ import { ClerkProvider } from "@clerk/nextjs";
 // 🚀 YENİ: Lazy Sync için gerekli importlar
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import ClientLayoutWrapper from "./ClientLayoutWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "E-Ticaret Vitrini",
-  description: "Staj Projesi",
+  title: "Teknoshop | Teknoloji ve Elektronik Mağazası",
+  description: "En yeni teknoloji ürünleri ve elektronik cihazlar",
 };
 
 // 🚀 YENİ: Layout'u async yaptık ki sunucu tarafında Prisma'yı bekleyebilelim
@@ -54,9 +53,7 @@ export default async function RootLayout({
           (ColorZilla vb.) body'ye yaptığı müdahaleleri susturuyoruz.
         */}
         <body className={`${inter.className} bg-gray-50 text-gray-900`} suppressHydrationWarning>
-          <ClientLayoutWrapper>
-            {children}
-          </ClientLayoutWrapper>
+          {children}
         </body>
       </html>
     </ClerkProvider>

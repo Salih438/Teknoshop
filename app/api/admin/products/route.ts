@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
+import { AuditLogService } from "@/lib/services/audit-log.service";
+import { AuditRiskLevel } from "@prisma/client";
 
-// 🚀 DÜZELTME 1: 'any' hatasından kurtulmak için verinin tipini önden tanımlıyoruz
 type ParsedVariant = {
   combination: string;
   price: number | null;
@@ -14,7 +15,7 @@ type ParsedVariant = {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_PRODUCTS");
 
     const formData = await request.formData();
     
@@ -22,6 +23,8 @@ export async function POST(request: Request) {
     const slug = formData.get("slug") as string;
     const description = formData.get("description") as string;
     const price = parseFloat(formData.get("price") as string);
+    const comparePriceInput = formData.get("comparePrice") as string | null;
+    const comparePrice = comparePriceInput && comparePriceInput.trim() !== "" ? parseFloat(comparePriceInput) : null;
     const stock = parseInt(formData.get("stock") as string, 10);
     const categoryId = formData.get("categoryId") as string;
     const brandId = formData.get("brandId") as string;
@@ -32,20 +35,31 @@ export async function POST(request: Request) {
     
     const isActive = formData.get("isActive") === "true"; 
 
-    // Frontend'den gelen varyasyon JSON verisini yakalıyoruz
     const variantsData = formData.get("variants") as string | null;
 
     if (!name || !slug || !price || !categoryId || !brandId || !imageUrl) {
       return NextResponse.json({ error: "Lütfen tüm zorunlu alanları doldurun." }, { status: 400 });
     }
 
-    // 🚀 DÜZELTME 2: Tanımladığımız 'ParsedVariant' tipini kullanıyoruz
+    if (typeof price === "number" && (isNaN(price) || price < 0)) {
+      return NextResponse.json({ error: "Ürün fiyatı negatif olamaz." }, { status: 400 });
+    }
+
+    if (comparePrice !== null && !isNaN(comparePrice) && comparePrice <= price) {
+      return NextResponse.json(
+        { error: "Karşılaştırma fiyatı (eski fiyat), satış fiyatından büyük olmalıdır." },
+        { status: 400 }
+      );
+    }
+
+    if (typeof stock === "number" && (isNaN(stock) || stock < 0)) {
+      return NextResponse.json({ error: "Stok miktarı negatif olamaz." }, { status: 400 });
+    }
+
     let parsedVariants: ParsedVariant[] = [];
     
     if (variantsData) {
       try {
-        // Gelen JSON stringini Record (Obje) dizisi olarak işliyoruz
-        // VariantRow { combination, price, discountedPrice, stock, sku, isActive }
         const rawVariants = JSON.parse(variantsData) as Record<string, any>[];
         
         parsedVariants = rawVariants.map((v) => ({
@@ -61,7 +75,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // 🚀 GÜVENLİK DUVARI: Mükerrer (Duplicate) Varyasyon Kontrolü
     if (parsedVariants.length > 0) {
       const seenVariants = new Set<string>();
       for (const v of parsedVariants) {
@@ -75,24 +88,34 @@ export async function POST(request: Request) {
       }
     }
 
+    const galleryImagesData = formData.get("galleryImages") as string | null;
+    let galleryImages: string[] = [];
+    if (galleryImagesData) {
+      try {
+        galleryImages = JSON.parse(galleryImagesData);
+      } catch {
+        galleryImages = [];
+      }
+    }
+
     const newProduct = await prisma.product.create({
       data: {
         name: name,
         slug: slug,
         description: description,
         price: price,
+        comparePrice: comparePrice,
         stock: stock,
         categoryId: categoryId,
         brandId: brandId,
         sku: sku,               
         isActive: isActive,
         imageUrl: imageUrl, 
-        images: {
-          create: [
-            { imageUrl: imageUrl } 
-          ]
-        },
-        // Eğer admin varyasyon eklediyse, Prisma bunları da tek seferde (Atomic) ürüne bağlayıp kaydedecek
+        ...(galleryImages.length > 0 && {
+          images: {
+            create: galleryImages.map(url => ({ imageUrl: url }))
+          }
+        }),
         ...(parsedVariants.length > 0 && {
           variants: {
             create: parsedVariants
@@ -101,11 +124,27 @@ export async function POST(request: Request) {
       }
     });
 
+    // 🛡️ DENETİM İZİ (Audit Log)
+    await AuditLogService.createAuditLog({
+      action: "CREATE_PRODUCT",
+      entityType: "Product",
+      entityId: newProduct.id,
+      entityName: newProduct.name,
+      riskLevel: AuditRiskLevel.MEDIUM,
+      newValue: { name: newProduct.name, price: newProduct.price, stock: newProduct.stock },
+    });
+
     return NextResponse.json(newProduct, { status: 201 });
     
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    if (error?.code === "P2002") {
+      return NextResponse.json(
+        { error: "Bu SKU veya URL adresi (slug) zaten başka bir ürün tarafından kullanılıyor." },
+        { status: 400 }
+      );
     }
     console.error("Ürün eklenirken sunucu hatası oluştu:", error);
     return NextResponse.json({ error: "Sunucu hatası yaşandı." }, { status: 500 });
