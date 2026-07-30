@@ -47,6 +47,7 @@ export default async function AdminProductsPage({
         category: true,
         brand: true,
         images: true,
+        variants: true,
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -173,13 +174,20 @@ export default async function AdminProductsPage({
 
                     {/* Stok Durumu */}
                     <td className="p-4">
-                      {product.stock > 10 ? (
-                        <span className="text-green-600 font-medium">{product.stock} Adet</span>
-                      ) : product.stock > 0 ? (
-                        <span className="text-orange-500 font-medium">Son {product.stock} Adet!</span>
-                      ) : (
-                        <span className="text-red-600 font-bold">Stokta Yok</span>
-                      )}
+                      {(() => {
+                        const hasVariants = product.variants && product.variants.length > 0;
+                        const displayStock = hasVariants 
+                          ? product.variants.reduce((acc, v) => acc + v.stock, 0)
+                          : product.stock;
+                          
+                        return displayStock > 10 ? (
+                          <span className="text-green-600 font-medium">{displayStock} Adet</span>
+                        ) : displayStock > 0 ? (
+                          <span className="text-orange-500 font-medium">Son {displayStock} Adet!</span>
+                        ) : (
+                          <span className="text-red-600 font-bold">Stokta Yok</span>
+                        );
+                      })()}
                     </td>
 
                     {/* Fiyat */}

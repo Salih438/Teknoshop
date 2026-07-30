@@ -5,13 +5,19 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
+import { UploadButton } from "@/lib/utils/uploadthing";
+import DynamicVariantBuilder from "@/components/admin/variants/DynamicVariantBuilder";
 
-interface VariantInfo {
-  id: string | number;
+interface DBVariant {
+  id: string;
+  combination: string | null;
   color: string | null;
   storage: string | null;
-  price: string | number | null;
+  price: number | null;
+  discountedPrice: number | null;
   stock: number;
+  sku: string | null;
+  isActive: boolean;
 }
 
 interface EditProductFormProps {
@@ -27,7 +33,7 @@ interface EditProductFormProps {
     sku: string | null;
     isActive: boolean;
     images: { imageUrl: string }[];
-    variants?: VariantInfo[]; // 🚀 Veritabanından gelen mevcut varyasyonlar
+    variants?: DBVariant[]; // 🚀 Veritabanından gelen mevcut varyasyonlar
   };
   categories: { id: string; name: string }[];
   brands: { id: string; name: string }[];
@@ -39,18 +45,24 @@ export default function EditProductForm({ product, categories, brands }: EditPro
   const existingImage = product.images?.length > 0 ? product.images[0].imageUrl : "";
   const [imageUrl, setImageUrl] = useState(existingImage);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
 
-  // 🚀 VARYASYON STATE'LERİ (Mevcut varyasyonlarla başlatıyoruz)
+  const [dynamicVariants, setDynamicVariants] = useState<any[]>(product.variants?.map(v => ({
+    id: v.id,
+    combination: v.combination || (v.color && v.storage ? `${v.color} / ${v.storage}` : ""),
+    price: v.price ? String(v.price) : "",
+    discountedPrice: v.discountedPrice ? String(v.discountedPrice) : "",
+    stock: String(v.stock || 0),
+    sku: v.sku || "",
+    isActive: v.isActive ?? true,
+  })) || []);
+
+  // 🚀 Dinamik Varyasyonlar için İlk Yükleme (Hydration)
+  const initialDynamicVariants = dynamicVariants;
+
+  // 🚀 VARYASYON STATE'LERİ (Mevcut varyasyonlarla başlatıyoruz - Eski Modül, Yakında Silinecek)
   const [hasVariants, setHasVariants] = useState<boolean>(Boolean(product.variants && product.variants.length > 0));
-  const [variants, setVariants] = useState<VariantInfo[]>(
-    product.variants?.map(v => ({
-      id: v.id,
-      color: v.color || "",
-      storage: v.storage || "",
-      price: v.price !== null ? v.price.toString() : "",
-      stock: v.stock ?? 0,
-    })) || []
-  );
+  const [variants, setVariants] = useState<any[]>([]);
 
   const addVariant = () => {
     setVariants([...variants, { id: `temp-${Date.now()}`, color: "", storage: "", price: "", stock: 0 }]);
@@ -60,7 +72,7 @@ export default function EditProductForm({ product, categories, brands }: EditPro
     setVariants(variants.filter((v) => v.id !== id));
   };
 
-  const updateVariant = (id: string | number, field: keyof VariantInfo, value: string | number) => {
+  const updateVariant = (id: string | number, field: string, value: string | number) => {
     setVariants(variants.map((v) => (v.id === id ? { ...v, [field]: value } : v)));
   };
 
@@ -82,8 +94,14 @@ export default function EditProductForm({ product, categories, brands }: EditPro
     formData.set("imageUrl", imageUrl);
 
     // 🚀 Varyasyonları JSON string olarak formData'ya ekliyoruz
-    if (hasVariants && variants.length > 0) {
-      formData.set("variants", JSON.stringify(variants));
+    if (dynamicVariants.length > 0) {
+      const formattedVariants = dynamicVariants.map(v => ({
+        ...v,
+        price: v.price ? parseFloat(v.price) : null,
+        discountedPrice: v.discountedPrice ? parseFloat(v.discountedPrice) : null,
+        stock: parseInt(v.stock, 10) || 0,
+      }));
+      formData.set("variants", JSON.stringify(formattedVariants));
     } else {
       formData.set("variants", JSON.stringify([]));
     }
@@ -182,7 +200,14 @@ export default function EditProductForm({ product, categories, brands }: EditPro
         </div>
       </div>
 
-      {/* 🚀 2. BÖLÜM: VARYASYON YÖNETİM MODÜLÜ */}
+      {/* 🚀 FAZ 13.2.1: DİNAMİK VARYASYON YÖNETİCİSİ */}
+      <DynamicVariantBuilder 
+        initialData={initialDynamicVariants} 
+        onVariantsChange={setDynamicVariants}
+      />
+
+      {/* ⚠️ ESKİ MANUEL VARYASYON MODÜLÜ (GEÇİCİ OLARAK GİZLENDİ) ⚠️ */}
+      {false && (
       <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden p-6 bg-blue-50/20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -237,6 +262,7 @@ export default function EditProductForm({ product, categories, brands }: EditPro
           </div>
         )}
       </div>
+      )}
 
       {/* 3. BÖLÜM: ÜRÜN AÇIKLAMASI */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -250,24 +276,79 @@ export default function EditProductForm({ product, categories, brands }: EditPro
 
       {/* 4. BÖLÜM: GÖRSEL YÖNETİMİ */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+        <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-lg font-bold text-gray-800">📷 Görsel Yönetimi</h2>
+          <div className="flex bg-gray-200 p-1 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setImageMode("upload")}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${imageMode === "upload" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              ☁️ Buluttan Yükle
+            </button>
+            <button
+              type="button"
+              onClick={() => setImageMode("url")}
+              className={`px-4 py-1.5 text-sm font-medium rounded-md transition ${imageMode === "url" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              🔗 URL İle Ekle
+            </button>
+          </div>
         </div>
         <div className="p-6 flex flex-col md:flex-row gap-8 items-start">
-          <div className="flex-1 w-full space-y-4">
-            <label className="block text-sm font-medium text-gray-700">Birincil Görsel URL</label>
-            <input 
-              type="url" 
-              required 
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" 
-            />
+          <div className="flex-1 w-full bg-white border border-gray-200 p-6 rounded-xl flex flex-col items-center justify-center min-h-[160px]">
+            {imageMode === "upload" ? (
+              imageUrl && !imageUrl.startsWith("https://utfs.io") && imageUrl !== "" ? (
+                 <div className="text-center w-full">
+                  <p className="text-sm text-amber-600 mb-3">Şu an bir dış URL kullanıyorsunuz. Buluta resim yüklemek için mevcut URL&apos;i temizleyin.</p>
+                  <button type="button" onClick={() => setImageUrl("")} className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-200 transition">URL&apos;i Temizle</button>
+                 </div>
+              ) : imageUrl ? (
+                <div className="text-center">
+                  <span className="text-green-600 font-bold text-lg mb-2 block">✅ Yüklendi!</span>
+                  <button type="button" onClick={() => setImageUrl("")} className="text-sm text-red-500 hover:underline">Başka fotoğraf seç</button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-500 mb-4 text-center">Ürününüz için bilgisayarınızdan bir fotoğraf seçin.</p>
+                  <UploadButton
+                    endpoint="productImageUploader"
+                    onClientUploadComplete={(res) => {
+                      if (res && res.length > 0) {
+                        setImageUrl(res[0].url);
+                        toast.success("Fotoğraf buluta başarıyla yüklendi! ☁️");
+                      }
+                    }}
+                    onUploadError={(error: Error) => {
+                      toast.error(`Yükleme hatası: ${error.message}`);
+                    }}
+                    appearance={{
+                      button: "bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg transition"
+                    }}
+                  />
+                </>
+              )
+            ) : (
+              <div className="w-full flex flex-col items-start">
+                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Resim Linki (URL)</label>
+                <input 
+                  type="url" 
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                  placeholder="https://images.unsplash.com/photo-..." 
+                />
+                <p className="text-[11px] text-gray-400 mt-2">Dışarıdan alınan linklerin ileride kırılabileceğini (silinebileceğini) unutmayın.</p>
+              </div>
+            )}
           </div>
           
-          <div className="w-full md:w-56 h-56 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center overflow-hidden relative">
+          <div className="w-full md:w-56 h-56 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden relative">
             {imageUrl ? (
-              <Image src={imageUrl} alt="Önizleme" className="max-w-full max-h-full object-contain p-2" width={500} height={500} />
+              <>
+                <Image src={imageUrl} alt="Önizleme" className="max-w-full max-h-full object-contain p-2" width={500} height={500} />
+                <button type="button" onClick={() => setImageUrl("")} className="absolute top-2 right-2 bg-white/90 text-red-500 w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-red-50 transition" title="Görseli Kaldır">✕</button>
+              </>
             ) : (
               <div className="text-center text-gray-400">
                 <span className="text-3xl block mb-2">📸</span>
@@ -289,7 +370,7 @@ export default function EditProductForm({ product, categories, brands }: EditPro
         </button>
         <button 
           type="submit" 
-          disabled={isSubmitting}
+          disabled={isSubmitting || !imageUrl}
           className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition disabled:bg-blue-400 shadow-sm flex items-center gap-2"
         >
           {isSubmitting ? "⏳ Kaydediliyor..." : "💾 Değişiklikleri Kaydet"}

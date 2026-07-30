@@ -43,7 +43,9 @@ export default async function SingleProductPage({ params }: { params: Promise<{ 
       images: true, 
       category: true, 
       brand: true,
-      variants: true, // 🚀 YENİ: Ürünün renk ve hafıza varyasyonlarını da çekiyoruz
+      variants: {
+        where: { isActive: true }
+      }, // 🚀 YENİ: Sadece aktif olan (satıştaki) varyasyonları müşteri tarafına yolluyoruz
       reviews: {
         orderBy: { createdAt: 'desc' } // Yorumları en yeniden eskiye sıralayarak çek
       }

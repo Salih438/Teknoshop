@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadButton } from "@/lib/utils/uploadthing"; 
 import toast from "react-hot-toast";
+import DynamicVariantBuilder from "@/components/admin/variants/DynamicVariantBuilder";
 
 // Varyasyon tipimizi tanımlıyoruz
 interface VariantInfo {
@@ -25,6 +26,9 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
   // 🚀 YENİ: Varyasyon State'leri
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<VariantInfo[]>([]);
+  const [resetSignal, setResetSignal] = useState(0);
+
+  const [dynamicVariants, setDynamicVariants] = useState<any[]>([]);
 
   // Yeni varyasyon satırı ekleme fonksiyonu
   const addVariant = () => {
@@ -63,8 +67,15 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
     formData.set("imageUrl", imageUrl);
     
     // 🚀 YENİ: Varyasyonları JSON string olarak API'ye gönderiyoruz
-    if (hasVariants && variants.length > 0) {
-      formData.set("variants", JSON.stringify(variants));
+    if (dynamicVariants.length > 0) {
+      // API tarafında parse edilebilmesi için sayısal verilerin formata uygun olduğundan emin oluyoruz
+      const formattedVariants = dynamicVariants.map(v => ({
+        ...v,
+        price: v.price ? parseFloat(v.price) : null,
+        discountedPrice: v.discountedPrice ? parseFloat(v.discountedPrice) : null,
+        stock: parseInt(v.stock, 10) || 0,
+      }));
+      formData.set("variants", JSON.stringify(formattedVariants));
     }
     
     try {
@@ -75,6 +86,7 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
       
       if (res.ok) {
         toast.success("Ürün başarıyla eklendi! 🎉", { id: toastId });
+        setResetSignal(prev => prev + 1);
         router.push("/admin/products");
         router.refresh();
       } else {
@@ -161,7 +173,14 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
         </div>
       </div>
 
-      {/* 🚀 YENİ: VARYASYON YÖNETİM MODÜLÜ */}
+      {/* 🚀 FAZ 13.2.1: DİNAMİK VARYASYON YÖNETİCİSİ */}
+      <DynamicVariantBuilder 
+        resetSignal={resetSignal} 
+        onVariantsChange={setDynamicVariants}
+      />
+
+      {/* ⚠️ ESKİ MANUEL VARYASYON MODÜLÜ (GEÇİCİ OLARAK GİZLENDİ) ⚠️ */}
+      {false && (
       <div className="border border-blue-200 rounded-xl p-6 bg-blue-50/30">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -217,6 +236,7 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
           </div>
         )}
       </div>
+      )}
 
       {/* Açıklama */}
       <div>

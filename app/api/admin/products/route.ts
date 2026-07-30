@@ -4,10 +4,12 @@ import { requireAdmin, AuthError } from "@/lib/auth";
 
 // 🚀 DÜZELTME 1: 'any' hatasından kurtulmak için verinin tipini önden tanımlıyoruz
 type ParsedVariant = {
-  color: string | null;
-  storage: string | null;
+  combination: string;
   price: number | null;
+  discountedPrice: number | null;
   stock: number;
+  sku: string | null;
+  isActive: boolean;
 };
 
 export async function POST(request: Request) {
@@ -43,15 +45,17 @@ export async function POST(request: Request) {
     if (variantsData) {
       try {
         // Gelen JSON stringini Record (Obje) dizisi olarak işliyoruz
-        const rawVariants = JSON.parse(variantsData) as Record<string, string>[];
+        // VariantRow { combination, price, discountedPrice, stock, sku, isActive }
+        const rawVariants = JSON.parse(variantsData) as Record<string, any>[];
         
         parsedVariants = rawVariants.map((v) => ({
-          color: v.color?.trim() || null,
-          storage: v.storage?.trim() || null,
+          combination: v.combination,
           price: v.price ? parseFloat(v.price) : null,
+          discountedPrice: v.discountedPrice ? parseFloat(v.discountedPrice) : null,
           stock: parseInt(v.stock, 10) || 0,
+          sku: v.sku?.trim() || null,
+          isActive: Boolean(v.isActive),
         }));
-      // 🚀 DÜZELTME 3: Kullanılmayan 'err' değişkenini tamamen kaldırdık (Sadece catch yazdık)
       } catch {
         return NextResponse.json({ error: "Varyasyon verisi işlenemedi veya bozuk formatta." }, { status: 400 });
       }
@@ -61,10 +65,10 @@ export async function POST(request: Request) {
     if (parsedVariants.length > 0) {
       const seenVariants = new Set<string>();
       for (const v of parsedVariants) {
-        const key = `${v.color || "null"}-${v.storage || "null"}`;
+        const key = v.combination;
         if (seenVariants.has(key)) {
           return NextResponse.json({ 
-            error: `Aynı renk ve hafıza kombinasyonu birden fazla kez eklenemez: ${v.color || "Belirtilmemiş"} / ${v.storage || "Belirtilmemiş"}` 
+            error: `Aynı kombinasyon birden fazla kez eklenemez: ${v.combination}` 
           }, { status: 400 });
         }
         seenVariants.add(key);

@@ -154,6 +154,13 @@ model ProductVariant {
 
   color     String? // Opsiyonel renk seçeneği
   storage   String? // Opsiyonel hafıza seçeneği
+
+  // 🚀 AŞAMA 1: ZERO DATA LOSS SCHEMA EXPANSION
+  // Mevcut kayıtları bozmamak için hepsi opsiyonel veya default değerli eklendi
+  combination     String?
+  discountedPrice Float?
+  sku             String?
+  isActive        Boolean @default(true)
   
   price     Float?  // Varyasyona özel fiyat (Boşsa ana ürünün fiyatı geçerli olur)
   stock     Int     @default(0)
@@ -162,6 +169,7 @@ model ProductVariant {
   orderItems OrderItem[]
 
   @@index([productId])
+  @@index([sku])
 }
 
 // 3. SEPET YÖNETİMİ

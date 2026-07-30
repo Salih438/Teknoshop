@@ -45,6 +45,8 @@ const safeStorage = createJSONStorage(() => ({
   },
 }));
 
+export const CART_STORAGE_KEY = 'cart-storage';
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -139,7 +141,7 @@ export const useCartStore = create<CartStore>()(
       },
     }),
     {
-      name: 'cart-storage',
+      name: CART_STORAGE_KEY,
       storage: safeStorage, 
     }
   )

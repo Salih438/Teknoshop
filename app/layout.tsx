@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "../components/Navbar";
-import { CartProvider } from "@/context/CartContext";
 import { ClerkProvider } from "@clerk/nextjs";
 
 // 🚀 YENİ: Lazy Sync için gerekli importlar
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import ClientLayoutWrapper from "./ClientLayoutWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -55,12 +54,9 @@ export default async function RootLayout({
           (ColorZilla vb.) body'ye yaptığı müdahaleleri susturuyoruz.
         */}
         <body className={`${inter.className} bg-gray-50 text-gray-900`} suppressHydrationWarning>
-          <CartProvider>
-            <Navbar />
-            <main className="max-w-7xl mx-auto p-4">
-              {children}
-            </main>
-          </CartProvider>
+          <ClientLayoutWrapper>
+            {children}
+          </ClientLayoutWrapper>
         </body>
       </html>
     </ClerkProvider>

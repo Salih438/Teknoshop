@@ -44,7 +44,7 @@ export default function ProductDetails({ product }: { product: ProductDetailsPro
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
   // Dinamik Hesaplamalar (Seçim iptal edilirse null döner, ana fiyata ve ana stoka geçeriz)
-  const currentPrice = selectedVariant?.price || product.price;
+  const currentPrice = selectedVariant?.discountedPrice || selectedVariant?.price || product.price;
   const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
   const inStock = currentStock > 0;
 
@@ -62,7 +62,7 @@ export default function ProductDetails({ product }: { product: ProductDetailsPro
 
     let finalProductName = product.name;
     if (selectedVariant) {
-      const options = [selectedVariant.color, selectedVariant.storage].filter(Boolean).join(" • ");
+      const options = selectedVariant.combination || [selectedVariant.color, selectedVariant.storage].filter(Boolean).join(" • ");
       if (options) finalProductName = `${product.name} (${options})`;
     }
 
@@ -154,7 +154,7 @@ export default function ProductDetails({ product }: { product: ProductDetailsPro
           {/* Seçilen varyasyon özeti (Apple Tarzı) */}
           {selectedVariant && (
             <p className="text-sm font-bold text-gray-500 mt-1">
-              Seçilen: {[selectedVariant.color, selectedVariant.storage].filter(Boolean).join(" • ")}
+              Seçilen: {selectedVariant.combination || [selectedVariant.color, selectedVariant.storage].filter(Boolean).join(" • ")}
             </p>
           )}
           

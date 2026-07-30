@@ -19,8 +19,9 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   // 1. Düzenlenecek ürünün MEVCUT bilgilerini resimleriyle birlikte çekiyoruz
   const product = await prisma.product.findUnique({
     where: { id: productId },
-    include: { images: true }
+    include: { images: true, variants: true }
   });
+  console.log("PRODUCT IN DB:", product);
 
   // Eğer birisi URL'ye rastgele bir ID yazarsa ve ürün yoksa, ürünler listesine geri yolla
   if (!product) {
@@ -31,6 +32,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
   const brands = await prisma.brand.findMany({ orderBy: { name: "asc" } });
 
+  console.log("FORM RENDER");
+  
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
