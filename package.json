@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^7.5.17",
     "@uploadthing/react": "^7.3.3",
+    "@vercel/speed-insights": "^2.0.0",
     "iyzipay": "^2.0.69",
     "next": "latest",
     "react": "^18",

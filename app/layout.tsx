@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // 🚀 YENİ: Lazy Sync için gerekli importlar
 import { currentUser } from "@clerk/nextjs/server";
@@ -54,6 +55,7 @@ export default async function RootLayout({
         */}
         <body className={`${inter.className} bg-gray-50 text-gray-900`} suppressHydrationWarning>
           {children}
+          <SpeedInsights />
         </body>
       </html>
     </ClerkProvider>
