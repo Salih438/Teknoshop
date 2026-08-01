@@ -13,7 +13,7 @@ Proje geliştirme sürecinde yalnızca kullanıcı arayüzüne değil; **veri b�
 | Kaynak       | Bağlantı                                                         |
 | ------------ | ---------------------------------------------------------------- |
 | 🚀 Live Demo | [Teknoshop'u ziyaret et](https://teknoshop-salih14.vercel.app/)  |
-| 💻 GitHub    | [Repository'yi görüntüle](https://github.com/Salih438/e-ticaret) |
+| 💻 GitHub    | [Repository'yi görüntüle](https://github.com/Salih438/Teknoshop) |
 
 > **Not:** Production ortamındaki ödeme akışı demo/simülasyon amacıyla kullanılmaktadır ve gerçek para transferi gerçekleştirmemektedir.
 
