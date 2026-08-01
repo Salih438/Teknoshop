@@ -127,7 +127,7 @@ export default function NotificationBell() {
         </svg>
 
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-extrabold h-4.5 w-4.5 min-w-[18px] flex items-center justify-center rounded-full ring-2 ring-white shadow-sm animate-in zoom-in duration-200">
+          <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-white animate-pulse z-10">
             {unreadCount}
           </span>
         )}
@@ -137,23 +137,23 @@ export default function NotificationBell() {
       {isOpen && (
         <div
           onClick={close}
-          className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm lg:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm lg:hidden animate-in fade-in duration-200"
         />
       )}
 
-      {/* 🚀 MASAÜSTÜ DROPDOWN & MOBİL BOTTOM SHEET KATMANI */}
+      {/* 🚀 MASAÜSTÜ DROPDOWN (z-[999]) & MOBİL BOTTOM SHEET KATMANI */}
       {isOpen && (
         <div
           role="dialog"
           aria-label="Bildirimler Paneli"
           className={`
-            z-50 bg-white shadow-2xl border border-gray-100 flex flex-col transition-all duration-200
-            fixed bottom-0 inset-x-0 rounded-t-3xl max-h-[85vh] w-full lg:static
-            lg:absolute lg:top-full lg:right-0 lg:mt-2 lg:w-96 lg:rounded-2xl lg:max-h-[520px] lg:shadow-xl
+            z-[999] bg-white shadow-2xl border border-gray-200 flex flex-col transition-all duration-200
+            fixed bottom-0 inset-x-0 rounded-t-3xl max-h-[85vh] w-full
+            lg:absolute lg:bottom-auto lg:top-full lg:right-0 lg:mt-2 lg:w-96 lg:rounded-2xl lg:max-h-[520px] lg:shadow-2xl
           `}
         >
           {/* KATMAN BAŞLIĞI */}
-          <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 rounded-t-3xl lg:rounded-t-2xl">
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/90 rounded-t-3xl lg:rounded-t-2xl flex-shrink-0">
             <div className="flex items-center gap-2">
               <h3 className="font-extrabold text-gray-900 text-sm sm:text-base">Bildirimler</h3>
               {unreadCount > 0 && (
@@ -181,14 +181,14 @@ export default function NotificationBell() {
             </div>
           </div>
 
-          {/* BİLDİRİM LİSTESİ */}
-          <div className="divide-y divide-gray-100 overflow-y-auto custom-scrollbar flex-1 max-h-[60vh] lg:max-h-[380px]">
+          {/* BİLDİRİM LİSTESİ (KAYDIRILABİLİR ALAN) */}
+          <div className="divide-y divide-gray-100 overflow-y-auto custom-scrollbar flex-1 max-h-80 lg:max-h-[360px]">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-400 text-xs sm:text-sm">
+              <div className="p-8 text-center text-gray-400 text-xs sm:text-sm font-medium">
                 Henüz bildiriminiz yok.
               </div>
             ) : (
-              notifications.slice(0, 5).map((notif) => {
+              notifications.slice(0, 8).map((notif) => {
                 const cfg = NOTIFICATION_TYPE_CONFIG[notif.type] || NOTIFICATION_TYPE_CONFIG.SYSTEM_ANNOUNCEMENT;
 
                 return (
@@ -196,7 +196,7 @@ export default function NotificationBell() {
                     key={notif.id}
                     onClick={() => handleMarkAsRead(notif.id, notif.isRead)}
                     className={`p-3.5 flex items-start gap-3 hover:bg-gray-50 transition cursor-pointer relative ${
-                      !notif.isRead ? "bg-blue-50/30" : ""
+                      !notif.isRead ? "bg-blue-50/40" : ""
                     }`}
                   >
                     {!notif.isRead && (
@@ -225,11 +225,11 @@ export default function NotificationBell() {
           </div>
 
           {/* ALT GEZİNTİ BUTONU */}
-          <div className="p-3 border-t border-gray-100 bg-gray-50/50 rounded-b-3xl lg:rounded-b-2xl">
+          <div className="p-3 border-t border-gray-100 bg-gray-50/80 rounded-b-3xl lg:rounded-b-2xl flex-shrink-0">
             <Link
               href="/profile/notifications"
               onClick={close}
-              className="block w-full text-center bg-gray-900 hover:bg-gray-800 text-white font-extrabold py-2.5 rounded-xl text-xs sm:text-sm transition min-h-[44px] flex items-center justify-center"
+              className="block w-full text-center bg-gray-900 hover:bg-blue-600 text-white font-extrabold py-2.5 rounded-xl text-xs sm:text-sm transition min-h-[44px] flex items-center justify-center shadow-xs"
             >
               Tüm Bildirimleri Gör ➔
             </Link>

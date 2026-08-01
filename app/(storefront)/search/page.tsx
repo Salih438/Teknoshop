@@ -1,9 +1,11 @@
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
+import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
 import FilterSidebar from "@/components/search/FilterSidebar";
 import ProductCard from "@/components/ProductCard";
 import { Metadata } from "next";
+import { getMatchingCategoryIds } from "@/lib/synonyms";
 
 export const dynamic = "force-dynamic";
 
@@ -39,17 +41,42 @@ export default async function SearchPage({
   const inStockOnly = resolvedParams.inStock === "true";
   const sort = resolvedParams.sort || "newest";
 
+  // AKTİF KULLANICI FAVORİLERİNİ ÇEK
+  const clerkUser = await currentUser();
+  let userFavoriteProductIds = new Set<string>();
+
+  if (clerkUser) {
+    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    if (email) {
+      const dbUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true }
+      });
+      if (dbUser) {
+        const userFavs = await prisma.favorite.findMany({
+          where: { userId: dbUser.id },
+          select: { productId: true }
+        });
+        userFavoriteProductIds = new Set(userFavs.map((f) => f.productId));
+      }
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const whereClause: any = {
     isActive: true,
   };
 
   if (searchQuery) {
+    const matchedCategories = await getMatchingCategoryIds(searchQuery);
+    const matchedCategoryIds = matchedCategories.map((c) => c.id);
+
     whereClause.OR = [
       { name: { contains: searchQuery, mode: "insensitive" } },
       { description: { contains: searchQuery, mode: "insensitive" } },
       { category: { name: { contains: searchQuery, mode: "insensitive" } } },
       { brand: { name: { contains: searchQuery, mode: "insensitive" } } },
+      ...(matchedCategoryIds.length > 0 ? [{ categoryId: { in: matchedCategoryIds } }] : []),
     ];
   }
   
@@ -132,7 +159,7 @@ export default async function SearchPage({
           </div>
         </div>
 
-        {/* 🚀 FİLTRE CHİPLERİ BARI (ALGOLIA & TRENDYOL STYLE) */}
+        {/* FİLTRE CHİPLERİ BARI */}
         <div className="flex flex-wrap gap-2 mb-6">
           <Link
             href={`/search?q=${encodeURIComponent(searchQuery)}&inStock=true`}
@@ -171,7 +198,7 @@ export default async function SearchPage({
           <div className="flex-1 min-w-0">
             {products.length === 0 ? (
               
-              /* 🚀 SMART EMPTY STATE & NO RESULT EXPERIENCE */
+              /* SMART EMPTY STATE */
               <div className="space-y-10">
                 <div className="bg-white p-8 sm:p-14 rounded-3xl shadow-xs border border-gray-200 text-center flex flex-col items-center justify-center space-y-4">
                   <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center text-4xl shadow-inner">
@@ -196,7 +223,7 @@ export default async function SearchPage({
                   </Link>
                 </div>
 
-                {/* ÖNERİLEN ÇOK SATAN ÜRÜNLER (CROSS-RECOMMENDATION) */}
+                {/* ÖNERİLEN ÇOK SATAN ÜRÜNLER */}
                 <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-6">
                   <h3 className="font-black text-gray-900 text-base flex items-center gap-2">
                     <span>🔥</span> Belki Bunlar İlginizi Çekebilir (En Çok Satanlar)
@@ -216,6 +243,7 @@ export default async function SearchPage({
                           category: prod.category ?? undefined,
                           reviews: prod.reviews,
                           badgeText: "🔥 Popüler",
+                          isFavorite: userFavoriteProductIds.has(prod.id),
                         }}
                       />
                     ))}
@@ -239,6 +267,7 @@ export default async function SearchPage({
                       stock: product.stock,
                       category: product.category ?? undefined,
                       reviews: product.reviews,
+                      isFavorite: userFavoriteProductIds.has(product.id),
                     }}
                   />
                 ))}

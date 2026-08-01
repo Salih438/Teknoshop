@@ -2,7 +2,8 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { AddressService } from "@/lib/services/address.service"; // 🚀 Servisi içeri aldık
+import { AddressService } from "@/lib/services/address.service";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 // Yardımcı Fonksiyon
 async function getDbUser() {
@@ -21,6 +22,12 @@ export async function DELETE(
   try {
     const dbUser = await getDbUser();
     if (!dbUser) return NextResponse.json({ error: "Giriş yapmalısınız" }, { status: 401 });
+
+    const identifier = getClientIdentifier(request, dbUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 10, windowSeconds: 600 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla silme denemesinde bulundunuz. Lütfen 10 dakika bekleyip tekrar deneyin.");
+    }
 
     const resolvedParams = await params;
     const addressId = resolvedParams.id;

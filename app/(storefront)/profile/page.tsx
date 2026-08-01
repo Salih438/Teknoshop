@@ -16,20 +16,18 @@ export default async function ProfilePage() {
 
   const email = clerkUser.emailAddresses[0].emailAddress;
 
-  let dbUser = await prisma.user.findUnique({
+  const dbUser = await prisma.user.upsert({
     where: { email },
+    update: {
+      avatarUrl: clerkUser.imageUrl || undefined,
+    },
+    create: {
+      email: email,
+      name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || "Değerli Müşterimiz",
+      avatarUrl: clerkUser.imageUrl || null,
+      role: "USER",
+    },
   });
-
-  if (!dbUser) {
-    dbUser = await prisma.user.create({
-      data: {
-        email: email,
-        name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || "Değerli Müşterimiz",
-        avatarUrl: clerkUser.imageUrl || null,
-        role: "USER",
-      },
-    });
-  }
 
   const userOrders = await prisma.order.findMany({
     where: { userId: dbUser.id },
@@ -98,35 +96,29 @@ export default async function ProfilePage() {
             
             <div className="space-y-3 pt-4 border-t border-gray-100 text-xs sm:text-sm">
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-2 text-gray-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                  <span className="font-bold">Telefon</span>
-                </div>
-                <span className="font-extrabold text-gray-900">{dbUser.phone || "Eklenmemiş"}</span>
+                <span className="text-gray-500 font-bold">Kayıtlı Telefon</span>
+                <span className="font-extrabold text-gray-900">{dbUser.phone || "Belirtilmemiş"}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-2 text-gray-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  <span className="font-bold">Kayıt Tarihi</span>
-                </div>
-                <span className="font-extrabold text-gray-900">{new Date(dbUser.createdAt).toLocaleDateString("tr-TR")}</span>
+                <span className="text-gray-500 font-bold">Kullanıcı Rolü</span>
+                <span className="font-extrabold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md text-xs">
+                  {dbUser.role === "ADMIN" ? "Yönetici" : "Standart Üye"}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* SAĞ KOLON: İSTATİSTİKLER VE SEKMELİ İÇERİK KAPSAYICISI */}
-        <div className="lg:col-span-8 xl:col-span-9 space-y-6 sm:space-y-8">
-          
+        {/* SAĞ KOLON: İSTATİSTİKLER VE SEKMELER */}
+        <div className="lg:col-span-8 xl:col-span-9 space-y-6">
           <ProfileStats 
-            totalOrders={totalOrders} 
-            totalSpent={totalSpent} 
-            deliveredOrders={deliveredOrders} 
-            favoritesCount={favoritesCount} 
+            totalOrders={totalOrders}
+            deliveredOrders={deliveredOrders}
+            totalSpent={totalSpent}
+            favoritesCount={favoritesCount}
           />
 
-          {/* SEKMELİ PROFİL İÇERİĞİ */}
-          <ProfileTabContainer
+          <ProfileTabContainer 
             user={{
               id: dbUser.id,
               name: dbUser.name,
@@ -139,8 +131,8 @@ export default async function ProfilePage() {
             returns={userReturns}
             exchanges={userExchanges}
           />
-
         </div>
+
       </div>
     </div>
   );

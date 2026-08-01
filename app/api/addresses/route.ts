@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { AddressService } from "@/lib/services/address.service"; // 🚀 Servisi içeri aldık
+import { AddressService } from "@/lib/services/address.service";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 // ZOD GÜVENLİK VE DOĞRULAMA ŞEMASI
 const addressSchema = z.object({
@@ -43,6 +44,12 @@ export async function POST(request: Request) {
   try {
     const dbUser = await getDbUser();
     if (!dbUser) return NextResponse.json({ error: "Oturum açmalısınız" }, { status: 401 });
+
+    const identifier = getClientIdentifier(request, dbUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 10, windowSeconds: 600 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla adres ekleme isteğinde bulundunuz. Lütfen 10 dakika bekleyip tekrar deneyin.");
+    }
 
     const body = await request.json();
     

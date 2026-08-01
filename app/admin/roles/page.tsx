@@ -11,7 +11,8 @@ export default async function AdminRolesPage() {
   try {
     await requireAdmin("MANAGE_ROLES");
   } catch {
-    redirect("/");
+    // 🛡️ Yetkisiz yöneticiyi dış vitrine kitlemek yerine Admin Dashboard'a yönlendir (İdeal Admin UX)
+    redirect("/admin");
   }
 
   // 2. TÜM ADMİN KULLANICILARI VE SİSTEM ROLLERİNİ GETİR

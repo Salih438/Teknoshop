@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
 import ProductDetails from "@/components/ProductDetails";
 import { Metadata } from "next";
 import { getRelatedProducts } from "@/lib/recommendation";
@@ -52,6 +53,9 @@ export default async function SingleProductPage({ params }: { params: Promise<{ 
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
+  const clerkUser = await currentUser();
+  let isFavorite = false;
+
   const product = await prisma.product.findFirst({
     where: {
       id: id,
@@ -74,7 +78,28 @@ export default async function SingleProductPage({ params }: { params: Promise<{ 
     return notFound();
   }
 
-  // 🚀 AI RECOMMENDATION ENGINE İLE BENZER VE BİRLİKTE ALINAN ÜRÜNLERİ PARALEL ÇEK
+  if (clerkUser) {
+    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    if (email) {
+      const dbUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (dbUser) {
+        const favoriteRecord = await prisma.favorite.findUnique({
+          where: {
+            userId_productId: {
+              userId: dbUser.id,
+              productId: product.id,
+            },
+          },
+        });
+        isFavorite = !!favoriteRecord;
+      }
+    }
+  }
+
+  // AI RECOMMENDATION ENGINE İLE BENZER VE BİRLİKTE ALINAN ÜRÜNLERİ PARALEL ÇEK
   const [relatedProducts, frequentlyBoughtProducts] = await Promise.all([
     getRelatedProducts(product.categoryId, product.id, 8),
     getFrequentlyBoughtTogetherProducts(product.id, 4),
@@ -117,9 +142,15 @@ export default async function SingleProductPage({ params }: { params: Promise<{ 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <ProductDetails product={product} relatedProducts={relatedProducts} />
+        <ProductDetails
+          product={{
+            ...product,
+            isFavorite,
+          }}
+          relatedProducts={relatedProducts}
+        />
         
-        {/* 🤖 AI BİRLİKTE SIK SATIN ALINANLAR SEKSİYONU */}
+        {/* AI BİRLİKTE SIK SATIN ALINANLAR SEKSİYONU */}
         <FrequentlyBoughtTogetherSection products={frequentlyBoughtProducts} />
       </div>
     </main>

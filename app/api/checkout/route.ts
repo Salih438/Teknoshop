@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { CheckoutService, CheckoutError } from "@/lib/services/checkout.service";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 // 1. INPUT VALIDATION (ZOD SCHEMA)
 // SADECE BU KISMI DEĞİŞTİR:
@@ -25,6 +26,12 @@ export async function POST(request: Request) {
     const clerkUser = await currentUser();
     if (!clerkUser) {
       return NextResponse.json({ error: "Siparişi tamamlamak için giriş yapmalısınız." }, { status: 401 });
+    }
+
+    const identifier = getClientIdentifier(request, clerkUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 5, windowSeconds: 600 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla sipariş denemesinde bulundunuz. Lütfen 10 dakika bekleyip tekrar deneyin.");
     }
 
     const email = clerkUser.emailAddresses?.[0]?.emailAddress;

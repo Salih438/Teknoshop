@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { AuditLogService } from "@/lib/services/audit-log.service";
 import { AuditRiskLevel } from "@prisma/client";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 type ParsedVariant = {
   combination: string;
@@ -15,7 +16,12 @@ type ParsedVariant = {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin("MANAGE_PRODUCTS");
+    const adminUser = await requireAdmin("MANAGE_PRODUCTS");
+    const identifier = getClientIdentifier(request, adminUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 30, windowSeconds: 60 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla ürün ekleme isteği. Lütfen 1 dakika bekleyip tekrar deneyin.");
+    }
 
     const formData = await request.formData();
     

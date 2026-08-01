@@ -12,6 +12,7 @@ import InstallmentModal from "@/components/product/InstallmentModal";
 import RelatedProductsSlider from "@/components/product/RelatedProductsSlider";
 import RecentlyViewedProducts from "@/components/product/RecentlyViewedProducts";
 import { ProductCardProps } from "@/components/ProductCard";
+import FavoriteButton from "@/components/FavoriteButton";
 
 interface ProductDetailsProps {
   id: string;
@@ -28,6 +29,7 @@ interface ProductDetailsProps {
   favorites?: { id: string }[];
   comparePrice?: number | null;
   variants?: ProductVariant[];
+  isFavorite?: boolean;
 }
 
 export default function ProductDetails({
@@ -269,6 +271,12 @@ export default function ProductDetails({
             >
               <span>🛒 {inStock ? "Sepete Ekle" : "Tükendi"}</span>
             </button>
+
+            <FavoriteButton
+              productId={product.id}
+              initialIsFavorite={product.isFavorite}
+              className="border border-gray-200 shadow-sm min-h-[48px] flex items-center justify-center"
+            />
           </div>
 
           {/* GÜVEN ROZETLERİ */}

@@ -10,6 +10,7 @@ import {
   receiveReturnAction,
   completeReturnAction,
 } from "@/actions/return";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface ReturnItemDetail {
   id: string;
@@ -88,6 +89,7 @@ export default function AdminReturnDetailModal({
     returnRequest.returnTrackingNumber || `RETURN-${returnRequest.id.slice(-6).toUpperCase()}`
   );
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isCompleteConfirmOpen, setIsCompleteConfirmOpen] = useState(false);
 
   const badge = STATUS_BADGES[returnRequest.status] || STATUS_BADGES.PENDING;
 
@@ -153,9 +155,6 @@ export default function AdminReturnDetailModal({
   };
 
   const handleComplete = async () => {
-    if (!confirm("İadeyi tamamlamak istediğinize emin misiniz? Bu işlem stokları otomatik artıracak ve ödeme iadesini kaydedecektir.")) {
-      return;
-    }
     setIsSubmitting(true);
     const toastId = toast.loading("İade tamamlanıyor ve stoklar güncelleniyor...");
     try {
@@ -357,7 +356,7 @@ export default function AdminReturnDetailModal({
 
             {returnRequest.status !== "COMPLETED" && returnRequest.status !== "REJECTED" && (
               <button
-                onClick={handleComplete}
+                onClick={() => setIsCompleteConfirmOpen(true)}
                 disabled={isSubmitting}
                 className="bg-green-600 hover:bg-green-700 text-white font-extrabold px-5 py-2.5 rounded-xl transition text-xs sm:text-sm shadow-md disabled:opacity-50 min-h-[44px]"
               >
@@ -377,6 +376,19 @@ export default function AdminReturnDetailModal({
             </div>
           </div>
         )}
+
+        {/* İade Tamamlama Onay Modalı */}
+        <ConfirmModal
+          isOpen={isCompleteConfirmOpen}
+          onClose={() => setIsCompleteConfirmOpen(false)}
+          onConfirm={handleComplete}
+          title="İadeyi Tamamla"
+          description="İadeyi tamamlamak istediğinize emin misiniz? Bu işlem iade edilen ürün stoklarını otomatik artıracak ve müşteri ödeme iadesini kaydedecektir."
+          confirmText="Evet, Tamamla"
+          cancelText="Vazgeç"
+          variant="primary"
+          isLoading={isSubmitting}
+        />
       </div>
     </div>
   );

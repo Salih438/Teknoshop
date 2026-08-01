@@ -11,6 +11,7 @@ import {
   updateExchangeStatusAction,
   completeExchangeAction,
 } from "@/actions/exchange";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface ExchangeItemDetail {
   id: string;
@@ -98,6 +99,7 @@ export default function AdminExchangeDetailModal({
   const [newShipmentTrackingNumber, setNewShipmentTrackingNumber] = useState(
     exchangeRequest.newShipmentTrackingNumber || ""
   );
+  const [isCompleteConfirmOpen, setIsCompleteConfirmOpen] = useState(false);
 
   const badge = STATUS_BADGES[exchangeRequest.status] || STATUS_BADGES.PENDING;
 
@@ -215,13 +217,6 @@ export default function AdminExchangeDetailModal({
   };
 
   const handleComplete = async () => {
-    if (
-      !confirm(
-        "Değişimi tamamlamak istediğinize emin misiniz? Eski ürün stoğu artırılacak ve müşteriye gönderilen yeni ürün stoğu otomatik düşürülecektir."
-      )
-    ) {
-      return;
-    }
     setIsSubmitting(true);
     const toastId = toast.loading("Değişim tamamlanıyor ve stoklar senkronize ediliyor...");
     try {
@@ -466,7 +461,7 @@ export default function AdminExchangeDetailModal({
 
             {exchangeRequest.status !== "COMPLETED" && exchangeRequest.status !== "REJECTED" && (
               <button
-                onClick={handleComplete}
+                onClick={() => setIsCompleteConfirmOpen(true)}
                 disabled={isSubmitting}
                 className="bg-green-600 hover:bg-green-700 text-white font-extrabold px-6 py-2.5 rounded-xl transition text-xs sm:text-sm shadow-md disabled:opacity-50 min-h-[44px]"
               >
@@ -477,6 +472,19 @@ export default function AdminExchangeDetailModal({
         </div>
 
       </div>
+
+      {/* Değişim Tamamlama Onay Modalı */}
+      <ConfirmModal
+        isOpen={isCompleteConfirmOpen}
+        onClose={() => setIsCompleteConfirmOpen(false)}
+        onConfirm={handleComplete}
+        title="Değişimi Tamamla"
+        description="Değişimi tamamlamak istediğinize emin misiniz? Eski iade edilen ürün stoğu artırılacak ve müşteriye gönderilen yeni beden ürün stoğu otomatik düşürülecektir."
+        confirmText="Evet, Tamamla"
+        cancelText="Vazgeç"
+        variant="primary"
+        isLoading={isSubmitting}
+      />
     </div>
   );
 }

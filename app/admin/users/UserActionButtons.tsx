@@ -1,8 +1,10 @@
 // app/admin/users/UserActionButtons.tsx
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function UserActionButtons({ 
   userId, 
@@ -15,35 +17,40 @@ export default function UserActionButtons({
 }) {
   const router = useRouter();
 
-  // ROL DEĞİŞTİRME (USER <-> ADMIN)
-  async function toggleRole() {
-    const newRole = currentRole === "ADMIN" ? "USER" : "ADMIN";
-    if (!confirm(`Kullanıcının yetkisini ${newRole} olarak değiştirmek istiyor musunuz?`)) return;
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isActiveModalOpen, setIsActiveModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const targetRole = currentRole === "ADMIN" ? "USER" : "ADMIN";
+  const actionText = isActive ? "Devre Dışı Bırakmak" : "Aktifleştirmek";
+
+  // ROL DEĞİŞTİRME (USER <-> ADMIN)
+  async function handleToggleRole() {
+    setIsSubmitting(true);
     const toastId = toast.loading("Yetki güncelleniyor...");
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole }),
+        body: JSON.stringify({ role: targetRole }),
       });
 
       if (res.ok) {
         toast.success("Kullanıcı yetkisi değiştirildi!", { id: toastId });
-        router.refresh(); // Sayfayı yenile ve yeni durumu göster
+        router.refresh();
       } else {
         toast.error("Güncelleme başarısız.", { id: toastId });
       }
     } catch (error) {
       toast.error("Sunucu hatası.", { id: toastId });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   // DEVRE DIŞI BIRAKMA VEYA AKTİF ETME (SOFT DELETE)
-  async function toggleActive() {
-    const actionText = isActive ? "Devre Dışı Bırakmak" : "Aktifleştirmek";
-    if (!confirm(`Bu kullanıcıyı ${actionText} istediğinize emin misiniz?`)) return;
-
+  async function handleToggleActive() {
+    setIsSubmitting(true);
     const toastId = toast.loading("Durum güncelleniyor...");
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
@@ -60,25 +67,57 @@ export default function UserActionButtons({
       }
     } catch (error) {
       toast.error("Sunucu hatası.", { id: toastId });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <button 
-        onClick={toggleRole}
-        className="text-gray-400 hover:text-orange-600 transition" 
-        title={currentRole === "ADMIN" ? "Normal Kullanıcı Yap" : "Yönetici (Admin) Yap"}
-      >
-        ✏️
-      </button>
-      <button 
-        onClick={toggleActive}
-        className={`transition font-medium ${isActive ? 'text-gray-400 hover:text-red-600' : 'text-red-500 hover:text-green-600'}`} 
-        title={isActive ? "Devre Dışı Bırak (Soft Delete)" : "Kilidi Aç (Aktifleştir)"}
-      >
-        {isActive ? "🚫" : "✅"}
-      </button>
-    </div>
+    <>
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={() => setIsRoleModalOpen(true)}
+          disabled={isSubmitting}
+          className="text-gray-400 hover:text-orange-600 transition cursor-pointer disabled:opacity-50" 
+          title={currentRole === "ADMIN" ? "Normal Kullanıcı Yap" : "Yönetici (Admin) Yap"}
+        >
+          ✏️
+        </button>
+        <button 
+          onClick={() => setIsActiveModalOpen(true)}
+          disabled={isSubmitting}
+          className={`transition font-medium cursor-pointer disabled:opacity-50 ${isActive ? 'text-gray-400 hover:text-red-600' : 'text-red-500 hover:text-green-600'}`} 
+          title={isActive ? "Devre Dışı Bırak (Soft Delete)" : "Kilidi Aç (Aktifleştir)"}
+        >
+          {isActive ? "🚫" : "✅"}
+        </button>
+      </div>
+
+      {/* Yetki Değiştirme Modalı */}
+      <ConfirmModal
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onConfirm={handleToggleRole}
+        title="Kullanıcı Yetkisi Değiştir"
+        description={`Kullanıcının yetkisini ${targetRole} olarak değiştirmek istediğinize emin misiniz?`}
+        confirmText="Evet, Değiştir"
+        cancelText="Vazgeç"
+        variant="warning"
+        isLoading={isSubmitting}
+      />
+
+      {/* Aktiflik Durumu Değiştirme Modalı */}
+      <ConfirmModal
+        isOpen={isActiveModalOpen}
+        onClose={() => setIsActiveModalOpen(false)}
+        onConfirm={handleToggleActive}
+        title={isActive ? "Kullanıcıyı Engelle" : "Kullanıcıyı Aktifleştir"}
+        description={`Bu kullanıcıyı ${actionText} istediğinize emin misiniz?`}
+        confirmText={isActive ? "Evet, Engelle" : "Evet, Aktifleştir"}
+        cancelText="Vazgeç"
+        variant={isActive ? "danger" : "primary"}
+        isLoading={isSubmitting}
+      />
+    </>
   );
 }

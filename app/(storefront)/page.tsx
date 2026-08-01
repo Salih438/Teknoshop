@@ -87,16 +87,13 @@ export default async function Home() {
       {/* HERO SECTION */}
       <section className="relative bg-gray-900 text-white overflow-hidden w-full">
         <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-900/90 sm:via-gray-900/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/85 to-gray-900/60 z-10" />
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36 flex flex-col items-start">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="inline-block py-1 px-3 rounded-full bg-blue-600/90 text-[11px] sm:text-xs font-black tracking-wider border border-blue-400/30 shadow-xs backdrop-blur-xs">
-              ⚡ YENİ SEZON TEKNOLOJİ FESTİVALİ
-            </span>
-            <span className="inline-block py-1 px-3 rounded-full bg-rose-600/90 text-[11px] sm:text-xs font-black tracking-wider border border-rose-400/30 shadow-xs backdrop-blur-xs">
-              %40'A VARAN İNDİRİM
-            </span>
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36 flex flex-col items-start">
+          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-bold text-white shadow-xl mb-4">
+            <span className="text-amber-400 flex items-center gap-1">⚡ YENİ SEZON FESTİVALİ</span>
+            <span className="text-white/30">|</span>
+            <span className="text-rose-400 font-extrabold">%40'a Varan İndirim</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-4 max-w-3xl leading-tight">
@@ -109,7 +106,7 @@ export default async function Home() {
           <div className="flex flex-wrap items-center gap-4">
             <Link
               href="/products"
-              className="bg-white text-gray-900 font-black px-8 py-4 rounded-2xl hover:bg-gray-100 hover:scale-105 transition-all shadow-xl text-sm sm:text-base min-h-[48px] flex items-center justify-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-7 py-3.5 rounded-2xl transition-all shadow-lg shadow-blue-600/30 hover:scale-[1.02] flex items-center justify-center gap-2 min-h-[48px]"
             >
               <span>Hemen Keşfet</span>
               <span>&rarr;</span>

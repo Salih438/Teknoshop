@@ -1,12 +1,14 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AuthCartSync from "@/components/AuthCartSync";
+import AnnouncementBar from "@/components/AnnouncementBar";
 
 export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <AuthCartSync />
       <div className="flex flex-col min-h-screen overflow-x-hidden">
+        <AnnouncementBar />
         <Navbar />
         <main className="flex-1 max-w-7xl mx-auto p-4 w-full">
           {children}
@@ -16,4 +18,3 @@ export default function StorefrontLayout({ children }: { children: React.ReactNo
     </>
   );
 }
-

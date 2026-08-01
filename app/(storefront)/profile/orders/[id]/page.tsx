@@ -8,6 +8,8 @@ import ShipmentTrackingCard from "@/components/orders/ShipmentTrackingCard";
 import PrintInvoiceButton from "@/components/profile/PrintInvoiceButton";
 import ReturnRequestModal from "@/components/profile/ReturnRequestModal";
 import ExchangeRequestModal from "@/components/profile/ExchangeRequestModal";
+import ReturnStatusCard from "@/components/profile/ReturnStatusCard";
+import ExchangeStatusCard from "@/components/profile/ExchangeStatusCard";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           product: {
             include: {
               variants: true,
+              images: true,
             },
           },
           variant: true,
@@ -49,8 +52,51 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           coupon: true,
         },
       },
-      returns: true,
-      exchanges: true,
+      returns: {
+        include: {
+          items: {
+            include: {
+              orderItem: {
+                include: {
+                  product: {
+                    include: {
+                      images: true,
+                    },
+                  },
+                  variant: true,
+                },
+              },
+            },
+          },
+          images: true,
+        },
+        orderBy: { createdAt: "desc" },
+      },
+      exchanges: {
+        include: {
+          items: {
+            include: {
+              orderItem: {
+                include: {
+                  product: {
+                    include: {
+                      images: true,
+                    },
+                  },
+                  variant: true,
+                },
+              },
+              requestedProduct: {
+                include: {
+                  images: true,
+                },
+              },
+              requestedVariant: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
@@ -131,6 +177,30 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           />
         )}
 
+        {/* 🚀 CANLI İADE TALEPLERİ KARTI */}
+        {order.returns && order.returns.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <span>↩️</span> Siparişe Ait İade Talepleri ({order.returns.length})
+            </h3>
+            {order.returns.map((ret: any) => (
+              <ReturnStatusCard key={ret.id} returnRequest={ret} />
+            ))}
+          </div>
+        )}
+
+        {/* 🚀 CANLI DEĞİŞİM TALEPLERİ KARTI */}
+        {order.exchanges && order.exchanges.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <span>🔄</span> Siparişe Ait Değişim Talepleri ({order.exchanges.length})
+            </h3>
+            {order.exchanges.map((ex: any) => (
+              <ExchangeStatusCard key={ex.id} exchangeRequest={ex} />
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* SOL: ÜRÜN LİSTESİ */}
@@ -161,6 +231,20 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                           </span>
                         )}
                         <span className="text-xs text-gray-500 font-bold block mt-0.5">Adet: {item.quantity}</span>
+                        
+                        {/* 🚀 ÜRÜN İADE/DEĞİŞİM BİLGİ ETİKETLERİ */}
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {item.returnedQuantity > 0 && (
+                            <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">
+                              ↩️ İade Edildi ({item.returnedQuantity} Adet)
+                            </span>
+                          )}
+                          {item.exchangedQuantity > 0 && (
+                            <span className="inline-block bg-purple-100 text-purple-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">
+                              🔁 Değiştirildi ({item.exchangedQuantity} Adet)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 

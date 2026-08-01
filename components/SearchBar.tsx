@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 interface SearchResultProduct {
   id: string;
@@ -37,6 +38,7 @@ export default function SearchBar() {
     "Monitör",
     "SSD",
     "Akıllı Saat",
+    "Telefon",
   ]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -103,7 +105,6 @@ export default function SearchBar() {
         }
       } catch (e: any) {
         if (e.name === "AbortError") {
-          // In-flight fetch was aborted by a newer request or input clear; do nothing
           return;
         }
         console.error("Search fetch error:", e);
@@ -199,7 +200,7 @@ export default function SearchBar() {
   // Sesli Arama (Web Speech API)
   const startVoiceSearch = () => {
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      alert("Tarayıcınız sesli aramayı desteklemiyor.");
+      toast.error("Tarayıcınız sesli aramayı desteklemiyor.");
       return;
     }
     try {
@@ -265,7 +266,7 @@ export default function SearchBar() {
         {/* INPUT GİRDİSİ */}
         <input
           type="text"
-          placeholder="Ürün, marka veya kategori ara..."
+          placeholder="Ürün veya marka ara..."
           value={searchQuery}
           onFocus={() => setIsOpen(true)}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -289,28 +290,54 @@ export default function SearchBar() {
             <button
               type="button"
               onClick={startVoiceSearch}
-              className={`p-1.5 rounded-full text-xs transition ${
+              aria-label="Sesli Arama"
+              className={`p-1.5 rounded-full text-xs transition flex items-center justify-center ${
                 isListening ? "bg-red-500 text-white animate-pulse" : "text-gray-400 hover:text-blue-600"
               }`}
               title="Sesli Arama Yap"
             >
-              🎙️
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                />
+              </svg>
             </button>
           )}
         </div>
 
-        {/* ARA BUTONU */}
+        {/* ARA BUTONU (44px Minimum Touch Target) */}
         <button
           type="submit"
-          className="absolute inset-y-1.5 right-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-full transition-all text-xs font-black shadow-xs min-h-[36px] flex items-center justify-center"
+          className="absolute inset-y-1 right-1 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-full transition-all text-xs font-black shadow-xs min-h-[44px] flex items-center justify-center cursor-pointer"
         >
           Ara
         </button>
       </form>
 
-      {/* LIVE SEARCH DROPDOWN MENU */}
+      {/* MOBİL BACKDROP OVERLAY & MODAL KAPLAMASI */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-2xl border border-gray-100 z-50 overflow-hidden text-xs sm:text-sm animate-in fade-in duration-200">
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[998] lg:hidden animate-in fade-in duration-200"
+        />
+      )}
+
+      {/* 🚀 LIVE INSTANT SEARCH DROPDOWN (DESKTOP + MOBİL MODAL YÖNETİMİ) */}
+      {isOpen && (
+        <div className={`
+          bg-white shadow-2xl border border-gray-100 overflow-hidden text-xs sm:text-sm animate-in fade-in duration-200
+          lg:absolute lg:top-full lg:left-0 lg:right-0 lg:mt-2 lg:rounded-3xl lg:z-50 lg:max-h-[70vh]
+          fixed inset-x-4 top-20 z-[999] rounded-3xl max-h-[80vh] flex flex-col lg:block
+        `}>
           
           {/* YÜKLENİYOR SKELETON */}
           {loading && (
@@ -337,7 +364,7 @@ export default function SearchBar() {
                         </span>
                         <button
                           onClick={clearAllRecent}
-                          className="text-[10px] text-red-500 font-bold hover:underline"
+                          className="text-[10px] text-red-500 font-bold hover:underline cursor-pointer"
                         >
                           Temizle
                         </button>
@@ -372,7 +399,7 @@ export default function SearchBar() {
                         <button
                           key={trend}
                           onClick={() => handleSearchSubmit(trend)}
-                          className="bg-gray-50 hover:bg-gray-100 border border-gray-200/80 text-gray-800 font-extrabold px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1"
+                          className="bg-gray-50 hover:bg-gray-100 border border-gray-200/80 text-gray-800 font-extrabold px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1 cursor-pointer"
                         >
                           <span>🔍</span>
                           <span>{trend}</span>
@@ -384,32 +411,35 @@ export default function SearchBar() {
                 </div>
               )}
 
-              {/* 2. KATEGORİ EŞLEŞMELERİ */}
+              {/* 2. ÖNERİLEN KATEGORİLER */}
               {categories.length > 0 && (
-                <div className="p-3 bg-gray-50/50 space-y-1">
-                  <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] px-2 block">
-                    📁 İlgili Kategoriler
+                <div className="p-3 bg-gray-50/70 border-b border-gray-100 space-y-1">
+                  <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] px-2 block mb-1">
+                    📁 Önerilen Kategoriler
                   </span>
                   {categories.map((cat) => (
                     <Link
                       key={cat.id}
-                      href={`/products?category=${cat.id}`}
+                      href={`/search?q=${encodeURIComponent(searchQuery)}&category=${cat.id}`}
                       onClick={() => setIsOpen(false)}
-                      className="block p-2 rounded-xl hover:bg-white transition font-bold text-gray-800"
+                      className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white transition font-bold text-gray-800 text-xs sm:text-sm group"
                     >
-                      {highlightMatch(cat.name, searchQuery)}
+                      <span className="truncate">{cat.name} kategorisinde ara</span>
+                      <span className="text-blue-600 font-extrabold text-xs group-hover:translate-x-0.5 transition-transform flex-shrink-0">
+                        İncele &rarr;
+                      </span>
                     </Link>
                   ))}
                 </div>
               )}
 
-              {/* 3. ÜRÜN EŞLEŞMELERİ CANLI LİSTE */}
+              {/* 3. ÖNE ÇIKAN ÜRÜNLER (Mini İlk 3 Ürün Kartı) */}
               {products.length > 0 && (
                 <div className="p-3 space-y-1">
                   <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] px-2 block mb-1">
-                    📦 Önerilen Ürünler ({products.length})
+                    📦 Öne Çıkan Ürünler ({Math.min(3, products.length)})
                   </span>
-                  {products.map((prod, idx) => (
+                  {products.slice(0, 3).map((prod, idx) => (
                     <Link
                       key={prod.id}
                       href={`/products/${prod.id}`}
@@ -421,7 +451,7 @@ export default function SearchBar() {
                         selectedIndex === idx ? "bg-blue-50/80 border border-blue-200" : "hover:bg-gray-50"
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 bg-white border border-gray-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center p-1">
                           {prod.imageUrl ? (
                             <Image src={prod.imageUrl} alt={prod.name} width={40} height={40} className="object-contain" />
@@ -429,15 +459,15 @@ export default function SearchBar() {
                             <span>📦</span>
                           )}
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="font-bold text-gray-900 line-clamp-1">{highlightMatch(prod.name, searchQuery)}</p>
-                          <span className="text-[10px] text-gray-400 font-bold block">
+                          <span className="text-[10px] text-gray-400 font-bold block truncate">
                             {prod.brand?.name || prod.category?.name || "Teknoloji"}
                           </span>
                         </div>
                       </div>
 
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0 ml-3">
                         <span className="font-black text-blue-600 block">{prod.price.toLocaleString("tr-TR")} ₺</span>
                         <span className={`text-[9px] font-bold ${prod.stock > 0 ? "text-green-600" : "text-red-500"}`}>
                           {prod.stock > 0 ? "Stokta" : "Tükendi"}
@@ -458,7 +488,7 @@ export default function SearchBar() {
                   </p>
                   <button
                     onClick={() => handleSearchSubmit(searchQuery)}
-                    className="bg-gray-900 text-white font-extrabold px-4 py-2 rounded-xl text-xs"
+                    className="bg-gray-900 text-white font-extrabold px-4 py-2 rounded-xl text-xs cursor-pointer"
                   >
                     Tüm Katalogda Ara ➔
                   </button>
@@ -470,7 +500,7 @@ export default function SearchBar() {
                 <div className="p-3 bg-gray-50 text-center border-t border-gray-100">
                   <button
                     onClick={() => handleSearchSubmit()}
-                    className="text-xs font-black text-blue-600 hover:underline"
+                    className="text-xs font-black text-blue-600 hover:underline cursor-pointer"
                   >
                     "{searchQuery}" İçin Tüm Sonuçları Gör ({products.length}+ Ürün) ➔
                   </button>

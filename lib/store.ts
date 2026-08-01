@@ -135,38 +135,44 @@ export const useCartStore = create<CartStore>()(
         let removedCount = 0;
         let updatedCount = 0;
 
-        const newItems = state.items.map(item => {
-          const validation = validations.find(v => v.cartItemId === item.cartItemId);
-          if (!validation) return item; // Eğer yanıt gelmediyse dokunma
+        const newItems: CartItem[] = [];
 
-          // Ürün pasif olmuşsa veya tamamen stoksuz kalmışsa işaretle
+        for (const item of state.items) {
+          const validation = validations.find((v) => v.cartItemId === item.cartItemId);
+          if (!validation) {
+            newItems.push(item);
+            continue;
+          }
+
           if (!validation.isActive || validation.stock <= 0) {
             removedCount++;
-            return { ...item, _shouldRemove: true };
+            continue;
           }
 
           let newQuantity = item.quantity;
           let changed = false;
 
-          // Eğer istenen miktar gerçek stoğu aşıyorsa düşür
           if (newQuantity > validation.stock) {
             newQuantity = validation.stock;
             changed = true;
           }
 
-          // Fiyat değişmişse güncelle
           if (item.price !== validation.price) {
             changed = true;
           }
 
-          // Max stoku veya diğer özellikleri değiştiyse güncelle
           if (changed || item.maxStock !== validation.stock) {
             if (changed) updatedCount++;
-            return { ...item, quantity: newQuantity, price: validation.price, maxStock: validation.stock };
+            newItems.push({
+              ...item,
+              quantity: newQuantity,
+              price: validation.price,
+              maxStock: validation.stock,
+            });
+          } else {
+            newItems.push(item);
           }
-
-          return item;
-        }).filter(item => !(item as any)._shouldRemove);
+        }
 
         if (removedCount > 0 || updatedCount > 0) {
           set({ items: newItems });

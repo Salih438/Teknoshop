@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import CustomerDetailDrawer, { CustomerDetailDrawerData } from "./CustomerDetailDrawer";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export interface CustomerDTO {
   id: string;
@@ -49,6 +50,7 @@ export default function AdminUsersClient({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedDrawerCustomer, setSelectedDrawerCustomer] = useState<CustomerDetailDrawerData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   // URL Parametreleri
@@ -97,10 +99,15 @@ export default function AdminUsersClient({
   const handleBulkAction = async (action: string) => {
     if (selectedIds.length === 0) return;
 
-    if (action === "delete" && !confirm(`${selectedIds.length} kullanıcıyı silmek istediğinize emin misiniz?`)) {
+    if (action === "delete") {
+      setIsBulkDeleteModalOpen(true);
       return;
     }
 
+    await executeBulkAction(action);
+  };
+
+  const executeBulkAction = async (action: string) => {
     const toastId = toast.loading(`${selectedIds.length} kullanıcı işleniyor...`);
     try {
       const res = await fetch("/api/admin/users/bulk", {
@@ -573,6 +580,18 @@ export default function AdminUsersClient({
         customer={selectedDrawerCustomer}
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+      />
+
+      {/* Toplu Kullanıcı Silme Onay Modalı */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={() => executeBulkAction("delete")}
+        title="Toplu Kullanıcı Silme"
+        description={`Seçilen ${selectedIds.length} kullanıcı hesabını kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
+        confirmText="Evet, Toplu Sil"
+        cancelText="Vazgeç"
+        variant="danger"
       />
 
     </div>

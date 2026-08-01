@@ -18,6 +18,7 @@ export interface ProductCardProps {
     name: string;
   };
   reviews?: { rating: number }[];
+  isFavorite?: boolean;
 }
 
 const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
@@ -40,7 +41,7 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
         
         {/* Sağ Üstte Favori Butonu */}
         <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-20">
-          <FavoriteButton productId={product.id} />
+          <FavoriteButton productId={product.id} initialIsFavorite={product.isFavorite} />
         </div>
 
         <Link href={`/products/${product.id}`} className="flex flex-col flex-grow group">
@@ -141,27 +142,27 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
                   <span className="text-gray-400 text-[9px] sm:text-[10px] font-bold tracking-wider">({totalReviews})</span>
                 </div>
               ) : (
-                <span className="text-gray-400 text-[9px] sm:text-[10px] font-medium truncate">Değerlendirme yok</span>
+                <span className="text-gray-400 text-[9px] sm:text-[10px] font-medium whitespace-nowrap">Değerlendirme yok</span>
               )}
             </div>
 
           </div>
         </Link>
 
-        {/* Alt Kısım: Fiyat ve Sepete Ekle Butonu */}
-        <div className="px-3.5 pb-3.5 sm:px-5 sm:pb-5 flex items-center justify-between gap-2 mt-auto">
-          <div className="h-10 sm:h-11 flex flex-col justify-end">
+        {/* Alt Kısım: Fiyat (Üstte) ve Sepete Ekle Butonu (Tam Genişlikte Altında) */}
+        <div className="px-3.5 pb-3.5 sm:px-5 sm:pb-5 flex flex-col gap-2.5 mt-auto pt-3 border-t border-gray-100">
+          <div className="flex flex-col justify-end">
             {product.comparePrice && product.comparePrice > product.price ? (
-              <span className="text-[11px] sm:text-xs text-gray-400 line-through font-bold block leading-none mb-0.5">
-                {product.comparePrice.toLocaleString("tr-TR")} ₺
+              <span className="text-[11px] sm:text-xs text-gray-400 line-through font-bold block leading-none mb-0.5 whitespace-nowrap">
+                {product.comparePrice.toLocaleString("tr-TR")}&nbsp;₺
               </span>
             ) : null}
-            <p className="text-base sm:text-lg font-black text-blue-600 tracking-tight truncate leading-none">
-              {product.price.toLocaleString("tr-TR")} ₺
+            <p className="text-base sm:text-lg font-black text-blue-600 tracking-tight leading-none whitespace-nowrap font-mono">
+              {product.price.toLocaleString("tr-TR")}&nbsp;₺
             </p>
           </div>
 
-          <div className="w-auto z-10 flex-shrink-0">
+          <div className="w-full z-10">
             <AddToCartButton
               product={{
                 id: product.id,
@@ -170,7 +171,7 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
                 images: product.imageUrl ? [{ imageUrl: product.imageUrl }] : [],
                 stock: product.stock,
               }}
-              className="!px-2.5 !py-1.5 sm:!px-3 sm:!py-2 !text-xs !rounded-xl min-h-[44px] flex items-center justify-center cursor-pointer"
+              className="!w-full !py-2.5 !text-xs !rounded-xl min-h-[42px] flex items-center justify-center cursor-pointer whitespace-nowrap"
             />
           </div>
         </div>

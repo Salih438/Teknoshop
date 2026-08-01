@@ -62,7 +62,7 @@ export default function AddToCartButton({ product, selectedVariant, className = 
       onClick={handleAddToCart}
       disabled={isOutOfStock || isAdding}
       aria-label={isOutOfStock ? "Ürün Tükendi" : "Sepete Ekle"}
-      className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-300 w-full sm:w-auto overflow-hidden ${
+      className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all duration-300 w-full sm:w-auto whitespace-nowrap ${
         isOutOfStock 
           ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none" 
           : isAdding 
@@ -71,21 +71,21 @@ export default function AddToCartButton({ product, selectedVariant, className = 
       } ${className}`}
     >
       {isOutOfStock ? (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2 whitespace-nowrap">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
           </svg>
           Tükendi
         </span>
       ) : isAdding ? (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2 whitespace-nowrap">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-in zoom-in duration-300" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
           Eklendi
         </span>
       ) : (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2 whitespace-nowrap">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>

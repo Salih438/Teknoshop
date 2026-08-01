@@ -73,7 +73,7 @@ export default function FavoriteButton({
       onClick={handleToggle}
       disabled={loading}
       className={`bg-white p-2.5 sm:p-3 rounded-full shadow-md transition-all duration-300 z-10 ${
-        loading ? 'opacity-70 cursor-wait' : 'hover:scale-110 active:scale-95 hover:shadow-lg'
+        loading ? 'cursor-wait scale-95' : 'hover:scale-110 active:scale-95 hover:shadow-lg'
       } ${className}`}
       type="button"
       aria-label={isFavorite ? "Favorilerden Çıkar" : "Favorilere Ekle"}
@@ -81,7 +81,9 @@ export default function FavoriteButton({
     >
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
-        className={`h-5 w-5 sm:h-6 sm:w-6 transition-colors duration-300 ${isFavorite ? 'text-red-500 fill-current' : 'text-gray-400 hover:text-red-500'}`} 
+        className={`h-5 w-5 sm:h-6 sm:w-6 transition-all duration-300 ${
+          isFavorite ? "text-red-500 fill-red-500" : "text-gray-400 fill-transparent hover:text-red-500"
+        }`} 
         viewBox="0 0 24 24" 
         stroke="currentColor" 
         fill={isFavorite ? "currentColor" : "none"}

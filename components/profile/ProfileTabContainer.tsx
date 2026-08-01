@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, KeyboardEvent, ComponentProps } from "react";
+import { useState, useEffect, KeyboardEvent, ComponentProps } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import OrderProgressBar from "@/components/profile/OrderProgressBar";
 import AddressManager from "@/components/profile/AddressManager";
 import EditProfileModal from "@/components/profile/EditProfileModal";
@@ -62,7 +63,21 @@ export default function ProfileTabContainer({
   returns = [],
   exchanges = [],
 }: ProfileTabContainerProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabType | null;
+
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (tabParam && ["overview", "orders", "returns", "addresses", "settings"].includes(tabParam)) {
+      return tabParam;
+    }
+    return "overview";
+  });
+
+  useEffect(() => {
+    if (tabParam && ["overview", "orders", "returns", "addresses", "settings"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     let nextIndex = currentIndex;
@@ -290,9 +305,13 @@ export default function ProfileTabContainer({
               <p className="text-gray-500 text-xs sm:text-sm mb-6">
                 Teslim edilmiş siparişleriniz için 14 gün içerisinde iade veya değişim talebi oluşturabilirsiniz.
               </p>
-              <Link href="/profile" className="inline-flex items-center justify-center bg-gray-900 text-white font-extrabold px-6 py-3 rounded-xl hover:bg-gray-800 transition shadow-xs text-xs sm:text-sm min-h-[44px]">
+              <button
+                type="button"
+                onClick={() => setActiveTab("orders")}
+                className="inline-flex items-center justify-center bg-gray-900 text-white font-extrabold px-6 py-3 rounded-xl hover:bg-gray-800 transition shadow-xs text-xs sm:text-sm min-h-[44px]"
+              >
                 Siparişlerime Git
-              </Link>
+              </button>
             </div>
           ) : (
             <div className="space-y-8">

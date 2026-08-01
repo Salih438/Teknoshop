@@ -10,6 +10,7 @@ import {
   getPaginatedProductReviews,
   ReviewSortOption,
 } from "@/actions/review";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface ProductReviewsProps {
   productId: string;
@@ -51,6 +52,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   const [hoveredStar, setHoveredStar] = useState(0);
   const [comment, setComment] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Fetch reviews from server action
   const loadReviewsData = useCallback(
@@ -134,8 +136,6 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
 
   // Delete Review Handler
   const handleDelete = async () => {
-    if (!window.confirm("Yorumunuzu silmek istediğinize emin misiniz?")) return;
-
     setSubmitting(true);
     const result = await deleteReview(productId);
 
@@ -606,7 +606,7 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
                       </span>
                       <button
                         type="button"
-                        onClick={handleDelete}
+                        onClick={() => setIsDeleteModalOpen(true)}
                         disabled={submitting}
                         className="text-gray-400 hover:text-red-600 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
                       >
@@ -672,6 +672,18 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
           </div>
         )}
       </div>
+      {/* Yorum Silme Onay Modalı */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Yorumu Sil"
+        description="Bu yorumu silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
+        confirmText="Evet, Sil"
+        cancelText="Vazgeç"
+        variant="danger"
+        isLoading={submitting}
+      />
     </div>
   );
 }

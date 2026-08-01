@@ -135,9 +135,16 @@ export default function DynamicPaymentForm({ selectedMethod }: { selectedMethod:
             </div>
           </div>
 
-          <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-2xl flex items-center gap-2 text-xs text-blue-900 font-medium">
-            <span>🛡️</span>
-            <span>Ödemeniz <strong>3D Secure 2.0</strong> banka onay şifresi ile gerçekleşecektir.</span>
+          <div className="space-y-2">
+            <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-2xl flex items-center gap-2 text-xs text-blue-900 font-medium">
+              <span>🛡️</span>
+              <span>Ödemeniz <strong>3D Secure 2.0</strong> banka onay şifresi ile gerçekleşecektir.</span>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl flex items-center gap-2 text-xs text-amber-900 font-bold">
+              <span>🧪</span>
+              <span><strong>DEMO BİLGİLENDİRMESİ:</strong> Ödeme simüle edilmektedir. Gerçek bir finansal tahsilat veya kredi kartı işlemi yapılmaz.</span>
+            </div>
           </div>
 
         </div>

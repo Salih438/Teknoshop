@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import QuickStockUpdate from "./QuickStockUpdate";
 import QuickPriceUpdate from "./QuickPriceUpdate";
 import DeleteButton from "@/app/admin/products/DeleteButton";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export interface CategoryItem {
   id: string;
@@ -63,6 +64,7 @@ export default function AdminProductsClient({
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   // URL Arama & Filtre Parametreleri
   const searchQuery = searchParams.get("q") || "";
@@ -111,10 +113,15 @@ export default function AdminProductsClient({
   const handleBulkAction = async (action: string, targetId?: string) => {
     if (selectedIds.length === 0) return;
 
-    if (action === "delete" && !confirm(`${selectedIds.length} ürünü silmek istediğinize emin misiniz?`)) {
+    if (action === "delete") {
+      setIsBulkDeleteModalOpen(true);
       return;
     }
 
+    await executeBulkAction(action, targetId);
+  };
+
+  const executeBulkAction = async (action: string, targetId?: string) => {
     const toastId = toast.loading(`${selectedIds.length} ürün güncelleniyor...`);
     try {
       const res = await fetch("/api/admin/products/bulk", {
@@ -632,6 +639,18 @@ export default function AdminProductsClient({
         )}
 
       </div>
+
+      {/* Toplu Ürün Silme Onay Modalı */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={() => executeBulkAction("delete")}
+        title="Toplu Ürün Silme"
+        description={`Seçilen ${selectedIds.length} ürünü kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
+        confirmText="Evet, Toplu Sil"
+        cancelText="Vazgeç"
+        variant="danger"
+      />
 
     </div>
   );

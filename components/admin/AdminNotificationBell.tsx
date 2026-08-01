@@ -329,14 +329,14 @@ export default function AdminNotificationBell() {
           role="dialog"
           aria-label="Admin Bildirim Merkezi"
           className={`
-            z-50 bg-white/95 backdrop-blur-md shadow-2xl border border-gray-200 flex flex-col transition-all duration-200 ease-out
+            z-[999] bg-white/95 backdrop-blur-md shadow-2xl border border-gray-200 flex flex-col transition-all duration-200 ease-out
             fixed inset-x-0 bottom-0 rounded-t-3xl max-h-[80vh] w-full p-4 sm:p-5 sm:space-y-4
-            sm:absolute sm:bottom-auto sm:top-0 sm:left-full sm:ml-3 sm:w-80 sm:w-96 sm:rounded-3xl sm:max-h-[560px]
+            sm:absolute sm:bottom-auto sm:top-0 sm:left-full sm:ml-3 sm:w-96 sm:rounded-3xl sm:max-h-[560px]
             animate-in slide-in-from-bottom sm:slide-in-from-left-2 duration-200
           `}
         >
           {/* HEADER ROW */}
-          <div className="pb-3 border-b border-gray-100 flex items-center justify-between">
+          <div className="pb-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-base">🔔</span>
               <h3 className="font-black text-gray-900 text-sm flex items-center gap-2">
@@ -402,7 +402,7 @@ export default function AdminNotificationBell() {
           </div>
 
           {/* FOOTER NAVIGATION ACTION */}
-          <div className="pt-3 border-t border-gray-100">
+          <div className="pt-3 border-t border-gray-100 flex-shrink-0">
             <Link
               href="/admin/notifications"
               onClick={close}

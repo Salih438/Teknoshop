@@ -1,8 +1,16 @@
 import { prisma } from "@/lib/prisma";
+import { getMatchingCategoryIds } from "@/lib/synonyms";
 import { NextResponse } from "next/server";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 export async function GET(request: Request) {
   try {
+    const identifier = getClientIdentifier(request);
+    const rateLimit = await checkRateLimit(identifier, { limit: 30, windowSeconds: 60 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla arama yaptınız. Lütfen 1 dakika bekleyip tekrar deneyin.");
+    }
+
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim() || "";
 
@@ -40,8 +48,12 @@ export async function GET(request: Request) {
       });
     }
 
-    // 🚀 CANLI ARAMA SORGULARI (Promise.all ile Paralel Performans)
-    const [matchingProducts, matchingCategories] = await Promise.all([
+    // 1. Eş Anlamlı Kelimelerden Kategori ID'lerini Bul
+    const matchedCategories = await getMatchingCategoryIds(q);
+    const matchedCategoryIds = matchedCategories.map((c) => c.id);
+
+    // 2. 🚀 PRISMA ESNEK SORGUSU (Name, Description, Category, Brand & Synonym Category IDs)
+    const [matchingProducts, categoryResults] = await Promise.all([
       prisma.product.findMany({
         where: {
           isActive: true,
@@ -50,6 +62,7 @@ export async function GET(request: Request) {
             { description: { contains: q, mode: "insensitive" } },
             { category: { name: { contains: q, mode: "insensitive" } } },
             { brand: { name: { contains: q, mode: "insensitive" } } },
+            ...(matchedCategoryIds.length > 0 ? [{ categoryId: { in: matchedCategoryIds } }] : []),
           ],
         },
         take: 8,
@@ -61,16 +74,19 @@ export async function GET(request: Request) {
           comparePrice: true,
           imageUrl: true,
           stock: true,
-          category: { select: { name: true } },
-          brand: { select: { name: true } },
+          category: { select: { id: true, name: true } },
+          brand: { select: { id: true, name: true } },
         },
       }),
 
       prisma.category.findMany({
         where: {
-          name: { contains: q, mode: "insensitive" },
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            ...(matchedCategories.length > 0 ? [{ id: { in: matchedCategoryIds } }] : []),
+          ],
         },
-        take: 3,
+        take: 4,
         select: {
           id: true,
           name: true,
@@ -80,7 +96,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       products: matchingProducts,
-      categories: matchingCategories,
+      categories: categoryResults,
       trendingSearches,
     });
   } catch (error) {

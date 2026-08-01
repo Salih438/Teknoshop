@@ -3,17 +3,22 @@ import { currentUser } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { ProfileService } from "@/lib/services/profile.service";
 import { prisma } from "@/lib/prisma";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
-// Zod güvenlik şeması
+// Zod güvenlik şeması (Trim ve sanitasyon eklendi)
 const profileSchema = z.object({
-  name: z.string().min(2, "İsim en az 2 karakter olmalıdır.").max(50),
+  name: z
+    .string()
+    .transform((val) => val.trim())
+    .refine((val) => val.length >= 2, "İsim en az 2 karakter olmalıdır.")
+    .refine((val) => val.length <= 50, "İsim en fazla 50 karakter olabilir."),
   phone: z
     .string()
-    .regex(/^05\d{9}$/, "Telefon numarası '05XXXXXXXXX' formatında olmalıdır.")
-    .or(z.literal(""))
+    .transform((val) => val.trim())
+    .refine((val) => val === "" || /^05\d{9}$/.test(val), "Telefon numarası '05XXXXXXXXX' formatında olmalıdır.")
     .nullable()
     .optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().url("Geçersiz profil resmi bağlantısı.").optional(),
 });
 
 // GET: Kullanıcı profilini ve rol bilgisini getir
@@ -34,6 +39,13 @@ export async function GET() {
         role: true,
         phone: true,
         avatarUrl: true,
+        _count: {
+          select: {
+            orders: true,
+            returns: true,
+            exchanges: true,
+          },
+        },
       },
     });
 
@@ -56,13 +68,19 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Oturum açmalısınız." }, { status: 401 });
     }
 
+    const identifier = getClientIdentifier(request, clerkUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 10, windowSeconds: 600 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla profil güncelleme isteğinde bulundunuz. Lütfen 10 dakika bekleyip tekrar deneyin.");
+    }
+
     const email = clerkUser.emailAddresses[0].emailAddress;
     const body = await request.json();
     
     const validation = profileSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { error: "Geçersiz form verisi.", details: validation.error.format() },
+        { error: "Geçersiz form verisi.", details: validation.error.flatten().fieldErrors },
         { status: 400 }
       );
     }

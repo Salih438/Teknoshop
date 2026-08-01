@@ -23,12 +23,21 @@ const NAV_LINKS = [
   { href: "/admin/settings", label: "⚙️ Mağaza Ayarları" },
 ];
 
-export default function AdminSidebarNav() {
+interface AdminSidebarNavProps {
+  canManageRoles?: boolean;
+}
+
+export default function AdminSidebarNav({ canManageRoles = false }: AdminSidebarNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
   const toggleDrawer = () => setIsOpen((prev) => !prev);
   const closeDrawer = () => setIsOpen(false);
+
+  // 🛡️ RBAC SIDEBAR FILTER: MANAGE_ROLES izni olmayan kullanıcılar için "Rol & İzinler" linkini gizle
+  const filteredNavLinks = NAV_LINKS.filter(
+    (link) => link.href !== "/admin/roles" || canManageRoles
+  );
 
   return (
     <>
@@ -78,8 +87,10 @@ export default function AdminSidebarNav() {
 
         {/* MENÜ LİNKLERİ */}
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-          {NAV_LINKS.map((link) => {
-            const isActive = pathname === link.href;
+          {filteredNavLinks.map((link) => {
+            const isActive = link.href === "/admin" 
+              ? pathname === "/admin" 
+              : pathname.startsWith(link.href);
             return (
               <Link
                 key={link.href}

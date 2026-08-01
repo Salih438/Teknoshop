@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import CouponWizardModal from "./CouponWizardModal";
 import CouponDetailDrawer, { CouponDetailDrawerData } from "./CouponDetailDrawer";
 import DeleteCouponButton from "@/components/admin/DeleteCouponButton";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export interface CouponDTO {
   id: string;
@@ -53,6 +54,7 @@ export default function AdminCouponsClient({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [selectedDrawerCoupon, setSelectedDrawerCoupon] = useState<CouponDetailDrawerData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const searchQuery = searchParams.get("q") || "";
@@ -98,10 +100,15 @@ export default function AdminCouponsClient({
   const handleBulkAction = async (action: string) => {
     if (selectedIds.length === 0) return;
 
-    if (action === "delete" && !confirm(`${selectedIds.length} kuponu silmek istediğinize emin misiniz?`)) {
+    if (action === "delete") {
+      setIsBulkDeleteModalOpen(true);
       return;
     }
 
+    await executeBulkAction(action);
+  };
+
+  const executeBulkAction = async (action: string) => {
     const toastId = toast.loading(`${selectedIds.length} kupon işleniyor...`);
     try {
       const res = await fetch("/api/admin/coupons/bulk", {
@@ -587,6 +594,18 @@ export default function AdminCouponsClient({
         coupon={selectedDrawerCoupon}
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
+      />
+
+      {/* Toplu Kupon Silme Onay Modalı */}
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={() => executeBulkAction("delete")}
+        title="Toplu Kupon Silme"
+        description={`Seçilen ${selectedIds.length} kuponu kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`}
+        confirmText="Evet, Toplu Sil"
+        cancelText="Vazgeç"
+        variant="danger"
       />
 
     </div>

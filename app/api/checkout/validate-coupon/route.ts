@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { z } from "zod";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 const validateCouponSchema = z.object({
   couponCode: z.string().min(1, "Kupon kodu zorunludur."),
@@ -14,6 +15,12 @@ export async function POST(request: Request) {
     const clerkUser = await currentUser();
     if (!clerkUser) {
       return NextResponse.json({ error: "İşlem yapmak için giriş yapmalısınız." }, { status: 401 });
+    }
+
+    const identifier = getClientIdentifier(request, clerkUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 10, windowSeconds: 600 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla kupon denemesi yaptınız. Lütfen 10 dakika bekleyip tekrar deneyin.");
     }
 
     const email = clerkUser.emailAddresses?.[0]?.emailAddress;
