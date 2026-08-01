@@ -290,8 +290,8 @@ sağlanmaktadır.
 ## 1. Repository'yi klonlayın
 
 ```bash
-git clone https://github.com/Salih438/e-ticaret.git
-cd e-ticaret
+git clone https://github.com/Salih438/Teknoshop.git
+cd Teknoshop
 ```
 
 ## 2. Paketleri yükleyin
