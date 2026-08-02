@@ -185,6 +185,18 @@ export default function AccountPopover({ onClose }: AccountPopoverProps) {
         </Link>
 
         <Link
+          href="/favorites"
+          onClick={onClose}
+          className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors font-bold text-gray-700 hover:text-blue-600 text-xs"
+        >
+          <div className="flex items-center gap-2">
+            <span>❤️</span>
+            <span>Favorilerim</span>
+          </div>
+          <span className="text-gray-400 text-[10px] font-extrabold">&rarr;</span>
+        </Link>
+
+        <Link
           href="/profile?tab=addresses"
           onClick={onClose}
           className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors font-bold text-gray-700 hover:text-blue-600 text-xs"

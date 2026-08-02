@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -45,6 +46,7 @@ export default function SearchBar() {
   const [isListening, setIsListening] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const mobileDropdownRef = useRef<HTMLDivElement>(null);
 
   // LocalStorage'dan Son Aramaları Yükle
   useEffect(() => {
@@ -125,7 +127,10 @@ export default function SearchBar() {
   // Dışarı tıklayınca kapatma
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const isInsideDesktop = containerRef.current && containerRef.current.contains(target);
+      const isInsideMobile = mobileDropdownRef.current && mobileDropdownRef.current.contains(target);
+      if (!isInsideDesktop && !isInsideMobile) {
         setIsOpen(false);
       }
     };
@@ -241,6 +246,172 @@ export default function SearchBar() {
     );
   };
 
+  const renderDropdownContent = () => (
+    <>
+      {/* YÜKLENİYOR SKELETON */}
+      {loading && (
+        <div className="p-4 space-y-3">
+          <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse" />
+          <div className="h-12 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-12 bg-gray-100 rounded-2xl animate-pulse" />
+        </div>
+      )}
+
+      {!loading && (
+        <div className="max-h-[70vh] overflow-y-auto custom-scrollbar divide-y divide-gray-100">
+          {/* 1. KULLANICI HİÇBİR ŞEY YAZMAMIŞKEN (BOŞ ARAMA KUTUSU) */}
+          {!searchQuery.trim() && (
+            <div className="p-4 space-y-5">
+              {/* SON ARAMALAR */}
+              {recentSearches.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px]">
+                      🕒 Son Aramalarınız
+                    </span>
+                    <button
+                      onClick={clearAllRecent}
+                      className="text-[10px] text-red-500 font-bold hover:underline cursor-pointer"
+                    >
+                      Temizle
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recentSearches.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => handleSearchSubmit(item)}
+                        className="bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition group"
+                      >
+                        <span>{item}</span>
+                        <button
+                          onClick={(e) => removeRecentSearch(item, e)}
+                          className="text-gray-400 hover:text-red-500 font-bold ml-1"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* POPÜLER / TREND ARAMALAR */}
+              <div className="space-y-2">
+                <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] block">
+                  🔥 Popüler Aramalar
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {trendingSearches.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSearchSubmit(item)}
+                      className="bg-blue-50/60 hover:bg-blue-600 text-blue-700 hover:text-white px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer"
+                    >
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2. KULLANICI BİR ŞEY YAZMIŞ AMA SONUÇ BULUNAMAMIŞSA */}
+          {searchQuery.trim() && products.length === 0 && categories.length === 0 && (
+            <div className="p-8 text-center space-y-2">
+              <span className="text-3xl block">🔍</span>
+              <p className="font-extrabold text-gray-800 text-sm">
+                "{searchQuery}" ile ilgili sonuç bulunamadı.
+              </p>
+              <p className="text-gray-400 text-xs">
+                Lütfen kelimeyi kontrol edin veya farklı bir kelime deneyin.
+              </p>
+            </div>
+          )}
+
+          {/* 2. ÖNERİLEN KATEGORİLER */}
+          {categories.length > 0 && (
+            <div className="p-3 bg-gray-50/70 border-b border-gray-100 space-y-1">
+              <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] px-2 block mb-1">
+                📁 Önerilen Kategoriler
+              </span>
+              {categories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/search?q=${encodeURIComponent(searchQuery)}&category=${cat.id}`}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white transition font-bold text-gray-800 text-xs sm:text-sm group"
+                >
+                  <span className="truncate">{cat.name} kategorisinde ara</span>
+                  <span className="text-blue-600 font-extrabold text-xs group-hover:translate-x-0.5 transition-transform flex-shrink-0">
+                    İncele &rarr;
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* 3. ÖNE ÇIKAN ÜRÜNLER (Mini İlk 3 Ürün Kartı) */}
+          {products.length > 0 && (
+            <div className="p-3 space-y-1">
+              <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] px-2 block mb-1">
+                📦 Öne Çıkan Ürünler ({Math.min(3, products.length)})
+              </span>
+              {products.slice(0, 3).map((prod, idx) => (
+                <Link
+                  key={prod.id}
+                  href={`/products/${prod.id}`}
+                  onClick={() => {
+                    saveRecentSearch(prod.name);
+                    setIsOpen(false);
+                  }}
+                  className={`flex items-center justify-between p-2.5 rounded-2xl transition ${
+                    selectedIndex === idx ? "bg-blue-50/80 border border-blue-200" : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 bg-white border border-gray-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center p-1">
+                      {prod.imageUrl ? (
+                        <Image src={prod.imageUrl} alt={prod.name} width={40} height={40} className="object-contain" />
+                      ) : (
+                        <span>📦</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 line-clamp-1">{highlightMatch(prod.name, searchQuery)}</p>
+                      <span className="text-[10px] text-gray-400 font-bold block truncate">
+                        {prod.brand?.name || prod.category?.name || "Teknoloji"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-right flex-shrink-0 ml-3">
+                    <span className="font-black text-blue-600 block">{prod.price.toLocaleString("tr-TR")} ₺</span>
+                    <span className={`text-[9px] font-bold ${prod.stock > 0 ? "text-green-600" : "text-red-500"}`}>
+                      {prod.stock > 0 ? "Stokta" : "Tükendi"}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {products.length > 0 && (
+            <div className="p-3 bg-gray-50 text-center border-t border-gray-100">
+              <button
+                onClick={() => handleSearchSubmit()}
+                className="text-xs font-black text-blue-600 hover:underline cursor-pointer"
+              >
+                "{searchQuery}" İçin Tüm Sonuçları Gör ({products.length}+ Ürün) ➔
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div ref={containerRef} className="relative w-full text-left">
       <form
@@ -323,196 +494,34 @@ export default function SearchBar() {
         </button>
       </form>
 
-      {/* MOBİL BACKDROP OVERLAY & MODAL KAPLAMASI */}
+      {/* 🚀 1. MASAÜSTÜ ARAMA DROPDOWN (Yalnızca Masaüstü - hidden lg:block) */}
       {isOpen && (
-        <div
-          onClick={() => setIsOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[998] lg:hidden animate-in fade-in duration-200"
-        />
-      )}
-
-      {/* 🚀 LIVE INSTANT SEARCH DROPDOWN (DESKTOP + MOBİL MODAL YÖNETİMİ) */}
-      {isOpen && (
-        <div className={`
-          bg-white shadow-2xl border border-gray-100 overflow-hidden text-xs sm:text-sm animate-in fade-in duration-200
-          lg:absolute lg:top-full lg:left-0 lg:right-0 lg:mt-2 lg:rounded-3xl lg:z-50 lg:max-h-[70vh]
-          fixed inset-x-4 top-20 z-[999] rounded-3xl max-h-[80vh] flex flex-col lg:block
-        `}>
-          
-          {/* YÜKLENİYOR SKELETON */}
-          {loading && (
-            <div className="p-4 space-y-3">
-              <div className="h-4 bg-gray-100 rounded w-1/3 animate-pulse" />
-              <div className="h-12 bg-gray-100 rounded-2xl animate-pulse" />
-              <div className="h-12 bg-gray-100 rounded-2xl animate-pulse" />
-            </div>
-          )}
-
-          {!loading && (
-            <div className="max-h-[70vh] overflow-y-auto custom-scrollbar divide-y divide-gray-100">
-              
-              {/* 1. KULLANICI HİÇBİR ŞEY YAZMAMIŞKEN (BOŞ ARAMA KUTUSU) */}
-              {!searchQuery.trim() && (
-                <div className="p-4 space-y-5">
-                  
-                  {/* SON ARAMALAR */}
-                  {recentSearches.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px]">
-                          🕒 Son Aramalarınız
-                        </span>
-                        <button
-                          onClick={clearAllRecent}
-                          className="text-[10px] text-red-500 font-bold hover:underline cursor-pointer"
-                        >
-                          Temizle
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {recentSearches.map((item) => (
-                          <div
-                            key={item}
-                            onClick={() => handleSearchSubmit(item)}
-                            className="bg-gray-100 hover:bg-blue-50 text-gray-700 hover:text-blue-600 px-3 py-1.5 rounded-xl font-bold cursor-pointer transition flex items-center gap-1.5"
-                          >
-                            <span>{item}</span>
-                            <span
-                              onClick={(e) => removeRecentSearch(item, e)}
-                              className="text-gray-400 hover:text-red-600 text-xs ml-1"
-                            >
-                              ✕
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TREND ARAMALAR */}
-                  <div className="space-y-2">
-                    <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] block">
-                      🔥 Popüler Aramalar
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {trendingSearches.map((trend) => (
-                        <button
-                          key={trend}
-                          onClick={() => handleSearchSubmit(trend)}
-                          className="bg-gray-50 hover:bg-gray-100 border border-gray-200/80 text-gray-800 font-extrabold px-3 py-1.5 rounded-xl text-xs transition flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>🔍</span>
-                          <span>{trend}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
-              {/* 2. ÖNERİLEN KATEGORİLER */}
-              {categories.length > 0 && (
-                <div className="p-3 bg-gray-50/70 border-b border-gray-100 space-y-1">
-                  <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] px-2 block mb-1">
-                    📁 Önerilen Kategoriler
-                  </span>
-                  {categories.map((cat) => (
-                    <Link
-                      key={cat.id}
-                      href={`/search?q=${encodeURIComponent(searchQuery)}&category=${cat.id}`}
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white transition font-bold text-gray-800 text-xs sm:text-sm group"
-                    >
-                      <span className="truncate">{cat.name} kategorisinde ara</span>
-                      <span className="text-blue-600 font-extrabold text-xs group-hover:translate-x-0.5 transition-transform flex-shrink-0">
-                        İncele &rarr;
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              )}
-
-              {/* 3. ÖNE ÇIKAN ÜRÜNLER (Mini İlk 3 Ürün Kartı) */}
-              {products.length > 0 && (
-                <div className="p-3 space-y-1">
-                  <span className="font-extrabold text-gray-400 uppercase tracking-widest text-[10px] px-2 block mb-1">
-                    📦 Öne Çıkan Ürünler ({Math.min(3, products.length)})
-                  </span>
-                  {products.slice(0, 3).map((prod, idx) => (
-                    <Link
-                      key={prod.id}
-                      href={`/products/${prod.id}`}
-                      onClick={() => {
-                        saveRecentSearch(prod.name);
-                        setIsOpen(false);
-                      }}
-                      className={`flex items-center justify-between p-2.5 rounded-2xl transition ${
-                        selectedIndex === idx ? "bg-blue-50/80 border border-blue-200" : "hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 bg-white border border-gray-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center p-1">
-                          {prod.imageUrl ? (
-                            <Image src={prod.imageUrl} alt={prod.name} width={40} height={40} className="object-contain" />
-                          ) : (
-                            <span>📦</span>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-gray-900 line-clamp-1">{highlightMatch(prod.name, searchQuery)}</p>
-                          <span className="text-[10px] text-gray-400 font-bold block truncate">
-                            {prod.brand?.name || prod.category?.name || "Teknoloji"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-right flex-shrink-0 ml-3">
-                        <span className="font-black text-blue-600 block">{prod.price.toLocaleString("tr-TR")} ₺</span>
-                        <span className={`text-[9px] font-bold ${prod.stock > 0 ? "text-green-600" : "text-red-500"}`}>
-                          {prod.stock > 0 ? "Stokta" : "Tükendi"}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-
-              {/* 4. HİÇ BİR SONUÇ BULUNAMAYINCA (SMART EMPTY STATE) */}
-              {searchQuery.trim() && products.length === 0 && !loading && (
-                <div className="p-8 text-center space-y-3">
-                  <span className="text-4xl block">🔍</span>
-                  <p className="font-black text-gray-900 text-sm">"{searchQuery}" için sonuç bulunamadı</p>
-                  <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                    Yazım hatası yapmış olabilirsiniz. Lütfen daha kısa veya alternatif kelimeler deneyiniz.
-                  </p>
-                  <button
-                    onClick={() => handleSearchSubmit(searchQuery)}
-                    className="bg-gray-900 text-white font-extrabold px-4 py-2 rounded-xl text-xs cursor-pointer"
-                  >
-                    Tüm Katalogda Ara ➔
-                  </button>
-                </div>
-              )}
-
-              {/* ALT AKSİYON BARI */}
-              {searchQuery.trim() && (
-                <div className="p-3 bg-gray-50 text-center border-t border-gray-100">
-                  <button
-                    onClick={() => handleSearchSubmit()}
-                    className="text-xs font-black text-blue-600 hover:underline cursor-pointer"
-                  >
-                    "{searchQuery}" İçin Tüm Sonuçları Gör ({products.length}+ Ürün) ➔
-                  </button>
-                </div>
-              )}
-
-            </div>
-          )}
-
+        <div className="hidden lg:block absolute top-full left-0 right-0 mt-2 rounded-3xl z-50 max-h-[70vh] bg-white shadow-2xl border border-gray-100 overflow-hidden text-xs sm:text-sm animate-in fade-in duration-200">
+          {renderDropdownContent()}
         </div>
       )}
 
+      {/* 🚀 2. MOBİL ARAMA MODAL & OVERLAY (createPortal ile document.body içine - lg:hidden) */}
+      {isOpen &&
+        typeof window !== "undefined" &&
+        createPortal(
+          <div className="lg:hidden">
+            {/* MOBİL BACKDROP OVERLAY */}
+            <div
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[998] animate-in fade-in duration-200"
+            />
+
+            {/* MOBİL ARAMA PANELI (Fixed viewport modal - escaped from header backdrop-blur containing block) */}
+            <div
+              ref={mobileDropdownRef}
+              className="fixed inset-x-4 top-20 z-[999] rounded-3xl max-h-[80dvh] flex flex-col bg-white shadow-2xl border border-gray-100 overflow-hidden text-xs sm:text-sm animate-in fade-in duration-200"
+            >
+              {renderDropdownContent()}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

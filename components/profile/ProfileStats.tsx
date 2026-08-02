@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 interface ProfileStatsProps {
   totalOrders: number;
   totalSpent: number;
@@ -51,7 +53,7 @@ export default function ProfileStats({ totalOrders, totalSpent, deliveredOrders,
       </div>
 
       {/* 4. KART: Favoriler */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center gap-4 hover:shadow-md hover:-translate-y-1 transition-all group">
+      <Link href="/favorites" className="bg-white p-5 sm:p-6 rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center gap-4 hover:shadow-md hover:-translate-y-1 transition-all group cursor-pointer">
         <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -61,7 +63,7 @@ export default function ProfileStats({ totalOrders, totalSpent, deliveredOrders,
           <p className="text-[10px] sm:text-[11px] text-gray-400 font-extrabold uppercase tracking-widest mb-0.5">Favoriler</p>
           <p className="text-xl sm:text-2xl font-black text-red-500">{favoritesCount}</p>
         </div>
-      </div>
+      </Link>
 
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useCartStore } from "../lib/store";
 import { SignInButton, SignUpButton, UserButton, useAuth, useUser } from "@clerk/nextjs";
@@ -8,17 +8,31 @@ import SearchBar from "./SearchBar";
 import NotificationBell from "./notifications/NotificationBell";
 import MiniCartPopover from "./cart/MiniCartPopover";
 import AccountPopover from "./profile/AccountPopover";
+import MobileNavigationDrawer from "./MobileNavigationDrawer";
 
-export default function Navbar() {
+const emptySubscribe = () => () => { };
+
+export default function Navbar({
+  categories = [],
+}: {
+  categories?: Array<{
+    id: string;
+    name: string;
+    _count?: {
+      products: number;
+    };
+  }>;
+}) {
   const items = useCartStore((state) => state.items);
   const totalItems = items.reduce((total, item) => total + item.quantity, 0);
 
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [isAccountHovered, setIsAccountHovered] = useState(false);
 
@@ -31,28 +45,25 @@ export default function Navbar() {
       fetch("/api/profile")
         .then((res) => res.json())
         .then((data) => {
-          if (data?.user) {
-            if (data.user.role === "ADMIN") {
-              setIsAdmin(true);
-            }
+          if (data.user) {
+            setIsAdmin(data.user.role === "ADMIN");
             if (data.user.name) {
               setUserName(data.user.name);
             }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [isSignedIn]);
 
   useEffect(() => {
-    setMounted(true);
     fetchUserProfile();
 
     // Listen for custom profile update event triggered by profile edit modals
     const handleProfileUpdate = () => {
       fetchUserProfile();
       if (user) {
-        user.reload().catch(() => {});
+        user.reload().catch(() => { });
       }
     };
 
@@ -92,14 +103,28 @@ export default function Navbar() {
 
   return (
     <header className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 text-gray-800 sticky top-0 z-50 transition-all w-full">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
-        <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
-          
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 w-full">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-1 sm:gap-4">
+
           {/* 1. SOL KISIM: LOGO & ÜRÜNLER LİNKİ */}
-          <div className="flex items-center gap-3 sm:gap-6 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0">
+            {/* MOBİL MENÜ TETİKLEYİCİ BUTONU (☰) */}
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(true)}
+              aria-label="Menüyü aç"
+              aria-expanded={isDrawerOpen}
+              aria-controls="mobile-navigation-drawer"
+              className="md:hidden text-gray-700 hover:text-blue-600 p-2 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[40px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
             <Link
               href="/"
-              className="text-xl sm:text-2xl font-extrabold text-blue-600 tracking-tight hover:opacity-80 transition-opacity flex items-center gap-1 min-h-[44px] min-w-[44px]"
+              className="text-base sm:text-2xl font-extrabold text-blue-600 tracking-tight hover:opacity-80 transition-opacity flex items-center gap-1 min-h-[44px] min-w-[44px]"
             >
               <span>Teknoshop</span>
             </Link>
@@ -120,29 +145,21 @@ export default function Navbar() {
           </div>
 
           {/* 3. SAĞ KISIM: MENÜ KISAYOLLARI VE KİMLİK DOĞRULAMA */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-            
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+
             {/* MOBİL ARAMA TETİKLEYİCİ BUTONU */}
             <button
               type="button"
               onClick={() => setIsMobileSearchOpen((prev) => !prev)}
               aria-label="Arama Yap"
               title="Arama Yap"
-              className="lg:hidden text-gray-600 hover:text-blue-600 p-2.5 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+              className="lg:hidden text-gray-600 hover:text-blue-600 p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[40px] sm:min-w-[44px] flex items-center justify-center cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
 
-            {/* Mobil Ürünler Kısayolu */}
-            <Link
-              href="/products"
-              className="md:hidden text-xs font-bold text-gray-600 hover:text-blue-600 transition-colors px-2.5 rounded-xl hover:bg-gray-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Tüm Ürünler"
-            >
-              Ürünler
-            </Link>
 
             {/* SKELETON LOADING STATE */}
             {!isLoaded ? (
@@ -156,7 +173,7 @@ export default function Navbar() {
                 {isSignedIn && isAdmin && (
                   <Link
                     href="/admin"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-xl border border-gray-200 font-medium transition-all flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center"
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 sm:px-3 py-1.5 rounded-xl border border-gray-200 font-medium transition-all flex items-center gap-1.5 min-h-[44px] min-w-[40px] sm:min-w-[44px] justify-center"
                     title="Admin Yönetim Paneli"
                   >
                     <span>🛡️</span>
@@ -167,11 +184,11 @@ export default function Navbar() {
                 {/* 🔔 BİLDİRİM ÇANI */}
                 {isSignedIn && <NotificationBell />}
 
-                {/* FAVORİLER LİNKİ */}
+                {/* FAVORİLER LİNKİ (Sadece Masaüstü ve Tablette Görünür - hidden sm:flex) */}
                 {isSignedIn && (
                   <Link
                     href="/favorites"
-                    className="hover:text-red-500 transition-colors flex items-center gap-1.5 p-2.5 rounded-xl hover:bg-gray-100 text-gray-600 group min-h-[44px] min-w-[44px] justify-center"
+                    className="hidden sm:flex hover:text-red-500 transition-colors items-center gap-1.5 p-2.5 rounded-xl hover:bg-gray-100 text-gray-600 group min-h-[44px] min-w-[44px] justify-center"
                     title="Favorilerim"
                   >
                     <svg
@@ -236,8 +253,9 @@ export default function Navbar() {
                 {/* MOBİL SEPET LİNKİ */}
                 <Link
                   href="/cart"
-                  className="sm:hidden hover:text-blue-600 transition-colors flex items-center gap-1.5 p-2.5 rounded-xl hover:bg-gray-100 text-gray-600 group min-h-[44px] min-w-[44px] justify-center"
+                  className="sm:hidden hover:text-blue-600 transition-colors flex items-center gap-1.5 p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 text-gray-600 group min-h-[44px] min-w-[40px] sm:min-w-[44px] justify-center"
                   title="Sepetim"
+                  aria-label="Sepetim"
                 >
                   <div className="relative flex items-center">
                     <svg
@@ -277,9 +295,9 @@ export default function Navbar() {
                     </SignUpButton>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 sm:gap-3 ml-1">
-                    
-                    {/* 🚀 ACCOUNT POPOVER HOVER CONTAINER */}
+                  <div className="flex items-center gap-1 sm:gap-3 ml-0.5">
+
+                    {/* 🚀 ACCOUNT POPOVER HOVER CONTAINER (MASAÜSTÜ) */}
                     <div
                       className="relative hidden sm:block"
                       onMouseEnter={handleAccountMouseEnter}
@@ -306,8 +324,31 @@ export default function Navbar() {
                       )}
                     </div>
 
+                    {/* 🚀 MOBİL HESABIM LİNKİ (Sadece Mobilde Görünür - sm:hidden) */}
+                    <Link
+                      href="/profile"
+                      className="sm:hidden hover:text-blue-600 transition-colors flex items-center justify-center p-2 rounded-xl hover:bg-gray-100 text-gray-600 group min-h-[44px] min-w-[40px]"
+                      aria-label="Hesabım"
+                      title="Hesabım"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-gray-600 group-hover:text-blue-600 transition-colors flex-shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    </Link>
+
                     <div className="border-l border-gray-200 h-5 hidden sm:block"></div>
-                    <div className="flex items-center justify-center min-h-[44px] min-w-[44px]">
+                    <div className="hidden sm:flex items-center justify-center min-h-[44px] min-w-[44px]">
                       <UserButton />
                     </div>
                   </div>
@@ -323,6 +364,13 @@ export default function Navbar() {
             <SearchBar />
           </div>
         )}
+
+        {/* 🚀 MOBİL NAVİGASYON DRAWER (PORTAL) */}
+        <MobileNavigationDrawer
+          isOpen={isDrawerOpen}
+          onClose={() => setIsDrawerOpen(false)}
+          categories={categories}
+        />
 
       </div>
     </header>

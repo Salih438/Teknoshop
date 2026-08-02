@@ -10,7 +10,7 @@ export default function OrderProgressBar({ status }: { status: string }) {
   ];
 
   let currentIndex = stages.findIndex(s => s.id === status);
-  
+
   // Eğer sipariş iptal edilmişse özel tasarım
   if (status === "CANCELLED") {
     return (
@@ -34,12 +34,12 @@ export default function OrderProgressBar({ status }: { status: string }) {
   return (
     <div className="mt-8 px-2 sm:px-6 mb-2">
       <div className="relative flex justify-between items-center w-full">
-        
+
         {/* Arka plan gri çizgi */}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1.5 bg-gray-100 rounded-full z-0"></div>
-        
+
         {/* Doldurulan mavi çizgi */}
-        <div 
+        <div
           className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 bg-blue-600 rounded-full z-0 transition-all duration-700 ease-out"
           style={{ width: `${(currentIndex / (stages.length - 1)) * 100}%` }}
         ></div>
@@ -51,16 +51,15 @@ export default function OrderProgressBar({ status }: { status: string }) {
 
           return (
             <div key={stage.id} className="relative z-10 flex flex-col items-center group">
-              
+
               {/* Yuvarlak Nokta */}
-              <div 
-                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-4 flex items-center justify-center transition-all duration-500 ${
-                  isCompleted 
-                    ? "bg-blue-600 border-white shadow-md" 
-                    : isCurrent 
-                      ? "bg-white border-blue-600 shadow-md ring-4 ring-blue-50" 
+              <div
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-4 flex items-center justify-center transition-all duration-500 ${isCompleted
+                    ? "bg-blue-600 border-white shadow-md"
+                    : isCurrent
+                      ? "bg-white border-blue-600 shadow-md ring-4 ring-blue-50"
                       : "bg-white border-gray-200"
-                }`}
+                  }`}
               >
                 {isCompleted && (
                   <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-in zoom-in" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -71,14 +70,13 @@ export default function OrderProgressBar({ status }: { status: string }) {
                   <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-blue-600 rounded-full animate-pulse"></div>
                 )}
               </div>
-              
+
               {/* Metin Etiketi */}
-              <span className={`mt-3 text-[10px] sm:text-xs font-bold absolute top-10 whitespace-nowrap transition-colors duration-300 ${
-                isCompleted || isCurrent ? "text-gray-900" : "text-gray-400"
-              }`}>
+              <span className={`mt-3 text-[10px] sm:text-xs font-bold absolute top-10 whitespace-nowrap transition-colors duration-300 ${isCompleted || isCurrent ? "text-gray-900" : "text-gray-400"
+                }`}>
                 {stage.label}
               </span>
-              
+
             </div>
           );
         })}

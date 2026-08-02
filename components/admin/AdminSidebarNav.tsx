@@ -72,7 +72,7 @@ export default function AdminSidebarNav({ canManageRoles = false }: AdminSidebar
       <aside
         className={`bg-gray-900 text-white flex flex-col z-50 transition-all duration-300 ${
           isOpen
-            ? "fixed inset-y-0 left-0 w-72 shadow-2xl md:static md:w-64 md:shadow-none"
+            ? "fixed inset-y-0 right-0 w-72 shadow-2xl md:static md:w-64 md:shadow-none"
             : "hidden md:flex md:w-64 flex-shrink-0"
         }`}
       >
