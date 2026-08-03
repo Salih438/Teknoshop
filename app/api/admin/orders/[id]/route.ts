@@ -143,15 +143,16 @@ export async function PATCH(
     }
 
     return NextResponse.json({ error: "Güncellenecek veri sağlanmadı." }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    if (error?.message === "NOT_FOUND") {
+    const message = error instanceof Error ? error.message : "";
+    if (message === "NOT_FOUND") {
       return NextResponse.json({ error: "Sipariş bulunamadı." }, { status: 404 });
     }
-    if (typeof error?.message === "string" && error.message.startsWith("INVALID_TRANSITION:")) {
-      const parts = error.message.split(":");
+    if (message.startsWith("INVALID_TRANSITION:")) {
+      const parts = message.split(":");
       const currentStatus = parts[1];
       const targetStatus = parts[2];
       return NextResponse.json(

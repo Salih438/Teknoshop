@@ -7,7 +7,16 @@ import { ProductCardProps } from "@/components/ProductCard";
  */
 
 // Yardımcı Formatlayıcı
-const formatProduct = (p: any): ProductCardProps => ({
+const formatProduct = (p: {
+  id: string;
+  name: string;
+  price: number;
+  comparePrice?: number | null;
+  imageUrl?: string | null;
+  stock: number;
+  category?: { id?: string; name: string } | null;
+  reviews?: { rating: number }[];
+}): ProductCardProps => ({
   id: p.id,
   name: p.name,
   price: p.price,

@@ -1,8 +1,8 @@
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
+import { SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import AddToCartButton from "@/components/AddToCartButton";
 import FavoriteButton from "@/components/FavoriteButton";
 
@@ -11,9 +11,62 @@ export const dynamic = "force-dynamic";
 export default async function FavoritesPage() {
   const clerkUser = await currentUser();
 
-  // Oturum açılmamışsa giriş sayfasına yönlendir
+  // Oturum açılmamışsa 404 VEYA yönlendirme olmadan modal tabanlı giriş deneyimi sun
   if (!clerkUser) {
-    redirect("/sign-in");
+    return (
+      <main className="min-h-screen bg-gray-50/30">
+        <div className="max-w-7xl mx-auto p-4 md:p-8 mt-4 animate-in fade-in duration-500">
+          {/* Üst Başlık Alanı */}
+          <div className="mb-10 border-b border-gray-100 pb-6">
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+              Favorilerim
+            </h1>
+            <p className="text-gray-500 mt-2 font-medium">
+              Beğendiğiniz ve takip ettiğiniz ürünleri görüntülemek için oturum açın.
+            </p>
+          </div>
+
+          {/* GİRİŞ YAPILMAMIŞ DURUM (UNAUTHENTICATED STATE) EKRANI */}
+          <div className="bg-white p-12 sm:p-16 rounded-3xl border border-gray-100 text-center shadow-sm flex flex-col items-center justify-center animate-in zoom-in-95 duration-300">
+            <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10 text-red-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Favorilerinizi Görmek İçin Giriş Yapın
+            </h2>
+            <p className="text-gray-500 text-base sm:text-lg font-medium mb-8 max-w-md">
+              Beğendiğiniz ürünleri kaydetmek, indirimleri takip etmek ve favorilerinize dilediğiniz zaman ulaşmak için lütfen hesabınıza giriş yapın.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xs">
+              <SignInButton mode="modal">
+                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-4 px-8 rounded-xl inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-md text-sm min-h-[44px] cursor-pointer">
+                  Giriş Yap
+                </button>
+              </SignInButton>
+              <Link
+                href="/products"
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-8 rounded-xl inline-flex items-center justify-center transition-colors text-sm min-h-[44px]"
+              >
+                Ürünleri Keşfet
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   const email = clerkUser.emailAddresses[0]?.emailAddress || "";

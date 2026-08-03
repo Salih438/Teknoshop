@@ -20,7 +20,7 @@ export default function RecentlyViewedProducts({ currentProduct }: { currentProd
 
       // Mevcut ürünü listede tekrar göstermemek için filtrele
       const filtered = list.filter((item) => item.id !== currentProduct?.id);
-      setRecentlyViewed(filtered);
+      Promise.resolve().then(() => setRecentlyViewed(filtered));
     } catch (e) {}
   }, [currentProduct]);
 

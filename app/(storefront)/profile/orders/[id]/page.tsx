@@ -183,7 +183,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <h3 className="text-sm font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-2">
               <span>↩️</span> Siparişe Ait İade Talepleri ({order.returns.length})
             </h3>
-            {order.returns.map((ret: any) => (
+            {order.returns.map((ret: Parameters<typeof ReturnStatusCard>[0]["returnRequest"]) => (
               <ReturnStatusCard key={ret.id} returnRequest={ret} />
             ))}
           </div>
@@ -195,7 +195,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <h3 className="text-sm font-extrabold text-gray-700 uppercase tracking-wider flex items-center gap-2">
               <span>🔄</span> Siparişe Ait Değişim Talepleri ({order.exchanges.length})
             </h3>
-            {order.exchanges.map((ex: any) => (
+            {order.exchanges.map((ex: Parameters<typeof ExchangeStatusCard>[0]["exchangeRequest"]) => (
               <ExchangeStatusCard key={ex.id} exchangeRequest={ex} />
             ))}
           </div>

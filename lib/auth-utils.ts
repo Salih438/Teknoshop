@@ -19,8 +19,8 @@ export async function getDbUser(options?: { allowInactive?: boolean }) {
     }
 
     return dbUser;
-  } catch (error: any) {
-    if (error?.message?.includes("Dynamic server usage")) {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("Dynamic server usage")) {
       return null;
     }
     console.error("getDbUser Hata:", error);
@@ -32,8 +32,8 @@ export async function checkIsAdmin(): Promise<boolean> {
   try {
     const dbUser = await getDbUser();
     return Boolean(dbUser && dbUser.role === "ADMIN" && dbUser.isActive);
-  } catch (error: any) {
-    if (error?.message?.includes("Dynamic server usage")) {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("Dynamic server usage")) {
       return false;
     }
     console.error("checkIsAdmin Hata:", error);

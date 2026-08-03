@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { UserNotificationType, UserNotification } from "@prisma/client";
+import { UserNotificationType, UserNotification, Prisma } from "@prisma/client";
 
 export interface CreateUserNotificationInput {
   userId: string;
@@ -46,7 +46,7 @@ export class UserNotificationService {
     categoryFilter?: string
   ): Promise<{ notifications: UserNotification[]; unreadCount: number }> {
     try {
-      const whereCondition: any = { userId };
+      const whereCondition: Prisma.UserNotificationWhereInput = { userId };
 
       // Kategori bazlı filtreleme map
       if (categoryFilter && categoryFilter !== "all") {

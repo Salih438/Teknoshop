@@ -70,9 +70,10 @@ export default async function AllProductsPage({
   }
 
   // 3. PRISMA SIRALAMA MANTIĞI
-  let orderByClause: { createdAt?: "asc" | "desc"; price?: "asc" | "desc" } = { createdAt: "desc" };
+  let orderByClause: Prisma.ProductOrderByWithRelationInput = { createdAt: "desc" };
   if (sort === "price_asc") orderByClause = { price: "asc" };
   if (sort === "price_desc") orderByClause = { price: "desc" };
+  if (sort === "popular") orderByClause = { salesCount: "desc" };
 
   // 4. ÜRÜNLERİ VERİTABANINDAN ÇEK
   const products = await prisma.product.findMany({

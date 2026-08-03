@@ -34,11 +34,13 @@ export default function AdminRoleDetailDrawer({ admin, isOpen, onClose, onSucces
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const [prevAdminId, setPrevAdminId] = useState<string | undefined>(admin?.id);
+  if (prevAdminId !== admin?.id) {
+    setPrevAdminId(admin?.id);
     if (admin) {
       setSelectedRole(admin.systemRole);
     }
-  }, [admin]);
+  }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -79,7 +81,7 @@ export default function AdminRoleDetailDrawer({ admin, isOpen, onClose, onSucces
       } else {
         toast.error(data.error || "Güncelleme başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası oluştu.", { id: toastId });
     } finally {
       setLoading(false);

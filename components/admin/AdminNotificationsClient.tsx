@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -99,10 +99,16 @@ export default function AdminNotificationsClient() {
   const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) setMounted(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(`/api/admin/notifications?filter=${activeFilter}`);
@@ -111,17 +117,25 @@ export default function AdminNotificationsClient() {
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
       }
-    } catch (error) {
-      console.error("Admin notifications fetch error:", error);
+    } catch {
+      console.error("Admin notifications fetch error");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeFilter]);
 
   useEffect(() => {
-    fetchNotifications();
-    setSelectedIds([]);
-  }, [activeFilter]);
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) {
+        fetchNotifications();
+        setSelectedIds([]);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [fetchNotifications]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -146,7 +160,7 @@ export default function AdminNotificationsClient() {
       });
       toast.success("Tüm bildirimler okundu olarak işaretlendi. ✓");
       fetchNotifications();
-    } catch (error) {
+    } catch {
       toast.error("İşlem başarısız.");
     }
   };
@@ -162,7 +176,7 @@ export default function AdminNotificationsClient() {
       toast.success(`${selectedIds.length} bildirim silindi.`);
       setSelectedIds([]);
       fetchNotifications();
-    } catch (error) {
+    } catch {
       toast.error("Silme işlemi başarısız.");
     }
   };
@@ -178,7 +192,7 @@ export default function AdminNotificationsClient() {
       toast.success("Tüm bildirimler temizlendi. 🧹");
       setSelectedIds([]);
       fetchNotifications();
-    } catch (error) {
+    } catch {
       toast.error("Temizleme işlemi başarısız.");
     }
   };
@@ -211,7 +225,7 @@ export default function AdminNotificationsClient() {
         if (parsed && (parsed.type === "CONTACT_FORM" || parsed.email)) {
           contactData = parsed;
         }
-      } catch (e) {
+      } catch {
         // Metadata JSON formatında değilse fallback kullanır
       }
     }

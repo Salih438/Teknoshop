@@ -129,7 +129,11 @@ export default function AdminNotificationBell() {
       }
     };
 
-    fetchNotifications();
+    Promise.resolve().then(() => {
+      if (isSubscribed) {
+        fetchNotifications();
+      }
+    });
 
     timerId = setInterval(() => {
       if (isSubscribed) {
@@ -220,7 +224,7 @@ export default function AdminNotificationBell() {
       minute: "2-digit",
     });
 
-    let cleanSnippet = item.message
+    const cleanSnippet = item.message
       .replace(/\s*\(E-Posta:\s*[^\s)]+\)\s*/gi, "")
       .replace(/\s*\(Tel:\s*[^\s)]+\)\s*/gi, "")
       .replace(/^\[[^\]]+\]\s*/, "")

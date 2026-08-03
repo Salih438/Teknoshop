@@ -17,6 +17,7 @@ interface OrderSummaryProps {
   setIsAgreed: (agreed: boolean) => void;
   isSubmitting: boolean;
   selectedAddressId: string;
+  paymentMethodId: string;
 }
 
 export default function OrderSummary({
@@ -33,6 +34,7 @@ export default function OrderSummary({
   setIsAgreed,
   isSubmitting,
   selectedAddressId,
+  paymentMethodId,
 }: OrderSummaryProps) {
   const [isItemsExpanded, setIsItemsExpanded] = useState(true);
 
@@ -169,9 +171,9 @@ export default function OrderSummary({
       <button
         type="submit"
         form="checkout-form"
-        disabled={isSubmitting || !isAgreed || !selectedAddressId}
-        className={`hidden sm:flex w-full font-black text-base py-4 rounded-2xl transition-all shadow-md items-center justify-center gap-2 min-h-[48px] ${
-          isSubmitting || !isAgreed || !selectedAddressId
+        disabled={isSubmitting || !isAgreed || !selectedAddressId || !paymentMethodId}
+        className={`hidden lg:flex w-full font-black text-base py-4 rounded-2xl transition-all shadow-md items-center justify-center gap-2 min-h-[48px] ${
+          isSubmitting || !isAgreed || !selectedAddressId || !paymentMethodId
             ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
             : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg"
         }`}

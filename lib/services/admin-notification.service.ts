@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { AdminNotificationType } from "@prisma/client";
+import { AdminNotificationType, Prisma } from "@prisma/client";
 
 interface CreateNotificationInput {
   type: AdminNotificationType;
@@ -55,7 +55,7 @@ export class AdminNotificationService {
    */
   static async getNotifications(typeFilter?: string) {
     try {
-      const whereClause: any = {};
+      const whereClause: Prisma.AdminNotificationWhereInput = {};
       if (typeFilter && typeFilter !== "all") {
         if (typeFilter === "orders") {
           whereClause.type = { in: ["NEW_ORDER", "ORDER_CANCELLED"] };

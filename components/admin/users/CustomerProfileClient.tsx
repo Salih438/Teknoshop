@@ -74,17 +74,17 @@ export default function CustomerProfileClient({ customer }: { customer: Customer
       <div className="bg-white p-1.5 rounded-2xl border border-gray-200 shadow-xs overflow-x-auto custom-scrollbar">
         <div className="flex space-x-1 min-w-[500px] sm:min-w-0">
           {[
-            { id: "overview", label: "📊 Genel Bakış", count: null },
-            { id: "orders", label: "📋 Siparişler", count: customer.orders.length },
-            { id: "addresses", label: "🏠 Adresler", count: customer.addresses.length },
-            { id: "returns", label: "🔄 İade & Değişim", count: customer.returns.length + customer.exchanges.length },
-            { id: "timeline", label: "⚡ Aktivite Zaman Tüneli", count: customer.timeline.length },
+            { id: "overview" as const, label: "📊 Genel Bakış", count: null },
+            { id: "orders" as const, label: "📋 Siparişler", count: customer.orders.length },
+            { id: "addresses" as const, label: "🏠 Adresler", count: customer.addresses.length },
+            { id: "returns" as const, label: "🔄 İade & Değişim", count: customer.returns.length + customer.exchanges.length },
+            { id: "timeline" as const, label: "⚡ Aktivite Zaman Tüneli", count: customer.timeline.length },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all min-h-[40px] ${
                   isActive
                     ? "bg-gray-900 text-white shadow-xs"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, KeyboardEvent, ComponentProps } from "react";
+import { useState, KeyboardEvent, ComponentProps } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import OrderProgressBar from "@/components/profile/OrderProgressBar";
@@ -73,11 +73,13 @@ export default function ProfileTabContainer({
     return "overview";
   });
 
-  useEffect(() => {
+  const [prevTabParam, setPrevTabParam] = useState(tabParam);
+  if (prevTabParam !== tabParam) {
+    setPrevTabParam(tabParam);
     if (tabParam && ["overview", "orders", "returns", "addresses", "settings"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
-  }, [tabParam]);
+  }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     let nextIndex = currentIndex;

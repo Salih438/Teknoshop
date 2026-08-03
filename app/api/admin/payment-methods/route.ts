@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         fee: parsedFee,
         displayOrder: displayOrder ? parseInt(displayOrder) : 0,
         bankAccounts: bankAccounts && Array.isArray(bankAccounts) ? {
-          create: bankAccounts.map((b: any) => ({
+          create: bankAccounts.map((b: { bankName: string; accountHolder: string; iban: string; currency?: string }) => ({
             bankName: b.bankName,
             accountHolder: b.accountHolder,
             iban: b.iban,

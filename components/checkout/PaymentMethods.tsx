@@ -2,7 +2,15 @@
 
 import DynamicPaymentForm from "./DynamicPaymentForm";
 
-interface PaymentMethodDTO {
+interface BankAccountDTO {
+  id: string;
+  bankName: string;
+  accountHolder: string;
+  iban: string;
+  currency: string;
+}
+
+export interface PaymentMethodDTO {
   id: string;
   name: string;
   description: string | null;
@@ -10,19 +18,21 @@ interface PaymentMethodDTO {
   provider: string;
   fee: number;
   icon?: string | null;
-  bankAccounts?: any[];
+  bankAccounts?: BankAccountDTO[];
 }
 
 interface PaymentMethodsProps {
   paymentMethods: PaymentMethodDTO[];
   paymentMethodId: string;
   setPaymentMethodId: (id: string) => void;
+  onCardDataChange?: (data: { cardNumber: string; cardHolder: string; expiryDate: string; cvc: string }) => void;
 }
 
 export default function PaymentMethods({
   paymentMethods,
   paymentMethodId,
   setPaymentMethodId,
+  onCardDataChange,
 }: PaymentMethodsProps) {
   const selectedMethod = paymentMethods.find((p) => p.id === paymentMethodId);
 
@@ -114,7 +124,7 @@ export default function PaymentMethods({
         {/* 🚀 3. SEÇİLİ YÖNTEMİN DİNAMİK FORM PANELİ */}
         {selectedMethod && (
           <div className="pt-4 border-t border-gray-100">
-            <DynamicPaymentForm selectedMethod={selectedMethod} />
+            <DynamicPaymentForm selectedMethod={selectedMethod} onCardDataChange={onCardDataChange} />
           </div>
         )}
       </div>

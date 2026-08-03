@@ -23,7 +23,12 @@ interface SearchResultCategory {
   name: string;
 }
 
-export default function SearchBar() {
+interface SearchBarProps {
+  isMobileModalOpen?: boolean;
+  onCloseMobileModal?: () => void;
+}
+
+export default function SearchBar({ isMobileModalOpen, onCloseMobileModal }: SearchBarProps = {}) {
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,32 +52,52 @@ export default function SearchBar() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+
+  // Mobil Arama Açıldığında Otomatik Odaklanma (Auto-Focus)
+  useEffect(() => {
+    if (isMobileModalOpen) {
+      const timer = setTimeout(() => {
+        mobileInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobileModalOpen]);
+
+  const handleCloseDropdown = () => {
+    setIsOpen(false);
+    if (onCloseMobileModal) {
+      onCloseMobileModal();
+    }
+  };
 
   // LocalStorage'dan Son Aramaları Yükle
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("vitrin_recent_searches");
-      if (saved) {
-        setRecentSearches(JSON.parse(saved));
-      }
-    } catch (e) {}
+    const timer = setTimeout(() => {
+      try {
+        const saved = localStorage.getItem("vitrin_recent_searches");
+        if (saved) {
+          setRecentSearches(JSON.parse(saved));
+        }
+      } catch {}
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // 300ms Client-Side Debounce & Empty Input Handling
   useEffect(() => {
     const trimmed = searchQuery.trim();
 
-    if (!trimmed) {
-      setDebouncedQuery("");
-      setProducts([]);
-      setCategories([]);
-      setLoading(false);
-      return;
-    }
-
     const handler = setTimeout(() => {
-      setDebouncedQuery(trimmed);
-    }, 300);
+      if (!trimmed) {
+        setDebouncedQuery("");
+        setProducts([]);
+        setCategories([]);
+        setLoading(false);
+      } else {
+        setDebouncedQuery(trimmed);
+      }
+    }, !trimmed ? 0 : 300);
 
     return () => clearTimeout(handler);
   }, [searchQuery]);
@@ -81,9 +106,12 @@ export default function SearchBar() {
   useEffect(() => {
     if (!isOpen || !debouncedQuery) {
       if (!debouncedQuery) {
-        setProducts([]);
-        setCategories([]);
-        setLoading(false);
+        const timer = setTimeout(() => {
+          setProducts([]);
+          setCategories([]);
+          setLoading(false);
+        }, 0);
+        return () => clearTimeout(timer);
       }
       return;
     }
@@ -105,8 +133,8 @@ export default function SearchBar() {
             setTrendingSearches(data.trendingSearches);
           }
         }
-      } catch (e: any) {
-        if (e.name === "AbortError") {
+      } catch (e: unknown) {
+        if ((e as Error)?.name === "AbortError") {
           return;
         }
         console.error("Search fetch error:", e);
@@ -145,7 +173,7 @@ export default function SearchBar() {
     setRecentSearches(updated);
     try {
       localStorage.setItem("vitrin_recent_searches", JSON.stringify(updated));
-    } catch (e) {}
+    } catch {}
   };
 
   const removeRecentSearch = (queryToRemove: string, e: React.MouseEvent) => {
@@ -154,7 +182,7 @@ export default function SearchBar() {
     setRecentSearches(updated);
     try {
       localStorage.setItem("vitrin_recent_searches", JSON.stringify(updated));
-    } catch (e) {}
+    } catch {}
   };
 
   const clearAllRecent = () => {
@@ -175,7 +203,7 @@ export default function SearchBar() {
     const trimmed = targetQuery.trim();
     if (trimmed) {
       saveRecentSearch(trimmed);
-      setIsOpen(false);
+      handleCloseDropdown();
       router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     }
   };
@@ -183,7 +211,7 @@ export default function SearchBar() {
   // Klavyeden Yön Tuşları Desteği
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
-      setIsOpen(false);
+      handleCloseDropdown();
       return;
     }
     if (e.key === "ArrowDown") {
@@ -196,7 +224,7 @@ export default function SearchBar() {
       if (selectedIndex >= 0 && products[selectedIndex]) {
         e.preventDefault();
         saveRecentSearch(products[selectedIndex].name);
-        setIsOpen(false);
+        handleCloseDropdown();
         router.push(`/products/${products[selectedIndex].id}`);
       }
     }
@@ -209,15 +237,39 @@ export default function SearchBar() {
       return;
     }
     try {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const win = window as unknown as {
+        SpeechRecognition?: {
+          new (): {
+            lang: string;
+            start: () => void;
+            onresult: (e: {
+              results: { [i: number]: { [j: number]: { transcript: string } } };
+            }) => void;
+            onerror: () => void;
+            onend: () => void;
+          };
+        };
+        webkitSpeechRecognition?: {
+          new (): {
+            lang: string;
+            start: () => void;
+            onresult: (e: {
+              results: { [i: number]: { [j: number]: { transcript: string } } };
+            }) => void;
+            onerror: () => void;
+            onend: () => void;
+          };
+        };
+      };
+      const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
       const recognition = new SpeechRecognition();
       recognition.lang = "tr-TR";
       recognition.start();
 
       setIsListening(true);
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         setSearchQuery(transcript);
         setIsListening(false);
@@ -226,7 +278,7 @@ export default function SearchBar() {
 
       recognition.onerror = () => setIsListening(false);
       recognition.onend = () => setIsListening(false);
-    } catch (e) {
+    } catch {
       setIsListening(false);
     }
   };
@@ -322,7 +374,7 @@ export default function SearchBar() {
             <div className="p-8 text-center space-y-2">
               <span className="text-3xl block">🔍</span>
               <p className="font-extrabold text-gray-800 text-sm">
-                "{searchQuery}" ile ilgili sonuç bulunamadı.
+                &quot;{searchQuery}&quot; ile ilgili sonuç bulunamadı.
               </p>
               <p className="text-gray-400 text-xs">
                 Lütfen kelimeyi kontrol edin veya farklı bir kelime deneyin.
@@ -340,7 +392,7 @@ export default function SearchBar() {
                 <Link
                   key={cat.id}
                   href={`/search?q=${encodeURIComponent(searchQuery)}&category=${cat.id}`}
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleCloseDropdown}
                   className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white transition font-bold text-gray-800 text-xs sm:text-sm group"
                 >
                   <span className="truncate">{cat.name} kategorisinde ara</span>
@@ -364,7 +416,7 @@ export default function SearchBar() {
                   href={`/products/${prod.id}`}
                   onClick={() => {
                     saveRecentSearch(prod.name);
-                    setIsOpen(false);
+                    handleCloseDropdown();
                   }}
                   className={`flex items-center justify-between p-2.5 rounded-2xl transition ${
                     selectedIndex === idx ? "bg-blue-50/80 border border-blue-200" : "hover:bg-gray-50"
@@ -403,7 +455,7 @@ export default function SearchBar() {
                 onClick={() => handleSearchSubmit()}
                 className="text-xs font-black text-blue-600 hover:underline cursor-pointer"
               >
-                "{searchQuery}" İçin Tüm Sonuçları Gör ({products.length}+ Ürün) ➔
+                &quot;{searchQuery}&quot; İçin Tüm Sonuçları Gör ({products.length}+ Ürün) ➔
               </button>
             </div>
           )}
@@ -501,23 +553,123 @@ export default function SearchBar() {
         </div>
       )}
 
-      {/* 🚀 2. MOBİL ARAMA MODAL & OVERLAY (createPortal ile document.body içine - lg:hidden) */}
-      {isOpen &&
+      {/* 🚀 2. MOBİL ARAMA TAM EKRAN MODAL (Yalnızca Mobil/Tablet - lg:hidden) */}
+      {isMobileModalOpen &&
         typeof window !== "undefined" &&
         createPortal(
-          <div className="lg:hidden">
+          <div className="lg:hidden fixed inset-0 z-[999] flex flex-col">
             {/* MOBİL BACKDROP OVERLAY */}
             <div
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[998] animate-in fade-in duration-200"
+              onClick={handleCloseDropdown}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-0 animate-in fade-in duration-200"
             />
 
-            {/* MOBİL ARAMA PANELI (Fixed viewport modal - escaped from header backdrop-blur containing block) */}
+            {/* MOBİL ARAMA PANELI (100dvh - Self-contained search surface) */}
             <div
               ref={mobileDropdownRef}
-              className="fixed inset-x-4 top-20 z-[999] rounded-3xl max-h-[80dvh] flex flex-col bg-white shadow-2xl border border-gray-100 overflow-hidden text-xs sm:text-sm animate-in fade-in duration-200"
+              onClick={(e) => e.stopPropagation()}
+              className="relative z-10 w-full h-[100dvh] bg-white flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-top-2 duration-200"
             >
-              {renderDropdownContent()}
+              {/* MOBİL ARAMA BAŞLIĞI (HEADER) */}
+              <div className="flex items-center gap-2 p-3 sm:p-4 border-b border-gray-100 bg-white flex-shrink-0 shadow-2xs">
+                {/* GERİ / KAPAT BUTONU */}
+                <button
+                  type="button"
+                  onClick={handleCloseDropdown}
+                  aria-label="Aramayı Kapat"
+                  className="p-2 sm:p-2.5 text-gray-600 hover:text-blue-600 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer flex-shrink-0"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                </button>
+
+                {/* MOBİL ARAMA FORMU */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSearchSubmit();
+                  }}
+                  className="flex-1 relative flex items-center min-w-0"
+                >
+                  {/* BÜYÜTEÇ İKONU */}
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+
+                  {/* MOBİL INPUT GİRDİSİ */}
+                  <input
+                    ref={mobileInputRef}
+                    type="text"
+                    placeholder="Ürün veya marka ara..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full pl-10 pr-24 py-2.5 bg-gray-50 border border-gray-200 rounded-full focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-xs sm:text-sm font-medium"
+                    aria-label="Mobil Arama Kutusu"
+                  />
+
+                  {/* MİKROFON SESLİ ARAMA VE TEMİZLEME İKONLARI */}
+                  <div className="absolute inset-y-0 right-14 flex items-center gap-1 pr-1">
+                    {searchQuery ? (
+                      <button
+                        type="button"
+                        onClick={handleClearInput}
+                        className="p-1.5 text-gray-400 hover:text-gray-700 transition"
+                        aria-label="Temizle"
+                      >
+                        ✕
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={startVoiceSearch}
+                        aria-label="Sesli Arama"
+                        className={`p-1.5 rounded-full text-xs transition flex items-center justify-center ${
+                          isListening ? "bg-red-500 text-white animate-pulse" : "text-gray-400 hover:text-blue-600"
+                        }`}
+                        title="Sesli Arama Yap"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4 text-gray-400 hover:text-blue-600 transition-colors cursor-pointer"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* ARA BUTONU */}
+                  <button
+                    type="submit"
+                    className="absolute inset-y-1 right-1 bg-blue-600 hover:bg-blue-700 text-white px-3.5 rounded-full transition-all text-xs font-black shadow-xs min-h-[38px] flex items-center justify-center cursor-pointer"
+                  >
+                    Ara
+                  </button>
+                </form>
+              </div>
+
+              {/* MOBİL ARAMA SONUÇLARI (SCROLLABLE AREA) */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-0 bg-white">
+                {renderDropdownContent()}
+              </div>
             </div>
           </div>,
           document.body

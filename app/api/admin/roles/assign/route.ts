@@ -107,13 +107,14 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, user: updatedUser });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
 
-    if (error?.message && typeof error.message === "string" && !error.message.includes("prisma")) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    const message = error instanceof Error ? error.message : "";
+    if (message && !message.includes("prisma")) {
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
     console.error("Assign Role API Error:", error);

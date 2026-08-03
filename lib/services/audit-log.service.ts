@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { AuditRiskLevel, AuditLog } from "@prisma/client";
 import { getDbUser } from "@/lib/auth-utils";
 
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
 export interface CreateAuditLogParams {
   adminId?: string | null;
   adminName?: string | null;
@@ -11,8 +13,8 @@ export interface CreateAuditLogParams {
   entityId?: string | null;
   entityName?: string | null;
   riskLevel?: AuditRiskLevel;
-  oldValue?: Record<string, any> | null;
-  newValue?: Record<string, any> | null;
+  oldValue?: Record<string, unknown> | null;
+  newValue?: Record<string, unknown> | null;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -22,7 +24,7 @@ export class AuditLogService {
    * 🛡️ Sistem genelinde kritik admin işlemlerini veritabanına kaydeder.
    * Opsiyonel `tx` parametresi girilirse Prisma Transaction içinde çalışarak atomiklik sağlar.
    */
-  static async createAuditLog(params: CreateAuditLogParams, tx?: any): Promise<AuditLog | null> {
+  static async createAuditLog(params: CreateAuditLogParams, tx?: TxClient): Promise<AuditLog | null> {
     try {
       const dbUser = params.adminId ? null : await getDbUser();
 

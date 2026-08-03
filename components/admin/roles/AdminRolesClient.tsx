@@ -107,8 +107,8 @@ export default function AdminRolesClient({ admins, matrix }: AdminRolesClientPro
                       {row.permission}
                     </td>
 
-                    {["SUPER_ADMIN", "ADMIN", "CUSTOMER_SUPPORT", "CONTENT_MANAGER", "ANALYST"].map((roleKey) => {
-                      const hasIt = (row as any)[roleKey];
+                    {(["SUPER_ADMIN", "ADMIN", "CUSTOMER_SUPPORT", "CONTENT_MANAGER", "ANALYST"] as const).map((roleKey) => {
+                      const hasIt = row[roleKey];
                       return (
                         <td key={roleKey} className="p-3.5 text-center font-bold">
                           {hasIt ? (

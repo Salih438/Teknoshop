@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface FilterOption {
   id: string;
@@ -26,13 +26,15 @@ export default function FilterSidebar({ categories, brands }: FilterSidebarProps
   const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
   const [sort, setSort] = useState(searchParams.get("sort") || "newest");
 
-  useEffect(() => {
+  const [prevParamsStr, setPrevParamsStr] = useState(searchParams.toString());
+  if (prevParamsStr !== searchParams.toString()) {
+    setPrevParamsStr(searchParams.toString());
     setSelectedCategory(searchParams.get("category") || "");
     setSelectedBrand(searchParams.get("brand") || "");
     setMinPrice(searchParams.get("minPrice") || "");
     setMaxPrice(searchParams.get("maxPrice") || "");
     setSort(searchParams.get("sort") || "newest");
-  }, [searchParams]);
+  }
 
   const applyFilters = () => {
     const params = new URLSearchParams();

@@ -92,12 +92,13 @@ export async function PATCH(request: Request) {
       { success: true, count: updatedCount, message: `${updatedCount} sipariş güncellendi.` },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    if (typeof error?.message === "string" && error.message.startsWith("INVALID_TRANSITION:")) {
-      const parts = error.message.split(":");
+    const message = error instanceof Error ? error.message : "";
+    if (message.startsWith("INVALID_TRANSITION:")) {
+      const parts = message.split(":");
       const currentStatus = parts[1];
       const targetStatus = parts[2];
       const orderId = parts[3];

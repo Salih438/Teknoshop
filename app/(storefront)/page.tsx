@@ -66,6 +66,7 @@ export default async function Home() {
       getPersonalizedRecommendations(dbUserId, 8),
     ]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const formatProductForCard = (p: any): ProductCardProps => ({
     id: p.id,
     name: p.name,
@@ -90,20 +91,20 @@ export default async function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/85 to-gray-900/60 z-10" />
         
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36 flex flex-col items-start">
-          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-bold text-white shadow-xl mb-4">
+          <div className="inline-flex flex-wrap items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-xs font-bold text-white shadow-xl mb-4 max-w-full">
             <span className="text-amber-400 flex items-center gap-1">⚡ YENİ SEZON FESTİVALİ</span>
             <span className="text-white/30">|</span>
-            <span className="text-rose-400 font-extrabold">%40'a Varan İndirim</span>
+            <span className="text-rose-400 font-extrabold">%40&#39;a Varan İndirim</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-4 max-w-3xl leading-tight">
-            Geleceğin Teknolojisi Şimdi Vitrin'de.
+            Geleceğin Teknolojisi Şimdi Vitrin&#39;de.
           </h1>
           <p className="text-sm sm:text-lg md:text-xl text-gray-300 mb-8 max-w-xl leading-relaxed font-medium">
             Seçili Apple, Samsung ve premium teknoloji ürünlerinde sepette ek %15 indirim fırsatını kaçırmayın.
           </p>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <Link
               href="/products"
               className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-7 py-3.5 rounded-2xl transition-all shadow-lg shadow-blue-600/30 hover:scale-[1.02] flex items-center justify-center gap-2 min-h-[48px]"
@@ -177,7 +178,7 @@ export default async function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-6 sm:mb-8">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Kategorilere Göz At 📦</h2>
+              <h2 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight">Kategorilere Göz At 📦</h2>
               <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Aradığınız teknoloji ürününü kategorilere göre keşfedin.</p>
             </div>
           </div>
@@ -194,11 +195,11 @@ export default async function Home() {
         <div className="flex justify-between items-end mb-6 sm:mb-8">
           <div>
             <div className="flex items-center gap-2">
-              <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+              <span className="bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-amber-200/60">
                 🔥 POPÜLER ÜRÜNLER
               </span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">En Çok Satanlar</h2>
+            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight mt-2">En Çok Satanlar</h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Müşterilerimizin en çok tercih ettiği ürünler.</p>
           </div>
           <Link href="/products?sort=popular" className="hidden sm:inline-flex items-center gap-1 text-blue-600 font-extrabold hover:underline text-sm">
@@ -206,23 +207,28 @@ export default async function Home() {
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div 
+          className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:gap-6 custom-scrollbar hide-scrollbar-on-mobile"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           {popularProducts.map((product) => (
-            <ProductCard key={product.id} product={{ ...product, badgeText: "🔥 Çok Satan" }} />
+            <div key={product.id} className="snap-start shrink-0 w-[82vw] sm:w-full text-gray-900">
+              <ProductCard key={product.id} product={{ ...product, badgeText: "🔥 Çok Satan" }} />
+            </div>
           ))}
         </div>
       </section>
 
       {/* YENİ GELENLER */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 bg-white rounded-3xl mb-10 sm:mb-16">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 bg-white rounded-3xl mb-10 sm:mb-16 border border-gray-100/80 shadow-sm">
         <div className="flex justify-between items-end mb-6 sm:mb-8">
           <div>
             <div className="flex items-center gap-2">
-              <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+              <span className="bg-blue-100 text-blue-800 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-blue-200/60">
                 ✨ YENİ EKLEMENENLER
               </span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mt-1">Yeni Gelenler</h2>
+            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight mt-2">Yeni Gelenler</h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Kataloğumuza en son eklenen yeni ürünler.</p>
           </div>
           <Link href="/products?sort=newest" className="hidden sm:inline-flex items-center gap-1 text-blue-600 font-extrabold hover:underline text-sm">
@@ -230,18 +236,29 @@ export default async function Home() {
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div 
+          className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:gap-6 custom-scrollbar hide-scrollbar-on-mobile"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           {newProducts.map((product) => (
-            <ProductCard key={product.id} product={{ ...product, badgeText: "✨ Yeni" }} />
+            <div key={product.id} className="snap-start shrink-0 w-[82vw] sm:w-full text-gray-900">
+              <ProductCard key={product.id} product={{ ...product, badgeText: "✨ Yeni" }} />
+            </div>
           ))}
         </div>
       </section>
+
+      <style>{`
+        .hide-scrollbar-on-mobile::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
 
       {/* MARKA DENEYİMİ */}
       <section className="py-10 sm:py-16 overflow-hidden bg-gray-50/50 border-y border-gray-100 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8 sm:mb-10">
-            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Öne Çıkan Markalar 🌟</h2>
+            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight">Öne Çıkan Markalar 🌟</h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">Dünyanın en iyi teknoloji markaları Vitrin güvencesiyle.</p>
           </div>
           

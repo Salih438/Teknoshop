@@ -22,29 +22,48 @@ interface PaymentMethodDTO {
   bankAccounts?: BankAccountDTO[];
 }
 
-export default function DynamicPaymentForm({ selectedMethod }: { selectedMethod: PaymentMethodDTO }) {
+export default function DynamicPaymentForm({
+  selectedMethod,
+  onCardDataChange,
+}: {
+  selectedMethod: PaymentMethodDTO;
+  onCardDataChange?: (data: { cardNumber: string; cardHolder: string; expiryDate: string; cvc: string }) => void;
+}) {
   // KREDİ KARTI STATE'LERİ (CANLI FORMATLAMA VE VIRTUAL CARD DISPLAY)
   const [cardNumber, setCardNumber] = useState("");
   const [cardHolder, setCardHolder] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvc, setCvc] = useState("");
-  const [isFlipped, setIsFlipped] = useState(false);
 
   // KART NUMARASI FORMATLAMA (4'LÜ GRUPLAR)
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, "").slice(0, 16);
     const formatted = val.replace(/(.{4})/g, "$1 ").trim();
     setCardNumber(formatted);
+    onCardDataChange?.({ cardNumber: formatted, cardHolder, expiryDate, cvc });
+  };
+
+  const handleCardHolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCardHolder(val);
+    onCardDataChange?.({ cardNumber, cardHolder: val, expiryDate, cvc });
   };
 
   // SON KULLANMA TARİHİ FORMATLAMA (MM/YY)
   const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, "").slice(0, 4);
+    let formatted = val;
     if (val.length >= 3) {
-      setExpiryDate(`${val.slice(0, 2)}/${val.slice(2)}`);
-    } else {
-      setExpiryDate(val);
+      formatted = `${val.slice(0, 2)}/${val.slice(2)}`;
     }
+    setExpiryDate(formatted);
+    onCardDataChange?.({ cardNumber, cardHolder, expiryDate: formatted, cvc });
+  };
+
+  const handleCvcChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, "").slice(0, 3);
+    setCvc(val);
+    onCardDataChange?.({ cardNumber, cardHolder, expiryDate, cvc: val });
   };
 
   const copyToClipboard = (text: string, label: string) => {
@@ -90,20 +109,25 @@ export default function DynamicPaymentForm({ selectedMethod }: { selectedMethod:
           {/* KART FORM INPUTLARI */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
             <div className="sm:col-span-2 space-y-1">
-              <label className="text-xs font-bold text-gray-700 block">Kart Üzerindeki İsim</label>
+              <label htmlFor="card-holder" className="text-xs font-bold text-gray-700 block">Kart Üzerindeki İsim</label>
               <input
+                id="card-holder"
                 type="text"
                 placeholder="Örn: Ahmet Yılmaz"
                 value={cardHolder}
-                onChange={(e) => setCardHolder(e.target.value)}
+                onChange={handleCardHolderChange}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm font-medium"
               />
             </div>
 
             <div className="sm:col-span-2 space-y-1">
-              <label className="text-xs font-bold text-gray-700 block">Kart Numarası</label>
+              <label htmlFor="card-number" className="text-xs font-bold text-gray-700 block">Kart Numarası</label>
               <input
+                id="card-number"
                 type="text"
+                inputMode="numeric"
+                autoComplete="cc-number"
+                maxLength={19}
                 placeholder="4543 •••• •••• ••••"
                 value={cardNumber}
                 onChange={handleCardNumberChange}
@@ -112,9 +136,13 @@ export default function DynamicPaymentForm({ selectedMethod }: { selectedMethod:
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-700 block">Son Kullanma Tarihi</label>
+              <label htmlFor="card-expiry" className="text-xs font-bold text-gray-700 block">Son Kullanma Tarihi</label>
               <input
+                id="card-expiry"
                 type="text"
+                inputMode="numeric"
+                autoComplete="cc-exp"
+                maxLength={5}
                 placeholder="MM/YY"
                 value={expiryDate}
                 onChange={handleExpiryChange}
@@ -123,13 +151,16 @@ export default function DynamicPaymentForm({ selectedMethod }: { selectedMethod:
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-700 block">CVC / CVV</label>
+              <label htmlFor="card-cvc" className="text-xs font-bold text-gray-700 block">CVC / CVV</label>
               <input
+                id="card-cvc"
                 type="password"
+                inputMode="numeric"
+                autoComplete="cc-csc"
                 maxLength={3}
                 placeholder="•••"
                 value={cvc}
-                onChange={(e) => setCvc(e.target.value.replace(/\D/g, ""))}
+                onChange={handleCvcChange}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm font-mono font-bold text-center"
               />
             </div>

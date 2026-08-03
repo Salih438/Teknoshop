@@ -1,7 +1,7 @@
 import { checkIsAdmin } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { OrderStatus, Prisma } from "@prisma/client";
+import { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import AdminOrdersClient, { OrderItemDTO } from "@/components/admin/orders/AdminOrdersClient";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +46,7 @@ export default async function AdminOrdersPage({
 
   if (paymentFilter) {
     whereCondition.payment = {
-      status: paymentFilter as any,
+      status: paymentFilter as PaymentStatus,
     };
   }
 

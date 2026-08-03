@@ -61,9 +61,10 @@ export async function cancelOrderAction(orderId: string) {
     revalidatePath(`/profile/orders/${orderId}`);
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Sipariş iptal hatası:", error);
-    return { success: false, error: error?.message || "Sipariş iptal edilirken bir sunucu hatası oluştu." };
+    const message = error instanceof Error ? error.message : "Sipariş iptal edilirken bir sunucu hatası oluştu.";
+    return { success: false, error: message };
   }
 }
 

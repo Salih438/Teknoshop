@@ -101,8 +101,8 @@ export async function checkPermission(permission: Permission): Promise<boolean> 
     const dbUser = await getDbUser();
     if (!dbUser || dbUser.role !== "ADMIN") return false;
     return hasPermission(dbUser.systemRole, permission);
-  } catch (error: any) {
-    if (error?.message?.includes("Dynamic server usage")) {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes("Dynamic server usage")) {
       return false;
     }
     console.error("checkPermission Hata:", error);

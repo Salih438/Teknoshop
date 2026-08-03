@@ -14,8 +14,8 @@ export interface AuditLogDTO {
   entityId?: string | null;
   entityName?: string | null;
   riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
   ipAddress?: string | null;
   userAgent?: string | null;
   createdAt: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
 
 export interface Address {
@@ -27,10 +27,21 @@ export default function AddressSelector({
   onNoteChange 
 }: AddressSelectorProps) {
   
-  const [localAddresses, setLocalAddresses] = useState<Address[]>(initialAddresses);
+  const [addedAddresses, setAddedAddresses] = useState<Address[]>([]);
+  const localAddresses = useMemo(() => [...addedAddresses, ...initialAddresses], [addedAddresses, initialAddresses]);
   const [orderNote, setOrderNote] = useState("");
+  const [prevInitialLength, setPrevInitialLength] = useState(initialAddresses.length);
   const [isAddingNew, setIsAddingNew] = useState(initialAddresses.length === 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (initialAddresses.length !== prevInitialLength) {
+    setPrevInitialLength(initialAddresses.length);
+    if (initialAddresses.length === 0 && addedAddresses.length === 0) {
+      setIsAddingNew(true);
+    } else {
+      setIsAddingNew(false);
+    }
+  }
 
   const [formData, setFormData] = useState({
     title: "",
@@ -45,15 +56,6 @@ export default function AddressSelector({
       onSelect(defaultAddr.id);
     }
   }, [localAddresses, selectedAddressId, onSelect]);
-
-  useEffect(() => {
-    setLocalAddresses(initialAddresses);
-    if (initialAddresses.length === 0) {
-      setIsAddingNew(true);
-    } else {
-      setIsAddingNew(false);
-    }
-  }, [initialAddresses]);
 
   useEffect(() => {
     if (onNoteChange) {
@@ -85,7 +87,7 @@ export default function AddressSelector({
         toast.success("Adres başarıyla eklendi!", { id: toastId });
         const newAddr = data.address;
         
-        setLocalAddresses(prev => [newAddr, ...prev]);
+        setAddedAddresses(prev => [newAddr, ...prev]);
         onSelect(newAddr.id);
         setIsAddingNew(false);
         setFormData({ title: "", city: "", district: "", address: "" });
@@ -138,20 +140,20 @@ export default function AddressSelector({
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">Adres Başlığı</label>
-              <input type="text" placeholder="Ev, İş vb." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm min-h-[44px]" required />
+              <label htmlFor="address-title" className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">Adres Başlığı</label>
+              <input id="address-title" type="text" placeholder="Ev, İş vb." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm min-h-[44px]" required />
             </div>
             <div>
-              <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">Şehir</label>
-              <input type="text" placeholder="İstanbul" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm min-h-[44px]" required />
+              <label htmlFor="address-city" className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">Şehir</label>
+              <input id="address-city" type="text" placeholder="İstanbul" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm min-h-[44px]" required />
             </div>
             <div>
-              <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">İlçe</label>
-              <input type="text" placeholder="Kadıköy" value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})} className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm min-h-[44px]" required />
+              <label htmlFor="address-district" className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">İlçe</label>
+              <input id="address-district" type="text" placeholder="Kadıköy" value={formData.district} onChange={e => setFormData({...formData, district: e.target.value})} className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm min-h-[44px]" required />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">Açık Adres</label>
-              <textarea placeholder="Mahalle, sokak, bina no, kapı no vb." rows={3} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm resize-none" required></textarea>
+              <label htmlFor="address-open" className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1">Açık Adres</label>
+              <textarea id="address-open" placeholder="Mahalle, sokak, bina no, kapı no vb." rows={3} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm resize-none" required></textarea>
             </div>
           </div>
           

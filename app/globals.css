@@ -74,3 +74,19 @@
     margin: 12mm;
   }
 }
+
+/* 🚀 CLERK RESPONSIVE & TEKNOSHOP THEME ADAPTATION (320px - 430px MOBİL KORUMA) */
+.cl-card,
+.cl-modalContent,
+.cl-rootBox {
+  max-width: calc(100vw - 1.5rem) !important;
+  box-sizing: border-box !important;
+}
+
+@media (min-width: 640px) {
+  .cl-card,
+  .cl-modalContent,
+  .cl-rootBox {
+    max-width: none !important;
+  }
+}

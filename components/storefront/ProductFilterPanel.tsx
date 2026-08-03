@@ -85,6 +85,7 @@ export default function ProductFilterPanel({
             className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 block p-3 outline-none transition-colors min-h-[44px]"
           >
             <option value="">En Yeniler</option>
+            <option value="popular">Çok Satanlar</option>
             <option value="price_asc">En Düşük Fiyat</option>
             <option value="price_desc">En Yüksek Fiyat</option>
           </select>

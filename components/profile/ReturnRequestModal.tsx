@@ -38,6 +38,17 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [imageUrlInput, setImageUrlInput] = useState("");
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   const [selectedItems, setSelectedItems] = useState<
     Record<string, { selected: boolean; quantity: number; reason: ReturnReason }>
   >(() => {
@@ -181,12 +192,17 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="return-modal-title"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+        >
           <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[92dvh] sm:max-h-[90dvh] flex flex-col shadow-2xl border border-gray-100 relative overflow-hidden">
             {/* STICKY HEADER */}
             <div className="flex justify-between items-center px-4 py-3.5 sm:px-8 sm:py-5 border-b border-gray-100 bg-white flex-shrink-0">
               <div>
-                <h3 className="text-base sm:text-2xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
+                <h3 id="return-modal-title" className="text-base sm:text-2xl font-extrabold text-gray-900 tracking-tight flex items-center gap-2">
                   <span>🔄</span> İade Talebi Oluştur
                 </h3>
                 <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
@@ -196,6 +212,7 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
+                aria-label="Pencereyi kapat"
                 className="w-9 h-9 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-bold transition min-h-[36px] min-w-[36px]"
               >
                 ✕
@@ -234,6 +251,7 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
                               type="checkbox"
                               checked={state.selected}
                               onChange={() => handleToggleItem(item.id)}
+                              aria-label={`${item.product?.name || "Ürün"} iade için seç`}
                               className="mt-1.5 w-5 h-5 accent-amber-500 rounded cursor-pointer min-h-[20px] min-w-[20px]"
                             />
                             <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-xl border border-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center p-1">
@@ -269,6 +287,7 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
                                         onClick={() =>
                                           handleQuantityChange(item.id, state.quantity - 1, remaining)
                                         }
+                                        aria-label="Adet azalt"
                                         className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-base min-h-[36px] min-w-[36px]"
                                       >
                                         -
@@ -279,6 +298,7 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
                                         onClick={() =>
                                           handleQuantityChange(item.id, state.quantity + 1, remaining)
                                         }
+                                        aria-label="Adet artır"
                                         className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-base min-h-[36px] min-w-[36px]"
                                       >
                                         +
@@ -296,6 +316,7 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
                                       onChange={(e) =>
                                         handleReasonChange(item.id, e.target.value as ReturnReason)
                                       }
+                                      aria-label={`${item.product?.name || "Ürün"} iade nedeni`}
                                       className="w-full text-xs font-semibold px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none min-h-[44px]"
                                     >
                                       {Object.entries(REASON_LABELS).map(([key, label]) => (
@@ -317,10 +338,11 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
 
                 {/* Müşteri Notu */}
                 <div>
-                  <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label htmlFor="customer-note-textarea" className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">
                     İade Nedeni Açıklaması (Opsiyonel)
                   </label>
                   <textarea
+                    id="customer-note-textarea"
                     rows={2}
                     value={customerNote}
                     onFocus={handleFocus}
@@ -332,15 +354,17 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
 
                 {/* Görsel Yükleme */}
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label htmlFor="image-url-input" className="block text-[11px] sm:text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">
                     Kanıt Fotoğrafı URL (Hasarlı Ürünler İçin - Maks 3)
                   </label>
                   <div className="flex gap-2 mb-2">
                     <input
+                      id="image-url-input"
                       type="url"
                       value={imageUrlInput}
                       onFocus={handleFocus}
                       onChange={(e) => setImageUrlInput(e.target.value)}
+                      aria-label="Görsel linki URL girin"
                       placeholder="https://gorsel-linki.com/foto.jpg"
                       className="flex-1 text-xs sm:text-sm px-3 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 min-h-[44px]"
                     />
@@ -369,6 +393,7 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
                           <button
                             type="button"
                             onClick={() => handleRemoveImage(idx)}
+                            aria-label={`${idx + 1}. Görseli Sil`}
                             className="absolute inset-0 bg-black/60 text-white font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-xs"
                           >
                             Sil

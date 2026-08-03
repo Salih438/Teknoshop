@@ -46,14 +46,16 @@ export async function DELETE(
     });
 
     return NextResponse.json({ message: "Ürün başarıyla silindi." }, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
 
+    const code = (error as { code?: string })?.code;
+    const message = error instanceof Error ? error.message : "";
     if (
-      error?.code === "P2003" ||
-      (typeof error?.message === "string" && (error.message.includes("Foreign key") || error.message.includes("OrderItem") || error.message.includes("cartItem")))
+      code === "P2003" ||
+      (message.includes("Foreign key") || message.includes("OrderItem") || message.includes("cartItem"))
     ) {
       return NextResponse.json(
         { error: "Bu ürün geçmiş siparişlerde yer aldığı için silinemez. Ürünü silmek yerine pasife alabilirsiniz." },
@@ -119,7 +121,7 @@ export async function PUT(
     let parsedVariants: ParsedVariant[] = [];
     if (variantsData) {
       try {
-        const rawVariants = JSON.parse(variantsData) as Record<string, any>[];
+        const rawVariants = JSON.parse(variantsData) as Record<string, unknown>[];
         parsedVariants = rawVariants.map((v) => ({
           id: typeof v.id === "string" ? v.id : undefined,
           combination: String(v.combination),
@@ -260,11 +262,12 @@ export async function PUT(
     });
 
     return NextResponse.json(updatedProduct, { status: 200 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    if (error?.code === "P2002") {
+    const code = (error as { code?: string })?.code;
+    if (code === "P2002") {
       return NextResponse.json(
         { error: "Bu SKU veya URL adresi (slug) zaten başka bir ürün tarafından kullanılıyor." },
         { status: 400 }

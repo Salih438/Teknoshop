@@ -66,14 +66,14 @@ export async function POST(request: Request) {
     
     if (variantsData) {
       try {
-        const rawVariants = JSON.parse(variantsData) as Record<string, any>[];
+        const rawVariants = JSON.parse(variantsData) as Record<string, unknown>[];
         
         parsedVariants = rawVariants.map((v) => ({
-          combination: v.combination,
-          price: v.price ? parseFloat(v.price) : null,
-          discountedPrice: v.discountedPrice ? parseFloat(v.discountedPrice) : null,
-          stock: parseInt(v.stock, 10) || 0,
-          sku: v.sku?.trim() || null,
+          combination: String(v.combination),
+          price: v.price !== null && v.price !== undefined && String(v.price).trim() !== "" ? parseFloat(String(v.price)) : null,
+          discountedPrice: v.discountedPrice !== null && v.discountedPrice !== undefined && String(v.discountedPrice).trim() !== "" ? parseFloat(String(v.discountedPrice)) : null,
+          stock: typeof v.stock === "number" ? v.stock : parseInt(String(v.stock), 10) || 0,
+          sku: typeof v.sku === "string" && v.sku.trim() !== "" ? v.sku.trim() : null,
           isActive: Boolean(v.isActive),
         }));
       } catch {
@@ -142,11 +142,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newProduct, { status: 201 });
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    if (error?.code === "P2002") {
+    const code = (error as { code?: string })?.code;
+    if (code === "P2002") {
       return NextResponse.json(
         { error: "Bu SKU veya URL adresi (slug) zaten başka bir ürün tarafından kullanılıyor." },
         { status: 400 }

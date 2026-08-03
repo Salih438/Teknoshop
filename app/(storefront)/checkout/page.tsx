@@ -24,6 +24,12 @@ export default function CheckoutPage() {
 
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentMethodId, setPaymentMethodId] = useState("");
+  const [creditCardData, setCreditCardData] = useState({
+    cardNumber: "",
+    cardHolder: "",
+    expiryDate: "",
+    cvc: "",
+  });
 
   const [isAgreed, setIsAgreed] = useState(false);
   const [couponCode, setCouponCode] = useState("");
@@ -36,7 +42,8 @@ export default function CheckoutPage() {
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryOption | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -143,6 +150,37 @@ export default function CheckoutPage() {
     if (!isAgreed) {
       toast.error("Lütfen mesafeli satış sözleşmesini onaylayınız.");
       return;
+    }
+
+    const selectedMethod = paymentMethods.find((p) => p.id === paymentMethodId);
+    if (selectedMethod?.type === "CREDIT_CARD") {
+      if (!creditCardData.cardHolder.trim()) {
+        toast.error("Lütfen kart üzerindeki ismi giriniz.");
+        document.getElementById("card-holder")?.focus();
+        return;
+      }
+      const rawCardNum = creditCardData.cardNumber.replace(/\D/g, "");
+      if (!rawCardNum || rawCardNum.length !== 16) {
+        toast.error("Lütfen 16 haneli geçerli bir kart numarası giriniz.");
+        document.getElementById("card-number")?.focus();
+        return;
+      }
+      if (!creditCardData.expiryDate.trim() || !/^\d{2}\/\d{2}$/.test(creditCardData.expiryDate)) {
+        toast.error("Son kullanma tarihi MM/YY formatında olmalıdır.");
+        document.getElementById("card-expiry")?.focus();
+        return;
+      }
+      const month = parseInt(creditCardData.expiryDate.slice(0, 2), 10);
+      if (month < 1 || month > 12) {
+        toast.error("Geçersiz ay bilgisi (01-12 arasında olmalıdır).");
+        document.getElementById("card-expiry")?.focus();
+        return;
+      }
+      if (!creditCardData.cvc.trim() || !/^\d{3}$/.test(creditCardData.cvc)) {
+        toast.error("Lütfen 3 haneli CVC kodunu giriniz.");
+        document.getElementById("card-cvc")?.focus();
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -269,6 +307,7 @@ export default function CheckoutPage() {
               paymentMethods={paymentMethods}
               paymentMethodId={paymentMethodId}
               setPaymentMethodId={setPaymentMethodId}
+              onCardDataChange={setCreditCardData}
             />
 
           </form>
@@ -290,6 +329,7 @@ export default function CheckoutPage() {
             setIsAgreed={setIsAgreed}
             isSubmitting={isSubmitting}
             selectedAddressId={selectedAddressId}
+            paymentMethodId={paymentMethodId}
           />
         </div>
 
@@ -307,9 +347,9 @@ export default function CheckoutPage() {
         <button
           type="submit"
           form="checkout-form"
-          disabled={isSubmitting || !isAgreed || !selectedAddressId}
+          disabled={isSubmitting || !isAgreed || !selectedAddressId || !paymentMethodId}
           className={`flex-1 flex items-center justify-center text-white font-extrabold text-xs sm:text-sm py-3.5 px-4 rounded-2xl transition-all shadow-md min-h-[44px] ${
-            isSubmitting || !isAgreed || !selectedAddressId
+            isSubmitting || !isAgreed || !selectedAddressId || !paymentMethodId
               ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-none"
               : "bg-blue-600 hover:bg-blue-700"
           }`}

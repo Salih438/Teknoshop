@@ -3,24 +3,32 @@
 import { useState, useEffect } from "react";
 
 export default function AnnouncementBar() {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    try {
-      const isDismissed = sessionStorage.getItem("vitrin_hide_announcement");
-      if (!isDismissed) {
-        setIsVisible(true);
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) {
+        try {
+          const isDismissed = sessionStorage.getItem("vitrin_hide_announcement");
+          if (isDismissed) {
+            setIsVisible(false);
+          }
+        } catch {
+          // sessionStorage read error
+        }
       }
-    } catch (e) {
-      setIsVisible(true);
-    }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleDismiss = () => {
     setIsVisible(false);
     try {
       sessionStorage.setItem("vitrin_hide_announcement", "true");
-    } catch (e) {}
+    } catch {}
   };
 
   if (!isVisible) return null;

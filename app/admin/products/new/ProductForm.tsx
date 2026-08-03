@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadButton } from "@/lib/utils/uploadthing"; 
 import toast from "react-hot-toast";
-import DynamicVariantBuilder from "@/components/admin/variants/DynamicVariantBuilder";
+import DynamicVariantBuilder, { VariantRow } from "@/components/admin/variants/DynamicVariantBuilder";
 
 
 export default function ProductForm({ categories, brands }: { categories: { id: string; name: string }[], brands: { id: string; name: string }[] }) {
@@ -19,7 +19,7 @@ export default function ProductForm({ categories, brands }: { categories: { id: 
   const [galleryUrlInput, setGalleryUrlInput] = useState("");
 
   const [resetSignal, setResetSignal] = useState(0);
-  const [dynamicVariants, setDynamicVariants] = useState<any[]>([]);
+  const [dynamicVariants, setDynamicVariants] = useState<VariantRow[]>([]);
 
   const [priceInput, setPriceInput] = useState<string>("");
   const [comparePriceInput, setComparePriceInput] = useState<string>("");

@@ -54,7 +54,9 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    loadNotifications(activeFilter);
+    Promise.resolve().then(() => {
+      loadNotifications(activeFilter);
+    });
   }, [activeFilter]);
 
   const markAllAsRead = async () => {

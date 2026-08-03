@@ -71,15 +71,24 @@ export default function FlashSaleSection({ products }: { products: ProductCardPr
         </div>
 
         {/* 🚀 ÜRÜN KARTLARI DİZİLİMİ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-2">
+        <div 
+          className="flex gap-4 overflow-x-auto snap-x snap-mandatory pt-2 pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:gap-6 custom-scrollbar hide-scrollbar-on-mobile"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           {products.map((product) => (
-            <div key={product.id} className="text-gray-900">
+            <div key={product.id} className="snap-start shrink-0 w-[82vw] sm:w-full text-gray-900">
               <ProductCard product={{ ...product, badgeText: "⚡ FIRSAT" }} />
             </div>
           ))}
         </div>
 
       </div>
+
+      <style jsx>{`
+        .hide-scrollbar-on-mobile::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </section>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useCartStore } from "@/lib/store";
 import toast from "react-hot-toast";
@@ -19,7 +19,7 @@ export default function CartPage() {
   const [recommendedProducts, setRecommendedProducts] = useState<ProductCardProps[]>([]);
 
   useEffect(() => {
-    setMounted(true);
+    Promise.resolve().then(() => setMounted(true));
     fetch("/api/settings")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -28,8 +28,11 @@ export default function CartPage() {
       .catch((err) => console.error("Ayarlar çekilemedi:", err));
   }, []);
 
+  const hasValidatedRef = useRef(false);
+
   useEffect(() => {
-    if (!mounted || items.length === 0) return;
+    if (!mounted || items.length === 0 || hasValidatedRef.current) return;
+    hasValidatedRef.current = true;
 
     const validateCart = async () => {
       setIsValidating(true);
@@ -65,7 +68,7 @@ export default function CartPage() {
     };
 
     validateCart();
-  }, [mounted]);
+  }, [mounted, items, syncCart]);
 
   // 🤖 AI SEPET ÖNERİLERİNİ ÇEK
   useEffect(() => {
@@ -81,9 +84,15 @@ export default function CartPage() {
         if (data?.recommendations) setRecommendedProducts(data.recommendations);
       })
       .catch((err) => console.error("Sepet önerileri çekilemedi:", err));
-  }, [mounted, items.length]);
+  }, [mounted, items]);
 
-  const saveForLater = (item: any) => {
+  const saveForLater = (item: {
+    id: string;
+    name: string;
+    price: number;
+    imageUrls?: string[];
+    cartItemId: string;
+  }) => {
     try {
       const existing = localStorage.getItem("vitrin_saved_for_later");
       const list = existing ? JSON.parse(existing) : [];
@@ -93,7 +102,7 @@ export default function CartPage() {
         price: item.price,
         imageUrl: item.imageUrls?.[0] || "",
       };
-      if (!list.some((i: any) => i.id === item.id)) {
+      if (!list.some((i: { id: string }) => i.id === item.id)) {
         list.push(newItem);
         localStorage.setItem("vitrin_saved_for_later", JSON.stringify(list));
       }

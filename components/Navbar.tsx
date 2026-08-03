@@ -30,7 +30,6 @@ export default function Navbar({
   const { user } = useUser();
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [userName, setUserName] = useState<string | null>(null);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCartHovered, setIsCartHovered] = useState(false);
@@ -47,9 +46,6 @@ export default function Navbar({
         .then((data) => {
           if (data.user) {
             setIsAdmin(data.user.role === "ADMIN");
-            if (data.user.name) {
-              setUserName(data.user.name);
-            }
           }
         })
         .catch(() => { });
@@ -108,20 +104,6 @@ export default function Navbar({
 
           {/* 1. SOL KISIM: LOGO & ÜRÜNLER LİNKİ */}
           <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0">
-            {/* MOBİL MENÜ TETİKLEYİCİ BUTONU (☰) */}
-            <button
-              type="button"
-              onClick={() => setIsDrawerOpen(true)}
-              aria-label="Menüyü aç"
-              aria-expanded={isDrawerOpen}
-              aria-controls="mobile-navigation-drawer"
-              className="md:hidden text-gray-700 hover:text-blue-600 p-2 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[40px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-
             <Link
               href="/"
               className="text-base sm:text-2xl font-extrabold text-blue-600 tracking-tight hover:opacity-80 transition-opacity flex items-center gap-1 min-h-[44px] min-w-[44px]"
@@ -282,7 +264,7 @@ export default function Navbar({
 
                 {/* KULLANICI AUTH BUTONLARI VE ACCOUNT POPOVER */}
                 {!isSignedIn ? (
-                  <div className="flex items-center gap-1 sm:gap-2 ml-1">
+                  <div className="hidden sm:flex items-center gap-1 sm:gap-2 ml-1">
                     <SignInButton mode="modal">
                       <button className="text-blue-600 font-bold px-3 py-2 rounded-xl hover:bg-blue-50 transition-colors text-xs sm:text-sm min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer">
                         Giriş Yap
@@ -324,29 +306,6 @@ export default function Navbar({
                       )}
                     </div>
 
-                    {/* 🚀 MOBİL HESABIM LİNKİ (Sadece Mobilde Görünür - sm:hidden) */}
-                    <Link
-                      href="/profile"
-                      className="sm:hidden hover:text-blue-600 transition-colors flex items-center justify-center p-2 rounded-xl hover:bg-gray-100 text-gray-600 group min-h-[44px] min-w-[40px]"
-                      aria-label="Hesabım"
-                      title="Hesabım"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5 text-gray-600 group-hover:text-blue-600 transition-colors flex-shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                    </Link>
-
                     <div className="border-l border-gray-200 h-5 hidden sm:block"></div>
                     <div className="hidden sm:flex items-center justify-center min-h-[44px] min-w-[44px]">
                       <UserButton />
@@ -355,20 +314,37 @@ export default function Navbar({
                 )}
               </>
             )}
+
+            {/* MOBİL MENÜ TETİKLEYİCİ BUTONU (☰ - Sadece Mobilde Görünür) */}
+            <button
+              type="button"
+              onClick={() => setIsDrawerOpen(true)}
+              aria-label="Menüyü aç"
+              title="Menüyü aç"
+              aria-expanded={isDrawerOpen}
+              aria-controls="mobile-navigation-drawer"
+              className="sm:hidden text-gray-700 hover:text-blue-600 p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[40px] sm:min-w-[44px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-600 outline-none ml-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* 🚀 MOBİL ARAMA DRAWER */}
+        {/* 🚀 MOBİL ARAMA TAM EKRAN MODAL (SELF-CONTAINED PORTAL - lg:hidden) */}
         {isMobileSearchOpen && (
-          <div className="lg:hidden pb-3 pt-2 px-1 border-t border-gray-100 animate-in slide-in-from-top-2 duration-200 w-full">
-            <SearchBar />
-          </div>
+          <SearchBar
+            isMobileModalOpen={isMobileSearchOpen}
+            onCloseMobileModal={() => setIsMobileSearchOpen(false)}
+          />
         )}
 
         {/* 🚀 MOBİL NAVİGASYON DRAWER (PORTAL) */}
         <MobileNavigationDrawer
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
+          isSignedIn={!!isSignedIn}
           categories={categories}
         />
 

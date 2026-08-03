@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import toast from "react-hot-toast";
 import {
   submitReview,
@@ -21,7 +21,6 @@ type ReviewItem = PaginatedData["reviews"][number];
 
 export default function ProductReviews({ productId }: ProductReviewsProps) {
   const { isSignedIn } = useAuth();
-  const { user } = useUser();
 
   // State Management
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -98,9 +97,22 @@ export default function ProductReviews({ productId }: ProductReviewsProps) {
   );
 
   // Trigger fetch when productId, ratingFilter, or sortBy changes
-  useEffect(() => {
+  const [prevFilterKey, setPrevFilterKey] = useState(`${productId}-${ratingFilter}-${sortBy}`);
+  if (prevFilterKey !== `${productId}-${ratingFilter}-${sortBy}`) {
+    setPrevFilterKey(`${productId}-${ratingFilter}-${sortBy}`);
     setCurrentPage(1);
-    loadReviewsData(1, false, true);
+  }
+
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) {
+        loadReviewsData(1, false, true);
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [loadReviewsData]);
 
   // Load More button click handler

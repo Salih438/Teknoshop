@@ -50,7 +50,30 @@ export default function NotificationBell() {
   };
 
   useEffect(() => {
-    loadNotifications();
+    let active = true;
+    getUserNotificationsAction("all").then((res) => {
+      if (active && res.success && res.data) {
+        const formatted = res.data.notifications.map((n) => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          createdAt: new Date(n.createdAt).toLocaleDateString("tr-TR", {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isRead: n.isRead,
+          linkUrl: n.linkUrl,
+        }));
+        setNotifications(formatted);
+        setUnreadCount(res.data.unreadCount);
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const toggleOpen = () => {

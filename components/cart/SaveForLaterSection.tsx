@@ -20,7 +20,7 @@ export default function SaveForLaterSection() {
     try {
       const saved = localStorage.getItem("vitrin_saved_for_later");
       if (saved) {
-        setSavedItems(JSON.parse(saved));
+        Promise.resolve().then(() => setSavedItems(JSON.parse(saved)));
       }
     } catch (e) {}
   }, []);

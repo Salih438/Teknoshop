@@ -57,7 +57,7 @@ export async function submitContactAction(input: ContactInput) {
       success: true,
       message: "Mesajınız başarıyla iletildi. En kısa sürede sizinle iletişime geçeceğiz.",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("submitContactAction Hata:", error);
     return {
       success: false,

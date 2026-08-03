@@ -11,6 +11,11 @@ import { revalidatePath } from "next/cache";
 import { AdminNotificationService } from "@/lib/services/admin-notification.service";
 import { EmailService } from "@/lib/email-service";
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 /**
  * Müşteri: İade Talebi Oluşturma
  */
@@ -67,9 +72,9 @@ export async function createReturnAction(input: {
     revalidatePath("/admin/returns");
 
     return { success: true, data: returnRequest };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("createReturnAction error:", error);
-    return { success: false, error: error.message || "İade talebi oluşturulurken bir hata oluştu." };
+    return { success: false, error: getErrorMessage(error, "İade talebi oluşturulurken bir hata oluştu.") };
   }
 }
 
@@ -142,9 +147,9 @@ export async function approveReturnAction(returnRequestId: string, returnTrackin
     revalidatePath(`/profile/orders/${result.orderId}`);
 
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("approveReturnAction error:", error);
-    return { success: false, error: error.message || "İade onaylanırken hata oluştu." };
+    return { success: false, error: getErrorMessage(error, "İade onaylanırken hata oluştu.") };
   }
 }
 
@@ -213,9 +218,9 @@ export async function rejectReturnAction(returnRequestId: string, adminNote: str
     revalidatePath(`/profile/orders/${result.orderId}`);
 
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("rejectReturnAction error:", error);
-    return { success: false, error: error.message || "İade reddedilirken hata oluştu." };
+    return { success: false, error: getErrorMessage(error, "İade reddedilirken hata oluştu.") };
   }
 }
 
@@ -256,9 +261,9 @@ export async function receiveReturnAction(returnRequestId: string, adminNote?: s
     revalidatePath(`/profile/orders/${result.orderId}`);
 
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("receiveReturnAction error:", error);
-    return { success: false, error: error.message || "İade durumu güncellenirken hata oluştu." };
+    return { success: false, error: getErrorMessage(error, "İade durumu güncellenirken hata oluştu.") };
   }
 }
 
@@ -333,9 +338,9 @@ export async function completeReturnAction(returnRequestId: string, refundMethod
     }
 
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("completeReturnAction error:", error);
-    return { success: false, error: error.message || "İade tamamlanırken hata oluştu." };
+    return { success: false, error: getErrorMessage(error, "İade tamamlanırken hata oluştu.") };
   }
 }
 
@@ -365,7 +370,7 @@ export async function getUserReturnsAction() {
 
     const returns = await ReturnService.getUserReturnRequests(dbUser.id);
     return { success: true, data: returns };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getUserReturnsAction error:", error);
     return { success: false, error: "İade talepleri getirilemedi." };
   }
@@ -380,7 +385,7 @@ export async function getAdminReturnsAction(statusFilter?: ReturnStatus) {
 
     const returns = await ReturnService.getAdminReturnRequests(statusFilter);
     return { success: true, data: returns };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getAdminReturnsAction error:", error);
     return { success: false, error: "İade talepleri getirilemedi." };
   }

@@ -45,22 +45,21 @@ export default function DynamicVariantBuilder({
 
   // 1. Parent komponenti değişikliklerden haberdar et
   useEffect(() => {
-    // İlk renderda initialData gönderilip loop oluşturmasını engellemek için kontrol eklenebilir,
-    // ancak form submit'te onVariantsChange çağrılması önemlidir.
     if (!isFirstRender.current && onVariantsChange) {
       onVariantsChange(variantRows);
     }
     isFirstRender.current = false;
   }, [variantRows, onVariantsChange]);
 
-  // 2. resetSignal geldiğinde her şeyi sıfırla
-  useEffect(() => {
+  const [prevResetSignal, setPrevResetSignal] = useState(resetSignal);
+  if (prevResetSignal !== resetSignal) {
+    setPrevResetSignal(resetSignal);
     if (resetSignal > 0) {
       setGroups([]);
       setVariantRows([]);
       setDeletedCombinations([]);
     }
-  }, [resetSignal]);
+  }
 
   // Grup ekleme
   const addGroup = () => {
@@ -162,7 +161,7 @@ export default function DynamicVariantBuilder({
 
       // Yeni kombinasyonları listeye ekle
       newCombinations.forEach(combo => {
-        if (!existingCombos.includes(combo)) {
+        if (!existingCombos.includes(combo) && !deletedCombinations.includes(combo)) {
           nextRows.push({
             id: crypto.randomUUID(),
             combination: combo,

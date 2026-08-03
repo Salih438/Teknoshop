@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { UploadButton } from "@/lib/utils/uploadthing";
-import DynamicVariantBuilder from "@/components/admin/variants/DynamicVariantBuilder";
+import DynamicVariantBuilder, { VariantRow } from "@/components/admin/variants/DynamicVariantBuilder";
 
 interface DBVariant {
   id: string;
@@ -52,8 +52,8 @@ export default function EditProductForm({ product, categories, brands }: EditPro
   const [galleryImageMode, setGalleryImageMode] = useState<"upload" | "url">("upload");
   const [galleryUrlInput, setGalleryUrlInput] = useState("");
 
-  const [dynamicVariants, setDynamicVariants] = useState<any[]>(
-    product.variants ? product.variants.map((v: any) => ({
+  const [dynamicVariants, setDynamicVariants] = useState<VariantRow[]>(
+    product.variants ? product.variants.map((v: DBVariant) => ({
       id: v.id,
       combination: v.combination || (v.color && v.storage ? `${v.color} / ${v.storage}` : "Standart"),
       price: v.price ? String(v.price) : "",
