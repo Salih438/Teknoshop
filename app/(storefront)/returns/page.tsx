@@ -2,8 +2,8 @@ import React from "react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "İade ve Değişim Şartları | Antigravity E-Ticaret",
-  description: "Antigravity E-Ticaret iade ve değişim süreçleri hakkında bilgilendirme.",
+  title: "İade ve Değişim Şartları | TeknoShop",
+  description: "TeknoShop e-ticaret iade ve değişim süreçleri hakkında bilgilendirme.",
 };
 
 export default function ReturnsPage() {
@@ -19,7 +19,7 @@ export default function ReturnsPage() {
           <div className="prose prose-blue prose-lg max-w-none text-gray-700">
             <h3>1. Cayma Hakkı ve İade Süresi</h3>
             <p>
-              Tüketici Kanunu'na göre, satın almış olduğunuz ürünü teslim aldığınız tarihten itibaren <strong>14 gün</strong> içerisinde hiçbir gerekçe göstermeksizin ve cezai şart ödemeksizin iade edebilirsiniz. Cayma hakkının kullanılması için bu süre içerisinde firmamıza bildirimde bulunulması ve ürünün kullanılmamış olması şarttır.
+              Tüketici Kanunu&apos;na göre, satın almış olduğunuz ürünü teslim aldığınız tarihten itibaren <strong>14 gün</strong> içerisinde hiçbir gerekçe göstermeksizin ve cezai şart ödemeksizin iade edebilirsiniz. Cayma hakkının kullanılması için bu süre içerisinde firmamıza bildirimde bulunulması ve ürünün kullanılmamış olması şarttır.
             </p>
 
             <h3>2. İade Şartları</h3>
@@ -43,7 +43,7 @@ export default function ReturnsPage() {
 
             <h3>4. İade ve Değişim Süreci Nasıl İşler?</h3>
             <ol>
-              <li>Hesabınıza giriş yaparak "Siparişlerim" menüsünden ilgili siparişi bulun ve "İade Et" butonuna tıklayın.</li>
+              <li>Hesabınıza giriş yaparak &quot;Siparişlerim&quot; menüsünden ilgili siparişi bulun ve &quot;İade Et&quot; butonuna tıklayın.</li>
               <li>İade nedeninizi seçerek sistemin size vereceği <strong>Ücretsiz İade Kargo Kodunu</strong> not edin.</li>
               <li>Ürünü, faturası ve tüm aparatlarıyla birlikte sağlam bir şekilde paketleyin.</li>
               <li>Anlaşmalı olduğumuz kargo firmasına paketi ve iade kodunu teslim edin. (İade gönderilerinde kargo ücreti tarafımıza aittir).</li>

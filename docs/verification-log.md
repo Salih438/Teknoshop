@@ -89,3 +89,37 @@
   5. **Tip Güvenliği & Test:** `strict: true` aktif ve tüm projede sadece 3 adet `any` tipi var (%99.9 tip güvenliği), ancak 0 otomatik test mevcut.
   6. **10x Kampanya Kırılma Tahmini:** Ana sayfa ve katalog sorgularında önbellek eksikliği (DB CPU darboğazı), eksik indeksler nedeniyle table scan kilitlenmesi ve AuthCartSync sepet yazma fırtınası.
 
+---
+
+### [29.08.2026] — Phase 19: Full System Remediation & Production-Quality Hardening
+
+1. **RBAC Güvenlik & Yetki İhlali (Privilege Escalation) Onarımı:**
+   - `app/api/admin/users/[id]/route.ts`: `MANAGE_USERS` iznine sahip personelin `role` veya `systemRole` değiştirmesi engellendi; rol değişimi kesin olarak `MANAGE_ROLES` yetkisine bağlandı.
+   - `app/api/admin/roles/assign/route.ts`: Admin kullanıcısının `USER` rolüne düşürülmesi (demotion) ve son `SUPER_ADMIN`'in düşürülmesinin engellenmesi kuralları uygulandı.
+   - `lib/rbac.ts` ve `__tests__/rbac.test.ts`: Kapsamlı rol geçiş ve yetki testleri yazıldı.
+2. **Demo / Simüle Ödeme Mimarisi & Hexagonal Port:**
+   - `lib/services/payment-gateway.service.ts`: `IPaymentGatewayAdapter` ve `SimulatedPaymentGatewayAdapter` port/adapter mimarisi oluşturuldu.
+   - `lib/services/checkout.service.ts`: Simüle ödeme işlemi adaptöre bağlandı, `transactionId` simülasyon formatında kaydedildi.
+   - `app/(storefront)/checkout/page.tsx`: Demo/staj simülasyon ortamı bilgi kutusu eklendi.
+   - `__tests__/payment-gateway.test.ts`: Simüle kredi kartı ve havale ödeme testleri yazıldı.
+3. **Güvenlik & Rate Limiting & İstemci IP İdentifikasyonu:**
+   - `lib/rate-limiter.ts`: `x-real-ip`, `x-vercel-ip`, `cf-connecting-ip` ve `x-forwarded-for` başlıkları sanitize edilerek IP spoofing riski önlendi. Bellek içi token bucket ile Redis fallback ayrımı yapıldı.
+   - API rotalarına (`api/cart`, `api/admin/products/[id]`, `api/orders/[id]/invoice`, `api/admin/roles/assign` vb.) istek limitleri uygulandı.
+   - `__tests__/rate-limiter.test.ts`: IP çıkarma ve token tüketim testleri yazıldı.
+4. **HTTP Güvenlik Başlıkları & Next.js Görsel İzinleri:**
+   - `next.config.ts`: CSP, HSTS, X-Frame-Options (`SAMEORIGIN`), X-Content-Type-Options (`nosniff`), Referrer-Policy (`strict-origin-when-cross-origin`) ve Permissions-Policy başlıkları eklendi.
+   - `remotePatterns` içindeki `hostname: "**"` wildcard'ı `images.unsplash.com`, `uploadthing.com`, `utfs.io`, `img.clerk.com`, `res.cloudinary.com` ile sınırlandırıldı.
+5. **Veritabanı Sorgu Deduplication & İndeksler:**
+   - `lib/services/category.service.ts`: React `cache()` ile sarmalanan `getCachedStorefrontCategories` servisi oluşturuldu. `layout.tsx`, `page.tsx`, `products/page.tsx` ve `search/page.tsx` rotalarındaki mükerrer kategori sorguları tekil hale getirildi.
+   - `Review` tablosuna `@@index([productId, isHidden, createdAt])` kompozit indeksi eklendi ve migration uygulandı (`20260828214854_add_review_composite_index`).
+6. **Mobil Navigasyon, Drawer & Erişilebilirlik (A11y):**
+   - `components/Navbar.tsx`: Hamburger menü butonu logonun **SOLUNA** taşındı.
+   - `components/MobileNavigationDrawer.tsx`: Klavye Focus Trap (`Tab`/`Shift+Tab`), `role="dialog"`, `aria-modal="true"`, ESC dinleyicisi ve tetikleyici butona otomatik focus restorasyonu eklendi.
+   - `components/SearchBar.tsx` & `NotificationBell.tsx` & `AdminSidebarNav.tsx`: Mobil pencereler açıkken `document.body.style.overflow = "hidden"` scroll kilidi ve z-index katman düzenlemeleri uygulandı.
+7. **Kod Kalitesi & Sıfır Hata:**
+   - 34 ESLint uyarısı ve hatası (unescaped quotes, unused variables, impure Date calls) temizlendi.
+   - `npx eslint .`: 0 error, 0 warning.
+   - `npx tsc --noEmit`: 0 error.
+   - `npm test`: 4 test suite, 20 testin tamamı başarılı (PASS).
+   - `npm run build`: 41 rotanın tamamı derlendi ve başarıyla paketlendi (Exit code 0).
+

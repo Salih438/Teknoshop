@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-3">1. Veri Sorumlusu ve Amacımız</h2>
           <p>
-            6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, E-Ticaret Teknoloji A.Ş. olarak, veri sorumlusu sıfatıyla kişisel verilerinizi yasalara uygun olarak işlemekte ve korumaktayız. Amacımız, sitemiz üzerinden yaptığınız alışverişlerin güvenli bir şekilde tamamlanması ve sizlere daha iyi bir hizmet sunulmasıdır.
+            6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) uyarınca, E-Ticaret Teknoloji A.Ş. olarak, veri sorumlusu sıfatıyla kişisel verilerinizi yasalara uygun olarak işlemekte ve korumaktayız. Amacımız, sitemiz üzerinden yaptığınız alışverişlerin güvenli bir şekilde tamamlanması ve sizlere daha iyi bir hizmet sunulmasıdır.
           </p>
         </section>
 
@@ -60,9 +60,9 @@ export default function PrivacyPolicyPage() {
         <section className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-8">
           <h2 className="text-lg font-bold text-gray-900 mb-2">Haklarınız ve İletişim</h2>
           <p className="text-sm">
-            KVKK'nın 11. maddesi kapsamında kişisel verilerinizin silinmesini, düzeltilmesini veya işlenip işlenmediğini öğrenme hakkına sahipsiniz. Taleplerinizi <strong>kisiselveri@eticaret-teknoloji.com</strong> adresi üzerinden veri sorumlusu yetkilimize iletebilirsiniz.
+            KVKK&apos;nın 11. maddesi kapsamında kişisel verilerinizin silinmesini, düzeltilmesini veya işlenip işlenmediğini öğrenme hakkına sahipsiniz. Taleplerinizi <strong>kisiselveri@eticaret-teknoloji.com</strong> adresi üzerinden veri sorumlusu yetkilimize iletebilirsiniz.
           </p>
-          <p className="text-xs text-gray-400 mt-4">Son Güncelleme Tarihi: {new Date().toLocaleDateString('tr-TR')}</p>
+          <p className="text-xs text-gray-400 mt-4">Son Güncelleme Tarihi: 29.08.2026</p>
         </section>
       </div>
     </div>

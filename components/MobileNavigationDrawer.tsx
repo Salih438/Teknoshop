@@ -10,6 +10,7 @@ export interface MobileNavigationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   isSignedIn?: boolean;
+  triggerRef?: React.RefObject<HTMLButtonElement | null>;
   categories?: Array<{
     id: string;
     name: string;
@@ -19,36 +20,22 @@ export interface MobileNavigationDrawerProps {
   }>;
 }
 
+const emptySubscribe = () => () => {};
+
 export default function MobileNavigationDrawer({
   isOpen,
   onClose,
   isSignedIn = false,
+  triggerRef,
   categories = [],
 }: MobileNavigationDrawerProps) {
-  const [store] = useState(() => {
-    let mounted = false;
-    return {
-      getSnapshot: () => mounted,
-      subscribe: (callback: () => void) => {
-        mounted = true;
-        callback();
-        return () => {
-          mounted = false;
-        };
-      },
-    };
-  });
-
-  const mounted = useSyncExternalStore(
-    store.subscribe,
-    store.getSnapshot,
-    () => false
-  );
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerPanelRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  // Body Scroll Lock - Safe cleanup on unmount or close
+  // 1. Body Scroll Lock - Safe cleanup on unmount or close
   useEffect(() => {
     if (isOpen) {
       const originalOverflow = document.body.style.overflow;
@@ -59,27 +46,60 @@ export default function MobileNavigationDrawer({
     }
   }, [isOpen]);
 
-  // ESC key listener to close drawer
+  // 2. Focus Management: Auto-focus & Focus Trap & ESC Listener
   useEffect(() => {
     if (!isOpen) return;
+
+    // Focus close button on open
+    const timer = setTimeout(() => {
+      closeButtonRef.current?.focus();
+    }, 50);
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC closes drawer
       if (e.key === "Escape") {
+        e.preventDefault();
         onClose();
+        return;
+      }
+
+      // Keyboard Focus Trap (WCAG 2.1.2)
+      if (e.key === "Tab" && drawerPanelRef.current) {
+        const focusableElements = drawerPanelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+
+        if (focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement?.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement?.focus();
+          }
+        }
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
 
-  // Focus management: focus close button when opened
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        closeButtonRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
+    const currentTrigger = triggerRef?.current;
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("keydown", handleKeyDown);
+      // Focus restoration on close
+      if (currentTrigger) {
+        setTimeout(() => currentTrigger.focus(), 50);
+      }
+    };
+  }, [isOpen, onClose, triggerRef]);
 
   if (!mounted) return null;
 
@@ -91,24 +111,28 @@ export default function MobileNavigationDrawer({
 
   const drawerContent = (
     <div
-      className={`fixed inset-0 z-[998] transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[990] transition-opacity duration-300 ${
         isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
       }`}
       aria-hidden={!isOpen}
     >
       {/* 1. Full-screen translucent backdrop overlay */}
       <div
+        role="button"
+        tabIndex={-1}
         onClick={onClose}
-        className="absolute inset-0 bg-black/50 transition-opacity"
+        onKeyDown={(e) => e.key === "Escape" && onClose()}
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity cursor-pointer"
         aria-label="Menüyü kapat"
       />
 
       {/* 2. Left-sliding navigation drawer panel */}
       <div
+        ref={drawerPanelRef}
         role="dialog"
         aria-modal="true"
         aria-label="Mobil navigasyon menüsü"
-        className={`fixed top-0 left-0 h-[100dvh] w-[min(86vw,360px)] max-w-full z-[999] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 h-[100dvh] w-[min(86vw,360px)] max-w-full z-[991] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -145,7 +169,7 @@ export default function MobileNavigationDrawer({
           
           {/* 🚀 GUEST AUTHENTICATION CARD (Giriş Yapmamış Kullanıcılar İçin) */}
           {!isSignedIn ? (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/60 p-4 rounded-2xl border border-blue-100/80 mb-4 shadow-sm">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/60 p-4 rounded-2xl border border-blue-100/80 mb-4 shadow-xs">
               <p className="text-xs font-extrabold text-blue-950 mb-2.5">
                 Teknoshop Dünyasına Hoş Geldiniz
               </p>
@@ -154,7 +178,7 @@ export default function MobileNavigationDrawer({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-colors min-h-[44px] flex items-center justify-center cursor-pointer shadow-sm focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-colors min-h-[44px] flex items-center justify-center cursor-pointer shadow-xs focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
                   >
                     Giriş Yap
                   </button>
@@ -163,7 +187,7 @@ export default function MobileNavigationDrawer({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="w-full bg-white hover:bg-gray-50 text-blue-600 font-bold py-2.5 px-3 rounded-xl text-xs transition-colors min-h-[44px] flex items-center justify-center cursor-pointer border border-blue-200 shadow-sm focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
+                    className="w-full bg-white hover:bg-gray-50 text-blue-600 font-bold py-2.5 px-3 rounded-xl text-xs transition-colors min-h-[44px] flex items-center justify-center cursor-pointer border border-blue-200 shadow-xs focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
                   >
                     Kayıt Ol
                   </button>

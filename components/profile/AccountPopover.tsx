@@ -40,7 +40,7 @@ export default function AccountPopover({ onClose }: AccountPopoverProps) {
       try {
         openUserProfile();
         return;
-      } catch (e) {}
+      } catch {}
     }
     router.push("/profile?tab=settings");
   };

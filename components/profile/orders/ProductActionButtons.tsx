@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { useCartStore } from "@/lib/store";
 
 interface ProductActionButtonsProps {
   productId?: string;
@@ -16,13 +17,23 @@ export default function ProductActionButtons({
 }: ProductActionButtonsProps) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const addItem = useCartStore((state) => state.addItem);
 
   const handleBuyAgain = () => {
     setIsAddingToCart(true);
+    if (productId) {
+      addItem({
+        id: productId,
+        name: productName,
+        price,
+        imageUrls: [],
+        quantity: 1,
+      });
+    }
     setTimeout(() => {
       setIsAddingToCart(false);
       toast.success(`"${productName}" tekrar sepetinize eklendi! 🛒`);
-    }, 400);
+    }, 300);
   };
 
   const handleToggleFavorite = () => {
@@ -44,7 +55,7 @@ export default function ProductActionButtons({
       <button
         onClick={handleBuyAgain}
         disabled={isAddingToCart}
-        className="bg-gray-900 hover:bg-gray-800 text-white font-extrabold px-3.5 py-2 rounded-xl text-xs transition shadow-xs flex items-center gap-1.5 min-h-[38px]"
+        className="text-xs font-bold text-gray-700 bg-gray-100 hover:bg-blue-50 hover:text-blue-600 px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 min-h-[36px]"
       >
         <span>🔄</span>
         <span>{isAddingToCart ? "Ekleniyor..." : "Tekrar Satın Al"}</span>
@@ -53,14 +64,14 @@ export default function ProductActionButtons({
       {/* FAVORİLERE EKLE BUTONU */}
       <button
         onClick={handleToggleFavorite}
-        className={`font-extrabold px-3.5 py-2 rounded-xl text-xs transition border flex items-center gap-1.5 min-h-[38px] ${
+        className={`text-xs font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer min-h-[36px] ${
           isFavorite
-            ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
-            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+            ? "bg-rose-50 text-rose-600 hover:bg-rose-100"
+            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         }`}
       >
         <span>{isFavorite ? "❤️" : "🤍"}</span>
-        <span>{isFavorite ? "Favorilerinizde" : "Favorilere Ekle"}</span>
+        <span>{isFavorite ? "Favorilerde" : "Favoriye Ekle"}</span>
       </button>
     </div>
   );

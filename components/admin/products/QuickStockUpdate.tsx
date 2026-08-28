@@ -38,7 +38,7 @@ export default function QuickStockUpdate({ productId, currentStock, onUpdate }: 
       } else {
         toast.error("Stok güncelleme başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası oluştu.", { id: toastId });
     } finally {
       setLoading(false);

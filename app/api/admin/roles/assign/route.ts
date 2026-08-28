@@ -4,18 +4,26 @@ import { requireAdmin, AuthError } from "@/lib/auth";
 import { AuditLogService } from "@/lib/services/audit-log.service";
 import { AuditRiskLevel } from "@prisma/client";
 import { SystemRole, hasPermission } from "@/lib/rbac";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 export async function POST(request: Request) {
   try {
     // 1. CENTRALIZED RBAC AUTHORIZATION
     const adminUser = await requireAdmin("MANAGE_ROLES");
 
+    const identifier = getClientIdentifier(request, adminUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 20, windowSeconds: 60 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla rol atama denemesinde bulundunuz. Lütfen bekleyin.");
+    }
+
     const body = await request.json();
-    const { userId, newSystemRole } = body;
+    const { userId, newSystemRole, newRole } = body;
 
-    const validRoles: SystemRole[] = ["SUPER_ADMIN", "ADMIN", "CUSTOMER_SUPPORT", "CONTENT_MANAGER", "ANALYST"];
+    const validSystemRoles: SystemRole[] = ["SUPER_ADMIN", "ADMIN", "CUSTOMER_SUPPORT", "CONTENT_MANAGER", "ANALYST"];
+    const isDemotingToCustomer = newRole === "USER" || newSystemRole === "USER";
 
-    if (!userId || !newSystemRole || !validRoles.includes(newSystemRole as SystemRole)) {
+    if (!userId || (!isDemotingToCustomer && !validSystemRoles.includes(newSystemRole as SystemRole))) {
       return NextResponse.json({ error: "Geçersiz kullanıcı veya sistem rolü." }, { status: 400 });
     }
 
@@ -29,13 +37,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Kullanıcı bulunamadı." }, { status: 404 });
     }
 
-    // DEFENSIVE FALLBACK: Prisma'da systemRole non-nullable bir alandır ve DB seviyesinde varsayılanı ANALYST'tir.
-    // Tip dönüşümü sırasında olası null/undefined durumları için en kısıtlı rol olan ANALYST fallback olarak kullanılır.
     const currentTargetRole = (targetUser.systemRole as SystemRole) || "ANALYST";
 
     // 3. SELF-DEMOTION SAFEGUARD
     if (adminUser.id === userId) {
-      if (!hasPermission(newSystemRole as SystemRole, "MANAGE_ROLES")) {
+      if (isDemotingToCustomer || !hasPermission(newSystemRole as SystemRole, "MANAGE_ROLES")) {
         return NextResponse.json(
           { error: "Kendi hesabınızın rol yönetimi yetkisini kaldıramaz veya kendi rolünüzü düşüremezsiniz." },
           { status: 400 }
@@ -44,7 +50,6 @@ export async function POST(request: Request) {
     }
 
     // 4. PRIVILEGE ESCALATION PROTECTION
-    // DEFENSIVE FALLBACK: Aktörün sistem rolü için de güvenli varsayılan olarak ANALYST kullanılır.
     const actorRole = (adminUser.systemRole as SystemRole) || "ANALYST";
 
     // Non-SUPER_ADMIN cannot grant SUPER_ADMIN role
@@ -65,8 +70,8 @@ export async function POST(request: Request) {
 
     // 5. ATOMIC TRANSACTION: LAST SUPER_ADMIN GUARD + ROLE UPDATE + AUDIT LOG
     const updatedUser = await prisma.$transaction(async (tx) => {
-      // Last SUPER_ADMIN Protection: If target is currently SUPER_ADMIN and changing to lower role
-      if (currentTargetRole === "SUPER_ADMIN" && newSystemRole !== "SUPER_ADMIN") {
+      // Last SUPER_ADMIN Protection: If target is currently SUPER_ADMIN and changing to lower role or USER
+      if (currentTargetRole === "SUPER_ADMIN" && (isDemotingToCustomer || newSystemRole !== "SUPER_ADMIN")) {
         const activeSuperAdminCount = await tx.user.count({
           where: {
             role: "ADMIN",
@@ -80,12 +85,15 @@ export async function POST(request: Request) {
         }
       }
 
-      // Update role
+      // Update role: If demoting to USER, role = USER, systemRole = ANALYST. Otherwise role = ADMIN, systemRole = newSystemRole.
+      const targetBaseRole = isDemotingToCustomer ? "USER" : "ADMIN";
+      const targetSystemRole = isDemotingToCustomer ? "ANALYST" : (newSystemRole as SystemRole);
+
       const updated = await tx.user.update({
         where: { id: userId },
         data: {
-          role: "ADMIN",
-          systemRole: newSystemRole as SystemRole,
+          role: targetBaseRole,
+          systemRole: targetSystemRole,
         },
       });
 
@@ -95,13 +103,13 @@ export async function POST(request: Request) {
           adminId: adminUser.id,
           adminName: adminUser.name,
           adminEmail: adminUser.email,
-          action: "SYSTEM_ROLE_UPDATE",
+          action: isDemotingToCustomer ? "ROLE_DEMOTION_TO_USER" : "SYSTEM_ROLE_UPDATE",
           entityType: "User",
           entityId: userId,
           entityName: targetUser.name || targetUser.email,
           riskLevel: AuditRiskLevel.CRITICAL,
-          oldValue: { systemRole: currentTargetRole },
-          newValue: { systemRole: newSystemRole },
+          oldValue: { role: targetUser.role, systemRole: currentTargetRole },
+          newValue: { role: targetBaseRole, systemRole: targetSystemRole },
         },
         tx
       );

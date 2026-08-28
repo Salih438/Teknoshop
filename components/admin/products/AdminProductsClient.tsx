@@ -63,7 +63,7 @@ export default function AdminProductsClient({
   const searchParams = useSearchParams();
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   // URL Arama & Filtre Parametreleri
@@ -137,7 +137,7 @@ export default function AdminProductsClient({
       } else {
         toast.error("Toplu işlem başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası oluştu.", { id: toastId });
     }
   };
@@ -157,7 +157,7 @@ export default function AdminProductsClient({
       } else {
         toast.error("Durum değiştirilemedi.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası.", { id: toastId });
     }
   };
@@ -177,7 +177,7 @@ export default function AdminProductsClient({
       } else {
         toast.error("Ürün çoğaltılamadı.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası.", { id: toastId });
     }
   };

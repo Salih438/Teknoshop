@@ -5,6 +5,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import ProductFilterPanel from "@/components/storefront/ProductFilterPanel";
 import ProductCard from "@/components/ProductCard";
 import Pagination from "@/components/ui/Pagination";
+import { getCachedStorefrontCategories } from "@/lib/services/category.service";
 
 const PAGE_SIZE = 12;
 
@@ -39,17 +40,8 @@ export default async function AllProductsPage({
     }
   }
 
-  // 1. KATEGORİLERİ DİNAMİK OLARAK ÇEKİYORUZ
-  const dbCategories = await prisma.category.findMany({
-    include: {
-      _count: {
-        select: { products: { where: { isActive: true } } }
-      }
-    },
-    orderBy: {
-      name: 'asc'
-    }
-  });
+  // 1. KATEGORİLERİ DİNAMİK OLARAK ÇEKİYORUZ (React Cache ile Deduplicate)
+  const dbCategories = await getCachedStorefrontCategories();
 
   // MARKALARI ÇEKİYORUZ
   const dbBrands = await prisma.brand.findMany({

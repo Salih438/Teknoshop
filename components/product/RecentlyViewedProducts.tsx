@@ -21,7 +21,7 @@ export default function RecentlyViewedProducts({ currentProduct }: { currentProd
       // Mevcut ürünü listede tekrar göstermemek için filtrele
       const filtered = list.filter((item) => item.id !== currentProduct?.id);
       Promise.resolve().then(() => setRecentlyViewed(filtered));
-    } catch (e) {}
+    } catch {}
   }, [currentProduct]);
 
   const scrollLeft = () => {

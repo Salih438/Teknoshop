@@ -1,29 +1,21 @@
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const orderId = resolvedParams.id;
-
-    // 1. Kimlik Doğrulama
     const clerkUser = await currentUser();
     if (!clerkUser) {
-      return new NextResponse("Unauthorized - Giriş yapmalısınız", { status: 401 });
-    }
-
-    const email = clerkUser.emailAddresses?.[0]?.emailAddress;
-    if (!email) {
-      return new NextResponse("Unauthorized - E-posta bulunamadı", { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: clerkUser.emailAddresses[0].emailAddress },
       select: { id: true, role: true },
     });
 
@@ -31,20 +23,29 @@ export async function GET(
       return new NextResponse("Kullanıcı bulunamadı", { status: 404 });
     }
 
-    // 2. Sipariş Detaylarını Çek
+    const identifier = getClientIdentifier(request, dbUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 20, windowSeconds: 60 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, "Çok fazla fatura indirme talebinde bulundunuz.");
+    }
+
+    const resolvedParams = await params;
+    const orderId = resolvedParams.id;
+
+    // Sipariş bilgilerini derin ilişkileriyle çekiyoruz
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        user: { select: { name: true, email: true, phone: true } },
+        user: { select: { name: true, email: true } },
         address: true,
+        payment: { include: { paymentMethod: true } },
+        shipment: true,
         items: {
           include: {
             product: { select: { name: true, sku: true } },
-            variant: { select: { color: true, storage: true, combination: true, sku: true } },
+            variant: { select: { combination: true, sku: true } },
           },
         },
-        payment: { include: { paymentMethod: true } },
-        shipment: true,
       },
     });
 
@@ -121,7 +122,7 @@ export async function GET(
     <div class="header">
       <div>
         <h1 class="brand-title">${storeName}</h1>
-        <p style="font-size:0.85rem; color:#64748b; margin:0.25rem 0 0 0;">${storeAddress} | Tel: ${storePhone}</p>
+        <p style="font-size:0.85rem; color:#64748b; margin:0.25rem 0 0 0;">${storeAddress} | Tel: ${storePhone} | E-posta: ${storeEmail}</p>
         <span class="badge">E-ARŞİV FATURA</span>
       </div>
       <div style="text-align: right;">
@@ -158,63 +159,60 @@ export async function GET(
       <thead>
         <tr>
           <th>Ürün Açıklaması</th>
+          <th>SKU / Kod</th>
           <th class="text-right">Adet</th>
           <th class="text-right">Birim Fiyat</th>
-          <th class="text-right">Toplam (KDV Dâhil)</th>
+          <th class="text-right">Toplam</th>
         </tr>
       </thead>
       <tbody>
-        ${order.items.map((item) => {
-          const variantDetails = item.variant
-            ? [item.variant.color, item.variant.storage, item.variant.combination].filter(Boolean).join(" / ")
-            : "";
-          return `
-            <tr>
-              <td>
-                <strong>${item.product?.name || "Ürün"}</strong>
-                ${variantDetails ? `<br><span style="font-size:0.8rem; color:#64748b;">Varyant: ${variantDetails}</span>` : ""}
-              </td>
-              <td class="text-right">${item.quantity} Adet</td>
-              <td class="text-right">${item.price.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
-              <td class="text-right">${(item.price * item.quantity).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
-            </tr>
-          `;
-        }).join("")}
+        ${order.items
+          .map(
+            (item) => `
+          <tr>
+            <td>
+              <strong>${item.product.name}</strong>
+              ${item.variant?.combination ? `<br><small style="color:#64748b;">${item.variant.combination}</small>` : ""}
+            </td>
+            <td><code>${item.variant?.sku || item.product.sku || "-"}</code></td>
+            <td class="text-right">${item.quantity}</td>
+            <td class="text-right">${item.price.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+            <td class="text-right"><strong>${(item.price * item.quantity).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</strong></td>
+          </tr>
+        `
+          )
+          .join("")}
       </tbody>
     </table>
 
     <!-- Alt Toplamlar -->
-    <div style="display: flex; justify-content: flex-end;">
-      <table class="totals-table">
-        <tr>
-          <td style="color:#64748b;">Ara Toplam:</td>
-          <td class="text-right">${subTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
-        </tr>
-        ${discount > 0 ? `
-        <tr>
-          <td style="color:#16a34a; font-weight:700;">Kupon İndirimi:</td>
-          <td class="text-right" style="color:#16a34a; font-weight:700;">-${discount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
-        </tr>
-        ` : ""}
-        <tr>
-          <td style="color:#64748b;">Dâhilî KDV (%20):</td>
-          <td class="text-right">${kdvAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
-        </tr>
-        <tr class="grand-total">
-          <td>Genel Toplam:</td>
-          <td class="text-right">${order.totalPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
-        </tr>
-      </table>
-    </div>
+    <table class="totals-table">
+      <tr>
+        <td>Ara Toplam:</td>
+        <td class="text-right">${subTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+      </tr>
+      ${
+        discount > 0
+          ? `
+      <tr>
+        <td style="color: #16a34a;">Kupon İndirimi:</td>
+        <td class="text-right" style="color: #16a34a;">-${discount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+      </tr>`
+          : ""
+      }
+      <tr>
+        <td>KDV (%20 Dahil):</td>
+        <td class="text-right">${kdvAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+      </tr>
+      <tr class="grand-total">
+        <td>Genel Toplam:</td>
+        <td class="text-right">${order.totalPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+      </tr>
+    </table>
 
-    <!-- Dipnot -->
-    <div style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.75rem; color: #94a3b8; text-align: center;">
-    <!-- Auto Print Script -->
-    <script>
-      window.addEventListener('load', function() {
-        setTimeout(function() { window.print(); }, 300);
-      });
-    </script>
+    <div style="margin-top: 3rem; border-top: 1px dashed #cbd5e1; padding-top: 1rem; text-align: center; font-size: 0.75rem; color: #94a3b8;">
+      Bu belge 213 sayılı Vergi Usul Kanunu uyarınca elektronik ortamda düzenlenmiştir.
+    </div>
   </div>
 
 </body>
@@ -222,12 +220,13 @@ export async function GET(
     `;
 
     return new NextResponse(htmlContent, {
+      status: 200,
       headers: {
         "Content-Type": "text/html; charset=utf-8",
       },
     });
   } catch (error) {
-    console.error("Invoice API Error:", error);
-    return new NextResponse("Fatura oluşturulurken hata oluştu", { status: 500 });
+    console.error("Fatura oluşturulurken hata:", error);
+    return new NextResponse("Fatura oluşturulamadı", { status: 500 });
   }
 }

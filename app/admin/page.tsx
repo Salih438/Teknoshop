@@ -110,20 +110,20 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* 🚀 1. 4'LÜ ŞIK İSTATİSTİK ÖZET KARTLARI (STAT CARDS) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {/* 🚀 1. 5'Lİ ŞIK İSTATİSTİK ÖZET KARTLARI (STAT CARDS) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
         
         {/* Toplam Ciro */}
         <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-5 sm:p-6 rounded-2xl shadow-md text-white flex flex-col justify-between min-h-[125px]">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-emerald-100 text-[11px] font-extrabold uppercase tracking-widest mb-1">Toplam Ciro</p>
-              <h2 className="text-2xl sm:text-3xl font-black">{totalRevenue.toLocaleString("tr-TR")} ₺</h2>
+              <h2 className="text-xl sm:text-2xl font-black">{totalRevenue.toLocaleString("tr-TR")} ₺</h2>
             </div>
-            <div className="p-2.5 bg-white/20 rounded-xl text-xl">💰</div>
+            <div className="p-2 bg-white/20 rounded-xl text-lg">💰</div>
           </div>
-          <span className="text-[11px] text-emerald-100 font-medium pt-2 border-t border-white/20 mt-2">
-            İptal edilmemiş siparişler toplamı
+          <span className="text-[10px] text-emerald-100 font-medium pt-2 border-t border-white/20 mt-2">
+            İptal edilmemiş siparişler
           </span>
         </div>
 
@@ -132,12 +132,12 @@ export default async function AdminDashboardPage() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-blue-100 text-[11px] font-extrabold uppercase tracking-widest mb-1">Toplam Sipariş</p>
-              <h2 className="text-2xl sm:text-3xl font-black">{totalOrders} <span className="text-sm font-bold opacity-80">Adet</span></h2>
+              <h2 className="text-xl sm:text-2xl font-black">{totalOrders} <span className="text-xs font-bold opacity-80">Adet</span></h2>
             </div>
-            <div className="p-2.5 bg-white/20 rounded-xl text-xl">📦</div>
+            <div className="p-2 bg-white/20 rounded-xl text-lg">📦</div>
           </div>
-          <span className="text-[11px] text-blue-100 font-medium pt-2 border-t border-white/20 mt-2">
-            Kayıtlı tüm müşteri siparişleri
+          <span className="text-[10px] text-blue-100 font-medium pt-2 border-t border-white/20 mt-2">
+            Kayıtlı tüm siparişler
           </span>
         </div>
 
@@ -146,12 +146,12 @@ export default async function AdminDashboardPage() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-amber-100 text-[11px] font-extrabold uppercase tracking-widest mb-1">Bekleyen İşlem</p>
-              <h2 className="text-2xl sm:text-3xl font-black">{pendingOrdersCount} <span className="text-sm font-bold opacity-80">Sipariş</span></h2>
+              <h2 className="text-xl sm:text-2xl font-black">{pendingOrdersCount} <span className="text-xs font-bold opacity-80">Sipariş</span></h2>
             </div>
-            <div className="p-2.5 bg-white/20 rounded-xl text-xl animate-pulse">⏳</div>
+            <div className="p-2 bg-white/20 rounded-xl text-lg animate-pulse">⏳</div>
           </div>
-          <span className="text-[11px] text-amber-100 font-medium pt-2 border-t border-white/20 mt-2">
-            Hazırlanmayı/Kargolanmayı bekliyor
+          <span className="text-[10px] text-amber-100 font-medium pt-2 border-t border-white/20 mt-2">
+            Kargolanmayı bekliyor
           </span>
         </div>
 
@@ -159,13 +159,27 @@ export default async function AdminDashboardPage() {
         <div className="bg-gradient-to-br from-rose-600 to-red-700 p-5 sm:p-6 rounded-2xl shadow-md text-white flex flex-col justify-between min-h-[125px]">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-rose-100 text-[11px] font-extrabold uppercase tracking-widest mb-1">Kritik Stok Uyarısı</p>
-              <h2 className="text-2xl sm:text-3xl font-black">{criticalStockCount} <span className="text-sm font-bold opacity-80">Ürün</span></h2>
+              <p className="text-rose-100 text-[11px] font-extrabold uppercase tracking-widest mb-1">Kritik Stok</p>
+              <h2 className="text-xl sm:text-2xl font-black">{criticalStockCount} <span className="text-xs font-bold opacity-80">Ürün</span></h2>
             </div>
-            <div className="p-2.5 bg-white/20 rounded-xl text-xl">⚠️</div>
+            <div className="p-2 bg-white/20 rounded-xl text-lg">⚠️</div>
           </div>
-          <span className="text-[11px] text-rose-100 font-medium pt-2 border-t border-white/20 mt-2">
-            Stoğu 5 ve altında kalan ürünler
+          <span className="text-[10px] text-rose-100 font-medium pt-2 border-t border-white/20 mt-2">
+            Stoğu &le; 5 kalan ürünler
+          </span>
+        </div>
+
+        {/* Toplam Müşteriler */}
+        <div className="bg-gradient-to-br from-purple-600 to-violet-700 p-5 sm:p-6 rounded-2xl shadow-md text-white flex flex-col justify-between min-h-[125px]">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-purple-100 text-[11px] font-extrabold uppercase tracking-widest mb-1">Müşteriler</p>
+              <h2 className="text-xl sm:text-2xl font-black">{totalUsers} <span className="text-xs font-bold opacity-80">Kayıtlı</span></h2>
+            </div>
+            <div className="p-2 bg-white/20 rounded-xl text-lg">👥</div>
+          </div>
+          <span className="text-[10px] text-purple-100 font-medium pt-2 border-t border-white/20 mt-2">
+            Kayıtlı müşteri sayısı
           </span>
         </div>
 

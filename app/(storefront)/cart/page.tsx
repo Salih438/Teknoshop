@@ -108,7 +108,7 @@ export default function CartPage() {
       }
       removeItem(item.cartItemId);
       toast.success(`${item.name} 'Daha Sonra Satın Al' listenize eklendi! 🕒`);
-    } catch (e) {}
+    } catch {}
   };
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);

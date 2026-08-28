@@ -26,7 +26,7 @@ export default function DeleteCouponButton({ id }: { id: string }) {
 
       toast.success('Kupon başarıyla silindi.');
       router.refresh();
-    } catch (error) {
+    } catch {
       toast.error('Bir hata oluştu.');
     } finally {
       setIsDeleting(false);

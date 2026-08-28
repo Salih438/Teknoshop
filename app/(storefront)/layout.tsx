@@ -2,19 +2,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AuthCartSync from "@/components/AuthCartSync";
 import AnnouncementBar from "@/components/AnnouncementBar";
-import { prisma } from "@/lib/prisma";
+import { getCachedStorefrontCategories } from "@/lib/services/category.service";
 
 export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
-  const categories = await prisma.category.findMany({
-    select: {
-      id: true,
-      name: true,
-      _count: {
-        select: { products: { where: { isActive: true } } },
-      },
-    },
-    orderBy: { name: "asc" },
-  });
+  const categories = await getCachedStorefrontCategories();
 
   return (
     <>

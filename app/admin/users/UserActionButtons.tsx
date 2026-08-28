@@ -41,7 +41,7 @@ export default function UserActionButtons({
       } else {
         toast.error("Güncelleme başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası.", { id: toastId });
     } finally {
       setIsSubmitting(false);
@@ -65,7 +65,7 @@ export default function UserActionButtons({
       } else {
         toast.error("Güncelleme başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası.", { id: toastId });
     } finally {
       setIsSubmitting(false);

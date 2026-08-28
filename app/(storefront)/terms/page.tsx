@@ -17,7 +17,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-bold text-gray-900 mb-3">1. Taraflar ve Sözleşmenin Konusu</h2>
           <p>
-            Bu sözleşme, E-Ticaret Teknoloji A.Ş. (bundan böyle "Satıcı" olarak anılacaktır) ile platform üzerinden elektronik ortamda sipariş veren Kullanıcı (bundan böyle "Alıcı" olarak anılacaktır) arasındaki mesafeli satış hükümlerini, cayma hakkını ve sitenin genel kullanım koşullarını düzenler. Sitemizi kullanarak veya sipariş oluşturarak bu koşulları peşinen kabul etmiş sayılırsınız.
+            Bu sözleşme, E-Ticaret Teknoloji A.Ş. (bundan böyle &quot;Satıcı&quot; olarak anılacaktır) ile platform üzerinden elektronik ortamda sipariş veren Kullanıcı (bundan böyle &quot;Alıcı&quot; olarak anılacaktır) arasındaki mesafeli satış hükümlerini, cayma hakkını ve sitenin genel kullanım koşullarını düzenler. Sitemizi kullanarak veya sipariş oluşturarak bu koşulları peşinen kabul etmiş sayılırsınız.
           </p>
         </section>
 
@@ -42,7 +42,7 @@ export default function TermsPage() {
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Ürünün kutusunda, ambalajında veya garanti belgesinde yırtık/hasar olmamalıdır.</li>
-            <li>Cep telefonu, bilgisayar ve akıllı saat gibi sim kart takılan veya Wi-Fi ağına bağlanan ürünlerde kurulum yapılmamış olmalıdır. Kurulumu yapılan cihazlar "ikinci el" statüsüne düştüğünden iadesi yasal olarak reddedilir.</li>
+            <li>Cep telefonu, bilgisayar ve akıllı saat gibi sim kart takılan veya Wi-Fi ağına bağlanan ürünlerde kurulum yapılmamış olmalıdır. Kurulumu yapılan cihazlar &quot;ikinci el&quot; statüsüne düştüğünden iadesi yasal olarak reddedilir.</li>
             <li>Kulaklık ve VR gözlük gibi hijyenik ürünlerin güvenlik bantları kesinlikle açılmamış olmalıdır.</li>
             <li>Ürün, tüm aksesuarları ve faturası ile birlikte eksiksiz iade edilmelidir.</li>
           </ul>
@@ -58,7 +58,7 @@ export default function TermsPage() {
         <section className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-8">
           <h2 className="text-lg font-bold text-gray-900 mb-2">Uyuşmazlıkların Çözümü</h2>
           <p className="text-sm">
-            İşbu sözleşmenin uygulanmasında doğabilecek uyuşmazlıklarda, T.C. Ticaret Bakanlığı'nca her yıl ilan edilen değere kadar alıcının yerleşim yerindeki Tüketici Hakem Heyetleri, söz konusu değerin üzerindeki ihtilaflarda ise Tüketici Mahkemeleri yetkilidir.
+            İşbu sözleşmenin uygulanmasında doğabilecek uyuşmazlıklarda, T.C. Ticaret Bakanlığı&apos;nca her yıl ilan edilen değere kadar alıcının yerleşim yerindeki Tüketici Hakem Heyetleri, söz konusu değerin üzerindeki ihtilaflarda ise Tüketici Mahkemeleri yetkilidir.
           </p>
         </section>
       </div>

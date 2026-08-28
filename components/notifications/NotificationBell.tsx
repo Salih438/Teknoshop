@@ -117,6 +117,19 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  // Body Scroll Lock (Mobilde Bottom Sheet açıkken arka planı kilitle)
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      if (window.innerWidth < 1024) {
+        document.body.style.overflow = "hidden";
+      }
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   // ESC Tuşunda Kapatma
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -255,7 +268,7 @@ export default function NotificationBell() {
                 {/* MOBİL BOTTOM SHEET OVERLAY */}
                 <div
                   onClick={close}
-                  className="fixed inset-0 bg-black/60 z-[998] backdrop-blur-sm animate-in fade-in duration-200"
+                  className="fixed inset-0 bg-black/60 z-[997] backdrop-blur-xs animate-in fade-in duration-200"
                 />
 
                 {/* MOBİL BOTTOM SHEET PANELI */}
@@ -263,7 +276,7 @@ export default function NotificationBell() {
                   ref={mobileSheetRef}
                   role="dialog"
                   aria-label="Bildirimler Paneli (Mobil)"
-                  className="z-[999] bg-white shadow-2xl border border-gray-200 flex flex-col transition-all duration-200 fixed bottom-0 inset-x-0 rounded-t-3xl max-h-[85dvh] w-full pb-[env(safe-area-inset-bottom)]"
+                  className="z-[998] bg-white shadow-2xl border border-gray-200 flex flex-col transition-all duration-200 fixed bottom-0 inset-x-0 rounded-t-3xl max-h-[85dvh] w-full pb-[env(safe-area-inset-bottom)]"
                 >
                   {/* KATMAN BAŞLIĞI */}
                   <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/90 rounded-t-3xl flex-shrink-0">

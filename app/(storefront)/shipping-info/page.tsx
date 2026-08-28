@@ -2,8 +2,8 @@ import React from "react";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Kargo ve Teslimat | Antigravity E-Ticaret",
-  description: "Antigravity E-Ticaret kargo ve teslimat süreçleri, ücretler ve kargo firmaları.",
+  title: "Kargo ve Teslimat | TeknoShop",
+  description: "TeknoShop e-ticaret kargo ve teslimat süreçleri, ücretler ve kargo firmaları.",
 };
 
 export default function ShippingInfoPage() {
@@ -22,7 +22,7 @@ export default function ShippingInfoPage() {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Gönderim Süresi</h3>
-              <p className="text-gray-700">Saat 15:00'e kadar verilen siparişleriniz aynı gün kargoya teslim edilmektedir. Kampanya dönemlerinde kargoya verilme süresi 1-2 iş günü olabilir.</p>
+              <p className="text-gray-700">Saat 15:00&apos;e kadar verilen siparişleriniz aynı gün kargoya teslim edilmektedir. Kampanya dönemlerinde kargoya verilme süresi 1-2 iş günü olabilir.</p>
             </div>
             
             <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
@@ -30,14 +30,14 @@ export default function ShippingInfoPage() {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Ücretsiz Kargo</h3>
-              <p className="text-gray-700">Belirli bir tutarın üzerindeki tüm siparişlerinizde Türkiye'nin her yerine ücretsiz kargo avantajından faydalanabilirsiniz.</p>
+              <p className="text-gray-700">Belirli bir tutarın üzerindeki tüm siparişlerinizde Türkiye&apos;nin her yerine ücretsiz kargo avantajından faydalanabilirsiniz.</p>
             </div>
           </div>
 
           <div className="prose prose-blue prose-lg max-w-none text-gray-700">
             <h3>Çalıştığımız Kargo Firmaları</h3>
             <p>
-              Müşterilerimize en iyi hizmeti sunabilmek adına Türkiye'nin önde gelen kargo firmaları ile çalışıyoruz:
+              Müşterilerimize en iyi hizmeti sunabilmek adına Türkiye&apos;nin önde gelen kargo firmaları ile çalışıyoruz:
             </p>
             <ul>
               <li><strong>Yurtiçi Kargo:</strong> Tüm Türkiye geneline standart teslimat.</li>
@@ -55,7 +55,7 @@ export default function ShippingInfoPage() {
             <p>Kargonuz size ulaştığında aşağıdaki adımlara dikkat etmeniz büyük önem taşımaktadır:</p>
             <ul>
               <li>Kargo paketini teslim almadan önce dış ambalajında herhangi bir yırtık, ezilme veya ıslanma olup olmadığını kontrol edin.</li>
-              <li>Eğer pakette bir hasar varsa, kargo görevlisine "Hasar Tespit Tutanağı" tutturun ve paketi teslim almayın.</li>
+              <li>Eğer pakette bir hasar varsa, kargo görevlisine &quot;Hasar Tespit Tutanağı&quot; tutturun ve paketi teslim almayın.</li>
               <li>Tutanak tutulan hasarlı kargolar firmamıza geri dönecek ve size hemen yeni ürün gönderimi yapılacaktır.</li>
               <li>Teslimat sonrasında fark edilen kırık veya eksik ürünlerde, kargo firmaları sorumluluk kabul etmediği için tutanak tutulması şarttır.</li>
             </ul>

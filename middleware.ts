@@ -1,8 +1,9 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Hangi sayfaların korunacağını belirliyoruz (Admin, Profil, Ödeme ve Sipariş Onay)
+// Hangi sayfaların ve API'lerin korunacağını belirliyoruz (Admin, Admin API, Profil, Ödeme ve Sipariş Onay)
 const isProtectedRoute = createRouteMatcher([
   '/admin(.*)',
+  '/api/admin(.*)',
   '/profile(.*)',
   '/checkout(.*)',
   '/order-success(.*)',

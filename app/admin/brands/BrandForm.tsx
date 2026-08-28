@@ -30,7 +30,7 @@ export default function BrandForm() {
       } else {
         toast.error(data.error || "Bir hata oluştu.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası yaşandı.", { id: toastId });
     } finally {
       setIsSubmitting(false);

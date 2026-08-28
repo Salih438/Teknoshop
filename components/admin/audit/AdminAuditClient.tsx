@@ -52,7 +52,7 @@ export default function AdminAuditClient({
 
   const [selectedDrawerLog, setSelectedDrawerLog] = useState<AuditDetailDrawerData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const searchQuery = searchParams.get("q") || "";
   const riskFilter = searchParams.get("risk") || "";

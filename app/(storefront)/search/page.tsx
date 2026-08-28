@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
@@ -8,6 +7,7 @@ import Pagination from "@/components/ui/Pagination";
 import { Metadata } from "next";
 import { getMatchingCategoryIds } from "@/lib/synonyms";
 import { Prisma } from "@prisma/client";
+import { getCachedStorefrontCategories } from "@/lib/services/category.service";
 
 export const dynamic = "force-dynamic";
 
@@ -123,10 +123,7 @@ export default async function SearchPage({
       skip: skip,
     }),
 
-    prisma.category.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+    getCachedStorefrontCategories(),
 
     prisma.brand.findMany({
       select: { id: true, name: true },
@@ -220,7 +217,7 @@ export default async function SearchPage({
                     <p className="font-bold text-gray-900">💡 İpuçları & Öneriler:</p>
                     <ul className="list-disc pl-4 space-y-1">
                       <li>Arama kelimesinin yazılışını kontrol edin.</li>
-                      <li>Daha genel veya alternatif kelimeler kullanın (Örn: "iPhone" yerine "Telefon").</li>
+                      <li>Daha genel veya alternatif kelimeler kullanın (Örn: &quot;iPhone&quot; yerine &quot;Telefon&quot;).</li>
                       <li>Filtrelerinizi sıfırlayarak arama alanını genişletin.</li>
                     </ul>
                   </div>

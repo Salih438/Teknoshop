@@ -58,7 +58,7 @@ export default function OrderTimeline({ status, createdAt, updatedAt }: OrderTim
           </div>
         </div>
         <p className="text-[11px] text-red-400 font-mono pt-2 border-t border-red-100">
-          İptal Tarihi: {new Date(updatedAt).toLocaleDateString("tr-TR")} • {new Date(updatedAt).toLocaleTimeString("tr-TR")}
+          Sipariş Tarihi: {new Date(createdAt).toLocaleDateString("tr-TR")} • İptal Tarihi: {new Date(updatedAt).toLocaleDateString("tr-TR")}
         </p>
       </div>
     );

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { AuditLogService } from "@/lib/services/audit-log.service";
 import { AuditRiskLevel } from "@prisma/client";
+import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
 
 type ParsedVariant = {
   id?: string;
@@ -20,7 +21,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin("DELETE_PRODUCTS");
+    const adminUser = await requireAdmin("DELETE_PRODUCTS");
+
+    const identifier = getClientIdentifier(request, adminUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 30, windowSeconds: 60 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit);
+    }
 
     const resolvedParams = await params;
     const productId = resolvedParams.id;
@@ -74,7 +81,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin("MANAGE_PRODUCTS");
+    const adminUser = await requireAdmin("MANAGE_PRODUCTS");
+
+    const identifier = getClientIdentifier(request, adminUser.id);
+    const rateLimit = await checkRateLimit(identifier, { limit: 60, windowSeconds: 60 });
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit);
+    }
 
     const resolvedParams = await params;
     const productId = resolvedParams.id;
@@ -169,8 +182,14 @@ export async function PUT(
             variantsToUpdate.push({ ...pv, id: existingVariants[matchIndex].id });
             existingIds.delete(existingVariants[matchIndex].id);
           } else {
-            const { id, ...createData } = pv;
-            variantsToCreate.push(createData);
+            variantsToCreate.push({
+              combination: pv.combination,
+              price: pv.price,
+              discountedPrice: pv.discountedPrice,
+              stock: pv.stock,
+              sku: pv.sku,
+              isActive: pv.isActive,
+            });
           }
         }
       }

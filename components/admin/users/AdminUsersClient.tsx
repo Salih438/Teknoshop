@@ -52,7 +52,7 @@ export default function AdminUsersClient({
   const [selectedDrawerCustomer, setSelectedDrawerCustomer] = useState<CustomerDetailDrawerData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // URL Parametreleri
   const searchQuery = searchParams.get("q") || "";
@@ -124,7 +124,7 @@ export default function AdminUsersClient({
       } else {
         toast.error("Toplu işlem başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası.", { id: toastId });
     }
   };
@@ -144,7 +144,7 @@ export default function AdminUsersClient({
       } else {
         toast.error("Güncelleme başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası.", { id: toastId });
     }
   };

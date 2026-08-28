@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -54,22 +54,37 @@ export default function SearchBar({ isMobileModalOpen, onCloseMobileModal }: Sea
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mobil Arama Açıldığında Otomatik Odaklanma (Auto-Focus)
-  useEffect(() => {
-    if (isMobileModalOpen) {
-      const timer = setTimeout(() => {
-        mobileInputRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [isMobileModalOpen]);
-
-  const handleCloseDropdown = () => {
+  const handleCloseDropdown = useCallback(() => {
     setIsOpen(false);
     if (onCloseMobileModal) {
       onCloseMobileModal();
     }
-  };
+  }, [onCloseMobileModal]);
+
+  // Mobil Arama Açıldığında Otomatik Odaklanma ve Body Scroll Lock
+  useEffect(() => {
+    if (isMobileModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      const timer = setTimeout(() => {
+        mobileInputRef.current?.focus();
+      }, 50);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          handleCloseDropdown();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        clearTimeout(timer);
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [isMobileModalOpen, handleCloseDropdown]);
 
   // LocalStorage'dan Son Aramaları Yükle
   useEffect(() => {

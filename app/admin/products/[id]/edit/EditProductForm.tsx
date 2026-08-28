@@ -275,8 +275,8 @@ export default function EditProductForm({ product, categories, brands }: EditPro
               {imageMode === "upload" ? (
                 imageUrl && !imageUrl.startsWith("https://utfs.io") && imageUrl !== "" ? (
                    <div className="text-center w-full">
-                    <p className="text-sm text-amber-600 mb-3">Şu an bir dış URL kullanıyorsunuz. Buluta resim yüklemek için mevcut URL'i temizleyin.</p>
-                    <button type="button" onClick={() => setImageUrl("")} className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-200 transition">URL'i Temizle</button>
+                    <p className="text-sm text-amber-600 mb-3">Şu an bir dış URL kullanıyorsunuz. Buluta resim yüklemek için mevcut URL&apos;i temizleyin.</p>
+                    <button type="button" onClick={() => setImageUrl("")} className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-200 transition">URL&apos;i Temizle</button>
                    </div>
                 ) : imageUrl ? (
                   <div className="text-center">

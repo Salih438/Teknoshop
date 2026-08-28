@@ -271,7 +271,7 @@ export default function CheckoutPage() {
     <div className="max-w-6xl mx-auto py-6 sm:py-8 px-4 pb-28 lg:pb-8 animate-in fade-in duration-500 w-full overflow-x-clip text-left">
       
       {/* ÜST BAŞLIK VE SEPETE DÖN LİNKİ */}
-      <div className="mb-6 border-b border-gray-100 pb-4 flex items-center justify-between">
+      <div className="mb-4 border-b border-gray-100 pb-4 flex items-center justify-between">
         <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
           Güvenli Ödeme & Teslimat
         </h1>
@@ -281,6 +281,17 @@ export default function CheckoutPage() {
         >
           ← Sepete Dön
         </Link>
+      </div>
+
+      {/* 🚀 DEMO / SIMULATED ENVIRONMENT NOTICE BANNER */}
+      <div className="mb-6 p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl flex items-center gap-3 text-amber-900 shadow-xs">
+        <span className="text-xl flex-shrink-0">🛡️</span>
+        <div className="text-xs leading-relaxed">
+          <p className="font-extrabold">Staj & Demo Simülasyon Ortamı Aktiftir</p>
+          <p className="text-amber-800/90 mt-0.5">
+            Bu platform mimari gösterim amaçlıdır. Kart bilgileri güvenli simüle edilir ve gerçek bir banka tahsilatı yapılmaz.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">

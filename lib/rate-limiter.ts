@@ -12,6 +12,7 @@ export interface RateLimitResult {
   limit: number;
   remaining: number;
   resetSeconds: number;
+  storage: "distributed-redis" | "local-memory-fallback";
 }
 
 // In-Memory Token Bucket / Window fallback cache for single-instance or when Redis is unconfigured
@@ -35,29 +36,59 @@ if (typeof setInterval !== "undefined") {
 }
 
 /**
+ * Validates whether a given string is a plausible IPv4 or IPv6 address.
+ */
+function isValidIp(ip: string): boolean {
+  // Basic IPv4 check
+  const ipv4Regex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+  // Basic IPv6 check
+  const ipv6Regex = /^(?:[a-fA-F0-9]{1,4}:){1,7}[a-fA-F0-9]{1,4}$|^::1$/;
+  return ipv4Regex.test(ip) || ipv6Regex.test(ip);
+}
+
+/**
  * Extracts a unique client identifier from an incoming request.
- * Prefers authenticated userId if provided, otherwise uses X-Forwarded-For or X-Real-IP headers.
+ * 1. Prefers authenticated userId if provided (`user:<id>`).
+ * 2. Checks trusted headers: `x-real-ip`, `cf-connecting-ip`, `x-vercel-ip`.
+ * 3. Falls back to sanitized `x-forwarded-for` or anonymous fallback.
  */
 export function getClientIdentifier(request: Request, userId?: string | null): string {
   if (userId) {
     return `user:${userId}`;
   }
+
+  // Trusted proxy headers (Vercel, Cloudflare, Nginx)
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp && isValidIp(realIp.trim())) {
+    return `ip:${realIp.trim()}`;
+  }
+
+  const vercelIp = request.headers.get("x-vercel-ip");
+  if (vercelIp && isValidIp(vercelIp.trim())) {
+    return `ip:${vercelIp.trim()}`;
+  }
+
+  const cfIp = request.headers.get("cf-connecting-ip");
+  if (cfIp && isValidIp(cfIp.trim())) {
+    return `ip:${cfIp.trim()}`;
+  }
+
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
-    const primaryIp = forwardedFor.split(",")[0].trim();
-    if (primaryIp) return `ip:${primaryIp}`;
+    const parts = forwardedFor.split(",").map((s) => s.trim());
+    const candidate = parts[0];
+    if (candidate && isValidIp(candidate)) {
+      return `ip:${candidate}`;
+    }
   }
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) {
-    return `ip:${realIp}`;
-  }
+
   return "ip:anonymous";
 }
 
 /**
  * Checks rate limit for a specific identifier and configuration.
- * Automatically utilizes Upstash Redis REST API if environment variables are configured,
- * otherwise falls back to a fail-safe in-memory window bucket.
+ * - Distributed Upstash Redis REST is utilized when credentials are present.
+ * - In-Memory Window Bucket is utilized as a local development/single-instance fallback.
  */
 export async function checkRateLimit(
   identifier: string,
@@ -106,15 +137,16 @@ export async function checkRateLimit(
           limit,
           remaining,
           resetSeconds,
+          storage: "distributed-redis",
         };
       }
     } catch (redisError) {
-      // Fail-open safety: if distributed Redis is unreachable, log warning and fall back to in-memory
-      console.warn("Distributed rate limiter (Upstash) error, falling back to in-memory:", redisError);
+      // Fail-open safety: if distributed Redis is unreachable, fall back to in-memory
+      console.warn("Distributed rate limiter (Upstash) unreachable, using local fallback:", redisError);
     }
   }
 
-  // 2. IN-MEMORY TOKEN BUCKET FALLBACK
+  // 2. IN-MEMORY TOKEN BUCKET FALLBACK (Local Development / Single-Instance)
   const key = `ratelimit:${identifier}`;
   const existing = memoryCache.get(key);
 
@@ -129,6 +161,7 @@ export async function checkRateLimit(
       limit,
       remaining: Math.max(0, limit - 1),
       resetSeconds,
+      storage: "local-memory-fallback",
     };
   }
 
@@ -142,6 +175,7 @@ export async function checkRateLimit(
     limit,
     remaining,
     resetSeconds: remainingWindowSeconds > 0 ? remainingWindowSeconds : windowSeconds,
+    storage: "local-memory-fallback",
   };
 }
 

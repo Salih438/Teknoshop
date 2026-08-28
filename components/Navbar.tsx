@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useCartStore } from "../lib/store";
 import { SignInButton, SignUpButton, UserButton, useAuth, useUser } from "@clerk/nextjs";
@@ -38,6 +38,7 @@ export default function Navbar({
   const [isCartHovered, setIsCartHovered] = useState(false);
   const [isAccountHovered, setIsAccountHovered] = useState(false);
 
+  const hamburgerTriggerRef = useRef<HTMLButtonElement>(null);
   const cartHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const accountHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -50,17 +51,13 @@ export default function Navbar({
       }
     };
 
-    window.addEventListener("profile-updated", handleProfileUpdate);
-    return () => {
-      window.removeEventListener("profile-updated", handleProfileUpdate);
-    };
+    window.addEventListener("userProfileUpdated", handleProfileUpdate);
+    return () => window.removeEventListener("userProfileUpdated", handleProfileUpdate);
   }, [refetchProfile, user]);
 
   const handleCartMouseEnter = () => {
     if (cartHoverTimeoutRef.current) clearTimeout(cartHoverTimeoutRef.current);
-    cartHoverTimeoutRef.current = setTimeout(() => {
-      setIsCartHovered(true);
-    }, 200);
+    setIsCartHovered(true);
   };
 
   const handleCartMouseLeave = () => {
@@ -72,9 +69,7 @@ export default function Navbar({
 
   const handleAccountMouseEnter = () => {
     if (accountHoverTimeoutRef.current) clearTimeout(accountHoverTimeoutRef.current);
-    accountHoverTimeoutRef.current = setTimeout(() => {
-      setIsAccountHovered(true);
-    }, 200);
+    setIsAccountHovered(true);
   };
 
   const handleAccountMouseLeave = () => {
@@ -85,12 +80,28 @@ export default function Navbar({
   };
 
   return (
-    <header className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 text-gray-800 sticky top-0 z-50 transition-all w-full">
+    <header className="bg-white/95 backdrop-blur-md shadow-xs border-b border-gray-100 text-gray-800 sticky top-0 z-40 transition-all w-full">
       <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 w-full">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-1 sm:gap-4">
 
-          {/* 1. SOL KISIM: LOGO & ÜRÜNLER LİNKİ */}
-          <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0">
+          {/* 1. SOL KISIM: HAMBURGER BUTONU (MOBİL) + LOGO + ÜRÜNLER LİNKİ (MASAÜSTÜ) */}
+          <div className="flex items-center gap-1 sm:gap-6 flex-shrink-0">
+            {/* MOBİL MENÜ TETİKLEYİCİ BUTONU (☰ - Logonun Solunda) */}
+            <button
+              ref={hamburgerTriggerRef}
+              type="button"
+              onClick={() => setIsDrawerOpen(true)}
+              aria-label="Menüyü aç"
+              title="Menüyü aç"
+              aria-expanded={isDrawerOpen}
+              aria-controls="mobile-navigation-drawer"
+              className="sm:hidden text-gray-700 hover:text-blue-600 p-2 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[40px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
             <Link
               href="/"
               className="text-base sm:text-2xl font-extrabold text-blue-600 tracking-tight hover:opacity-80 transition-opacity flex items-center gap-1 min-h-[44px] min-w-[44px]"
@@ -128,7 +139,6 @@ export default function Navbar({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
-
 
             {/* SKELETON LOADING STATE */}
             {!isLoaded ? (
@@ -205,7 +215,7 @@ export default function Navbar({
                         />
                       </svg>
                       {mounted && totalItems > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-extrabold h-4.5 w-4.5 min-w-[18px] flex items-center justify-center rounded-full ring-2 ring-white shadow-sm">
+                        <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-extrabold h-4.5 w-4.5 min-w-[18px] flex items-center justify-center rounded-full ring-2 ring-white shadow-xs">
                           {totalItems}
                         </span>
                       )}
@@ -242,7 +252,7 @@ export default function Navbar({
                       />
                     </svg>
                     {mounted && totalItems > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-extrabold h-4.5 w-4.5 min-w-[18px] flex items-center justify-center rounded-full ring-2 ring-white shadow-sm">
+                      <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-extrabold h-4.5 w-4.5 min-w-[18px] flex items-center justify-center rounded-full ring-2 ring-white shadow-xs">
                         {totalItems}
                       </span>
                     )}
@@ -258,7 +268,7 @@ export default function Navbar({
                       </button>
                     </SignInButton>
                     <SignUpButton mode="modal">
-                      <button className="bg-blue-600 text-white font-bold px-3.5 py-2 rounded-xl hover:bg-blue-700 hover:shadow-sm transition-all text-xs sm:text-sm min-h-[44px] inline-flex items-center justify-center cursor-pointer">
+                      <button className="bg-blue-600 text-white font-bold px-3.5 py-2 rounded-xl hover:bg-blue-700 hover:shadow-xs transition-all text-xs sm:text-sm min-h-[44px] inline-flex items-center justify-center cursor-pointer">
                         Kayıt Ol
                       </button>
                     </SignUpButton>
@@ -302,20 +312,6 @@ export default function Navbar({
               </>
             )}
 
-            {/* MOBİL MENÜ TETİKLEYİCİ BUTONU (☰ - Sadece Mobilde Görünür) */}
-            <button
-              type="button"
-              onClick={() => setIsDrawerOpen(true)}
-              aria-label="Menüyü aç"
-              title="Menüyü aç"
-              aria-expanded={isDrawerOpen}
-              aria-controls="mobile-navigation-drawer"
-              className="sm:hidden text-gray-700 hover:text-blue-600 p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[40px] sm:min-w-[44px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-600 outline-none ml-1"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
           </div>
         </div>
 
@@ -332,6 +328,7 @@ export default function Navbar({
           isOpen={isDrawerOpen}
           onClose={() => setIsDrawerOpen(false)}
           isSignedIn={!!isSignedIn}
+          triggerRef={hamburgerTriggerRef}
           categories={categories}
         />
 

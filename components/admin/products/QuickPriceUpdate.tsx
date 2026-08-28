@@ -45,7 +45,7 @@ export default function QuickPriceUpdate({
       } else {
         toast.error("Fiyat güncelleme başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası oluştu.", { id: toastId });
     } finally {
       setLoading(false);

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { AdminNotificationService } from "@/lib/services/admin-notification.service";
 import { EmailService } from "@/lib/email-service";
+import { defaultPaymentGateway } from "@/lib/services/payment-gateway.service";
 
 export class CheckoutError extends Error {
   constructor(public message: string, public status: number) {
@@ -132,7 +133,7 @@ async function applyCoupon(tx: TxClient, couponCode: string, userId: string, cal
 async function validatePaymentMethod(tx: TxClient, paymentMethodId: string) {
   const paymentMethod = await tx.paymentMethod.findUnique({
     where: { id: paymentMethodId },
-    select: { id: true, fee: true, type: true, isActive: true },
+    select: { id: true, fee: true, type: true, provider: true, isActive: true },
   });
 
   if (!paymentMethod || !paymentMethod.isActive) {
@@ -266,13 +267,22 @@ export const CheckoutService = {
         });
       }
 
-      const isCreditCard = paymentMethod.type === "CREDIT_CARD";
+      // 🛡️ DEMO / SIMULATED ÖDEME ADAPTÖRÜ
+      const paymentResult = await defaultPaymentGateway.processPayment({
+        orderId: order.id,
+        amount: finalTotalPrice,
+        paymentMethodType: paymentMethod.type,
+        paymentMethodProvider: paymentMethod.provider,
+        userId,
+      });
+
       await tx.payment.create({
         data: {
           orderId: order.id,
           paymentMethodId: paymentMethod.id,
-          status: isCreditCard ? "COMPLETED" : "PENDING",
-          paidAt: isCreditCard ? new Date() : null,
+          status: paymentResult.status,
+          paidAt: paymentResult.paidAt,
+          transactionId: paymentResult.transactionId,
         },
       });
 

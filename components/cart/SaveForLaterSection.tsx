@@ -22,7 +22,7 @@ export default function SaveForLaterSection() {
       if (saved) {
         Promise.resolve().then(() => setSavedItems(JSON.parse(saved)));
       }
-    } catch (e) {}
+    } catch {}
   }, []);
 
   const moveToCart = (item: SavedItem) => {

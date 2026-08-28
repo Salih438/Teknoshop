@@ -144,7 +144,7 @@ export default function ReturnRequestModal({ orderId, items }: ReturnRequestModa
     e.preventDefault();
 
     const itemsToSubmit = Object.entries(selectedItems)
-      .filter(([_, value]) => value.selected)
+      .filter(([, value]) => value.selected)
       .map(([orderItemId, value]) => ({
         orderItemId,
         quantity: value.quantity,

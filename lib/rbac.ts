@@ -87,7 +87,8 @@ export const ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
 /**
  * Belirli bir rolün verilen izne sahip olup olmadığını kontrol eder.
  */
-export function hasPermission(systemRole: SystemRole, permission: Permission): boolean {
+export function hasPermission(systemRole?: SystemRole | null, permission?: Permission): boolean {
+  if (!systemRole || !permission) return false;
   if (systemRole === "SUPER_ADMIN") return true;
   const permissions = ROLE_PERMISSIONS[systemRole] || [];
   return permissions.includes(permission);

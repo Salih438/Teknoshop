@@ -440,6 +440,7 @@ model Review {
   @@unique([userId, productId]) 
   @@index([productId])
   @@index([userId]) 
+  @@index([productId, isHidden, createdAt])
 }
 
 model Favorite {

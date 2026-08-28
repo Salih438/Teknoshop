@@ -75,7 +75,7 @@ export default function CouponWizardModal({ isOpen, onClose, onSuccess }: Coupon
       } else {
         toast.error(data.error || "Oluşturma başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası oluştu.", { id: toastId });
     } finally {
       setLoading(false);

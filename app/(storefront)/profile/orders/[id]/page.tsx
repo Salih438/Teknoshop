@@ -14,6 +14,13 @@ import { ACTIVE_RETURN_STATUSES, ACTIVE_EXCHANGE_STATUSES } from "@/lib/constant
 
 export const dynamic = "force-dynamic";
 
+function checkWithinReturnPeriod(deliveryDate: Date | string | null | undefined): boolean {
+  if (!deliveryDate) return false;
+  const deliveryTime = new Date(deliveryDate).getTime();
+  const fourteenDaysInMs = 14 * 24 * 60 * 60 * 1000;
+  return Date.now() - deliveryTime <= fourteenDaysInMs;
+}
+
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const orderId = resolvedParams.id;
@@ -107,10 +114,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   const shortOrderCode = `#ORD-${order.id.slice(-8).toUpperCase()}`;
 
-  const deliveryDate = order.deliveredAt || order.updatedAt;
-  const ageInMs = Date.now() - new Date(deliveryDate).getTime();
-  const fourteenDaysInMs = 14 * 24 * 60 * 60 * 1000;
-  const isWithinReturnPeriod = ageInMs <= fourteenDaysInMs;
+  const isWithinReturnPeriod = checkWithinReturnPeriod(order.deliveredAt || order.updatedAt);
 
   const hasPendingReturn =
     order.returns?.some((r) =>

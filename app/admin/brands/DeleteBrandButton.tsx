@@ -27,7 +27,7 @@ export default function DeleteBrandButton({ id }: { id: string }) {
       } else {
         toast.error(data.error || "Silinemedi", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Silme işlemi sırasında hata oluştu.", { id: toastId });
     } finally {
       setIsDeleting(false);

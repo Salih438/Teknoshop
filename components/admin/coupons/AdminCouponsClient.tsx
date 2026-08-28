@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import CouponWizardModal from "./CouponWizardModal";
@@ -55,7 +54,7 @@ export default function AdminCouponsClient({
   const [selectedDrawerCoupon, setSelectedDrawerCoupon] = useState<CouponDetailDrawerData | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const searchQuery = searchParams.get("q") || "";
   const statusFilter = searchParams.get("status") || "";
@@ -124,7 +123,7 @@ export default function AdminCouponsClient({
       } else {
         toast.error("Toplu işlem başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası oluştu.", { id: toastId });
     }
   };
@@ -144,7 +143,7 @@ export default function AdminCouponsClient({
       } else {
         toast.error("İşlem başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası.", { id: toastId });
     }
   };
@@ -164,7 +163,7 @@ export default function AdminCouponsClient({
       } else {
         toast.error("Kopyalama başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası.", { id: toastId });
     }
   };

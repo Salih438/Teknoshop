@@ -38,7 +38,7 @@ export default function AdminOrdersClient({
   const searchParams = useSearchParams();
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // URL Arama & Filtre Parametreleri
   const searchQuery = searchParams.get("q") || "";
@@ -100,7 +100,7 @@ export default function AdminOrdersClient({
       } else {
         toast.error("Toplu güncelleme başarısız.", { id: toastId });
       }
-    } catch (error) {
+    } catch {
       toast.error("Sunucu hatası oluştu.", { id: toastId });
     }
   };

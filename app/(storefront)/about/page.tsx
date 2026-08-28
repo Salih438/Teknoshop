@@ -24,7 +24,7 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Vizyonumuz</h2>
           <p>
-            Türkiye'de teknoloji alışverişi denildiğinde akla gelen ilk marka olmak. Güçlü tedarik zincirimiz, yenilikçi web altyapımız ve müşteri odaklı hizmet anlayışımızla teknoloji perakendeciliğinde standartları yeniden belirliyoruz. Geleceğin teknolojilerini bugünden erişilebilir kılıyoruz.
+            Türkiye&apos;de teknoloji alışverişi denildiğinde akla gelen ilk marka olmak. Güçlü tedarik zincirimiz, yenilikçi web altyapımız ve müşteri odaklı hizmet anlayışımızla teknoloji perakendeciliğinde standartları yeniden belirliyoruz. Geleceğin teknolojilerini bugünden erişilebilir kılıyoruz.
           </p>
         </section>
 

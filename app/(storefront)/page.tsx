@@ -8,6 +8,7 @@ import TrustAndNewsletter from "@/components/storefront/TrustAndNewsletter";
 import PersonalizedSection from "@/components/storefront/PersonalizedSection";
 import { getPersonalizedRecommendations } from "@/lib/recommendation-engine";
 import { currentUser } from "@clerk/nextjs/server";
+import { getCachedStorefrontCategories } from "@/lib/services/category.service";
 
 export const dynamic = "force-dynamic";
 
@@ -23,17 +24,10 @@ export default async function Home() {
     if (dbUser) dbUserId = dbUser.id;
   }
 
-  // 1. PARALEL SUNUCU SORGULARI (Promise.all ile Maximum Performans)
+  // 1. PARALEL SUNUCU SORGULARI (Promise.all ile Maximum Performans + React Cache Deduplication)
   const [categories, brands, newProductsRaw, popularProductsRaw, flashSaleProductsRaw, personalizedProducts] =
     await Promise.all([
-      prisma.category.findMany({
-        include: {
-          _count: {
-            select: { products: { where: { isActive: true } } },
-          },
-        },
-        orderBy: { name: "asc" },
-      }),
+      getCachedStorefrontCategories(),
       prisma.brand.findMany({
         orderBy: { name: "asc" },
       }),

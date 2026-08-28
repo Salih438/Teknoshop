@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AdminNotificationBell from "./AdminNotificationBell";
@@ -33,6 +33,26 @@ export default function AdminSidebarNav({ canManageRoles = false }: AdminSidebar
 
   const toggleDrawer = () => setIsOpen((prev) => !prev);
   const closeDrawer = () => setIsOpen(false);
+
+  // Body Scroll Lock & ESC Listener on Mobile
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      if (window.innerWidth < 768) {
+        document.body.style.overflow = "hidden";
+      }
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") closeDrawer();
+      };
+      window.addEventListener("keydown", handleKeyDown);
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [isOpen]);
 
   // 🛡️ RBAC SIDEBAR FILTER: MANAGE_ROLES izni olmayan kullanıcılar için "Rol & İzinler" linkini gizle
   const filteredNavLinks = NAV_LINKS.filter(

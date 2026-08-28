@@ -1,5 +1,5 @@
-﻿import { prisma } from "@/lib/prisma";
-import { Coupon, Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { Coupon } from "@prisma/client";
 
 export interface ValidateCouponResult {
   isValid: boolean;
