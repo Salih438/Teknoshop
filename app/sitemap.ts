@@ -1,8 +1,9 @@
 import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { env } from "@/lib/env";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vitrin.com";
+  const baseUrl = env.NEXT_PUBLIC_APP_URL || "https://vitrin.com";
 
   let productEntries: MetadataRoute.Sitemap = [];
 

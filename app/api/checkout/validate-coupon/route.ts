@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { z } from "zod";
 import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
+import { CouponService } from "@/lib/services/coupon.service";
 
 const validateCouponSchema = z.object({
   couponCode: z.string().min(1, "Kupon kodu zorunludur."),
@@ -49,54 +50,17 @@ export async function POST(request: Request) {
     }
 
     const { couponCode, subTotal } = validation.data;
-    const normalizedCouponCode = couponCode.trim().toUpperCase();
 
-    // 3. KUPON KONTROLLERİ
-    const coupon = await prisma.coupon.findUnique({
-      where: { code: normalizedCouponCode }
-    });
+    // 3. KUPON KONTROLLERİ (CouponService)
+    const result = await CouponService.validateCoupon(couponCode, subTotal, dbUser.id);
 
-    if (!coupon) {
-      return NextResponse.json({ error: "Girdiğiniz kupon kodu geçersiz." }, { status: 404 });
+    if (!result.isValid) {
+      return NextResponse.json({ error: result.error || "Kupon geçersiz." }, { status: 400 });
     }
-
-    if (!coupon.isActive) {
-      return NextResponse.json({ error: "Bu kupon kodu artık aktif değil." }, { status: 400 });
-    }
-
-    if (coupon.expireDate && coupon.expireDate < new Date()) {
-      return NextResponse.json({ error: "Bu kuponun kullanım süresi dolmuş." }, { status: 400 });
-    }
-
-    if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-      return NextResponse.json({ error: "Bu kuponun kullanım limiti dolmuş." }, { status: 400 });
-    }
-
-    if (coupon.minAmount && subTotal < coupon.minAmount) {
-      return NextResponse.json({ error: `Bu kuponu kullanmak için sepet tutarı en az ${coupon.minAmount} TL olmalıdır.` }, { status: 400 });
-    }
-
-    // 4. TEK KULLANIMLIK (SINGLE USE) KONTROLÜ
-    if (coupon.isSingleUse) {
-      const existingUsage = await prisma.couponUsage.findFirst({
-        where: {
-          couponId: coupon.id,
-          userId: dbUser.id
-        }
-      });
-
-      if (existingUsage) {
-        return NextResponse.json({ error: "Bu kupon yalnızca bir kez kullanılabilir ve siz zaten kullandınız." }, { status: 400 });
-      }
-    }
-
-    // 5. İNDİRİM HESAPLAMA
-    // Not: Kuponlar sistemde yüzde bazlı ("discount" alanı) olarak ele alınmaktadır.
-    const discountAmount = (subTotal * coupon.discount) / 100;
 
     return NextResponse.json({ 
       success: true, 
-      discount: discountAmount,
+      discount: result.discountAmount,
       message: "Kupon başarıyla uygulandı!"
     }, { status: 200 });
 

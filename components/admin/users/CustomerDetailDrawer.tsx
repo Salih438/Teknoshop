@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export interface CustomerDetailDrawerData {
   id: string;
@@ -59,7 +60,7 @@ export default function CustomerDetailDrawer({ customer, isOpen, onClose }: Cust
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white font-black text-xl flex items-center justify-center shadow-md">
                 {customer.avatarUrl ? (
-                  <img src={customer.avatarUrl} alt={customer.name} className="w-full h-full object-cover rounded-2xl" />
+                  <Image src={customer.avatarUrl} alt={customer.name} width={48} height={48} className="w-full h-full object-cover rounded-2xl" unoptimized={customer.avatarUrl.startsWith("http")} />
                 ) : (
                   initial
                 )}

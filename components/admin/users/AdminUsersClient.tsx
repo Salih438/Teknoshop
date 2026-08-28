@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import CustomerDetailDrawer, { CustomerDetailDrawerData } from "./CustomerDetailDrawer";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import Image from "next/image";
 
 export interface CustomerDTO {
   id: string;
@@ -369,7 +370,7 @@ export default function AdminUsersClient({
                     <td className="p-3.5">
                       <div className="w-10 h-10 bg-blue-600 text-white font-black text-base rounded-2xl flex items-center justify-center shadow-xs">
                         {user.avatarUrl ? (
-                          <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover rounded-2xl" />
+                          <Image src={user.avatarUrl} alt={user.name} width={40} height={40} className="w-full h-full object-cover rounded-2xl" unoptimized={user.avatarUrl.startsWith("http")} />
                         ) : (
                           initial
                         )}

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
+import { env } from "@/lib/env";
 
 export async function GET(
   request: Request,
@@ -58,7 +59,7 @@ export async function GET(
 
     // Mağaza Ayarları (Veritabanından Dinamik Çekim)
     const storeSettings = await prisma.storeSettings.findFirst();
-    const storeName = process.env.NEXT_PUBLIC_STORE_NAME || "TEKNOSHOP TEKNOLOJİ A.Ş.";
+    const storeName = env.NEXT_PUBLIC_STORE_NAME || "TEKNOSHOP TEKNOLOJİ A.Ş.";
     const storeAddress = storeSettings?.address || "Büyükdere Cad. No:123, Levent / İstanbul";
     const storePhone = storeSettings?.phone || "0850 123 45 67";
     const storeEmail = storeSettings?.email || "fatura@teknoshop.com";

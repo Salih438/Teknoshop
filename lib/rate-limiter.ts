@@ -1,5 +1,6 @@
 // File: lib/rate-limiter.ts
 import { NextResponse } from "next/server";
+import { env } from "@/lib/env";
 
 export interface RateLimitConfig {
   limit: number;
@@ -67,8 +68,8 @@ export async function checkRateLimit(
   const resetSeconds = windowSeconds;
 
   // 1. DISTRIBUTED UPSTASH REDIS REST CHECK (if configured)
-  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const redisUrl = env.UPSTASH_REDIS_REST_URL;
+  const redisToken = env.UPSTASH_REDIS_REST_TOKEN;
 
   if (redisUrl && redisToken) {
     try {

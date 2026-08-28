@@ -10,6 +10,7 @@ import ReturnRequestModal from "@/components/profile/ReturnRequestModal";
 import ExchangeRequestModal from "@/components/profile/ExchangeRequestModal";
 import ReturnStatusCard from "@/components/profile/ReturnStatusCard";
 import ExchangeStatusCard from "@/components/profile/ExchangeStatusCard";
+import { ACTIVE_RETURN_STATUSES, ACTIVE_EXCHANGE_STATUSES } from "@/lib/constants/order-status";
 
 export const dynamic = "force-dynamic";
 
@@ -113,12 +114,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   const hasPendingReturn =
     order.returns?.some((r) =>
-      ["PENDING", "APPROVED", "SHIPPED", "RECEIVED"].includes(r.status)
+      (ACTIVE_RETURN_STATUSES as readonly string[]).includes(r.status)
     ) ?? false;
 
   const hasPendingExchange =
     order.exchanges?.some((e) =>
-      ["PENDING", "APPROVED", "SHIPPED_BY_CUSTOMER", "RECEIVED", "SHIPPED_BY_ADMIN"].includes(e.status)
+      (ACTIVE_EXCHANGE_STATUSES as readonly string[]).includes(e.status)
     ) ?? false;
 
   const canCreateReturn =

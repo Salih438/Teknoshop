@@ -3,6 +3,8 @@
  * Resend REST API & Cloud SMTP destekli, güvenli fallback mekanizmalı kurumsal e-posta servis katmanı.
  */
 
+import { env } from "@/lib/env";
+
 export interface OrderEmailDTO {
   id: string;
   totalPrice: number;
@@ -35,8 +37,8 @@ export class EmailService {
    * 📬 Çekirdek E-Posta Gönderim Motoru (Resend HTTP REST API + Graceful Console Fallback)
    */
   private static async dispatchEmail(payload: SendEmailPayload): Promise<SendEmailResult> {
-    const resendApiKey = process.env.RESEND_API_KEY?.trim();
-    const emailFrom = process.env.EMAIL_FROM?.trim() || "Teknoshop <onboarding@resend.dev>";
+    const resendApiKey = env.RESEND_API_KEY?.trim();
+    const emailFrom = env.EMAIL_FROM?.trim() || "Teknoshop <onboarding@resend.dev>";
 
     // 1. GERÇEK SAĞLAYICI (Resend REST API Entegrasyonu)
     if (resendApiKey) {

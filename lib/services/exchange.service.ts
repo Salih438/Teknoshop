@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { ExchangeStatus, ExchangeReason, Prisma } from "@prisma/client";
+import { ExchangeStatus, ExchangeReason, ReturnStatus, Prisma } from "@prisma/client";
+import { ACTIVE_EXCHANGE_STATUSES, ACTIVE_RETURN_STATUSES } from "@/lib/constants/order-status";
 
 export interface CreateExchangeItemInput {
   orderItemId: string;
@@ -81,14 +82,14 @@ export class ExchangeService {
       prisma.returnRequest.findMany({
         where: {
           orderId,
-          status: { in: ["PENDING", "APPROVED", "SHIPPED", "RECEIVED"] },
+          status: { in: ACTIVE_RETURN_STATUSES as ReturnStatus[] },
         },
         include: { items: true },
       }),
       prisma.exchangeRequest.findMany({
         where: {
           orderId,
-          status: { in: ["PENDING", "APPROVED", "WAITING_FOR_CUSTOMER", "WAITING_STOCK", "SHIPPED", "RECEIVED", "PROCESSING"] },
+          status: { in: ACTIVE_EXCHANGE_STATUSES as ExchangeStatus[] },
         },
         include: { items: true },
       }),
@@ -206,7 +207,7 @@ export class ExchangeService {
           where: {
             orderItemId: itemInput.orderItemId,
             exchangeRequest: {
-              status: { in: ["PENDING", "APPROVED", "WAITING_FOR_CUSTOMER", "WAITING_STOCK", "SHIPPED", "RECEIVED", "PROCESSING"] },
+              status: { in: ACTIVE_EXCHANGE_STATUSES as ExchangeStatus[] },
             },
           },
         });

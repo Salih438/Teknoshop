@@ -9,6 +9,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 import CookieConsent from "@/components/CookieConsent";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -102,8 +103,10 @@ export default async function RootLayout({
           (ColorZilla vb.) body'ye yaptığı müdahaleleri susturuyoruz.
         */}
         <body className={`${inter.className} bg-gray-50 text-gray-900`} suppressHydrationWarning>
-          {children}
-          <CookieConsent />
+          <QueryProvider>
+            {children}
+            <CookieConsent />
+          </QueryProvider>
         </body>
       </html>
     </ClerkProvider>

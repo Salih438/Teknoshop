@@ -66,8 +66,18 @@ export default async function Home() {
       getPersonalizedRecommendations(dbUserId, 8),
     ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formatProductForCard = (p: any): ProductCardProps => ({
+  type RawProductWithCardIncludes = {
+    id: string;
+    name: string;
+    price: number;
+    comparePrice: number | null;
+    imageUrl: string | null;
+    stock: number;
+    category?: { name: string } | null;
+    reviews?: { rating: number }[];
+  };
+
+  const formatProductForCard = (p: RawProductWithCardIncludes): ProductCardProps => ({
     id: p.id,
     name: p.name,
     price: p.price,

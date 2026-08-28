@@ -4,21 +4,10 @@ import { useUser, SignOutButton, useClerk } from "@clerk/nextjs";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useUserProfile } from "@/lib/hooks/useUserProfile";
 
 interface AccountPopoverProps {
   onClose?: () => void;
-}
-
-interface UserProfileResponse {
-  name?: string;
-  email?: string;
-  avatarUrl?: string;
-  _count?: {
-    orders?: number;
-    returns?: number;
-    exchanges?: number;
-  };
 }
 
 export default function AccountPopover({ onClose }: AccountPopoverProps) {
@@ -26,18 +15,7 @@ export default function AccountPopover({ onClose }: AccountPopoverProps) {
   const { openUserProfile } = useClerk();
   const router = useRouter();
 
-  const [profileData, setProfileData] = useState<UserProfileResponse | null>(null);
-
-  useEffect(() => {
-    fetch("/api/profile")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.user) {
-          setProfileData(data.user);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data: profileData } = useUserProfile(!!user);
 
   const displayName =
     profileData?.name ||

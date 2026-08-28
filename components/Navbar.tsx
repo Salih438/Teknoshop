@@ -9,6 +9,7 @@ import NotificationBell from "./notifications/NotificationBell";
 import MiniCartPopover from "./cart/MiniCartPopover";
 import AccountPopover from "./profile/AccountPopover";
 import MobileNavigationDrawer from "./MobileNavigationDrawer";
+import { useUserProfile } from "@/lib/hooks/useUserProfile";
 
 const emptySubscribe = () => () => { };
 
@@ -29,7 +30,9 @@ export default function Navbar({
   const { isLoaded, isSignedIn } = useAuth();
   const { user } = useUser();
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { data: profileUser, refetch: refetchProfile } = useUserProfile(!!isSignedIn);
+  const isAdmin = profileUser?.role === "ADMIN";
+
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCartHovered, setIsCartHovered] = useState(false);
@@ -38,26 +41,10 @@ export default function Navbar({
   const cartHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const accountHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Synchronize user profile (name, role) from backend API
-  const fetchUserProfile = useCallback(() => {
-    if (isSignedIn) {
-      fetch("/api/profile")
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.user) {
-            setIsAdmin(data.user.role === "ADMIN");
-          }
-        })
-        .catch(() => { });
-    }
-  }, [isSignedIn]);
-
   useEffect(() => {
-    fetchUserProfile();
-
     // Listen for custom profile update event triggered by profile edit modals
     const handleProfileUpdate = () => {
-      fetchUserProfile();
+      refetchProfile();
       if (user) {
         user.reload().catch(() => { });
       }
@@ -67,7 +54,7 @@ export default function Navbar({
     return () => {
       window.removeEventListener("profile-updated", handleProfileUpdate);
     };
-  }, [fetchUserProfile, user]);
+  }, [refetchProfile, user]);
 
   const handleCartMouseEnter = () => {
     if (cartHoverTimeoutRef.current) clearTimeout(cartHoverTimeoutRef.current);

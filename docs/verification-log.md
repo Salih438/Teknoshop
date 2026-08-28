@@ -59,7 +59,20 @@
 - **2026-08-28 — FIX-01 (BUL-02):** `schema.prisma` dosyasında `systemRole` varsayılanı `ADMIN`'den `ANALYST`'e çekildi, `20260828205814_change_system_role_default_to_analyst` migration'ı uygulandı, standart kullanıcıların geçmiş `ADMIN` systemRole değerleri `ANALYST`'e migrate edildi, `scripts/create-super-admin.ts` bootstrap scripti oluşturuldu ve `README.md` dokümantasyonu güncellendi.
 - **2026-08-28 — FIX-02 (BUL-01):** `middleware.ts` içindeki `createRouteMatcher` genişletilerek `/profile(.*)`, `/checkout(.*)` ve `/order-success(.*)` rotaları sunucu middleware katmanında korumaya alındı; yetkisiz erişimlerde Clerk login yönlendirmesi sağlandı.
 - **2026-08-28 — FIX-03 (BUL-04):** Tüm admin sayfaları (`orders`, `audit`, `notifications`, `products`, `analytics`) ve API rotaları (`/api/admin/notifications`, `/api/admin/coupons/quick-update`) genel `checkIsAdmin()` kontrolünden ilgili granular izne (`requireAdmin(permission)`) geçirildi; `components/Footer.tsx` için UI-only dokümantasyonu eklendi.
-- **2026-08-28 — FIX-04:** `app/api/admin/roles/assign/route.ts` ve `app/admin/roles/page.tsx` içerisindeki `SUPER_ADMIN` rol fallback değerleri, yeni güvenli varsayılan `ANALYST` ile tutarlı hale getirildi ve defensive kod dokümantasyonu eklendi.
+- **2026-08-29 — FIX-04:** `app/api/admin/roles/assign/route.ts` ve `app/admin/roles/page.tsx` içerisindeki `SUPER_ADMIN` rol fallback değerleri, yeni güvenli varsayılan `ANALYST` ile tutarlı hale getirildi ve defensive kod dokümantasyonu eklendi.
+
+---
+
+## 🚀 [2026-08-29] System Architecture & Scalability Remediation (Phase 18)
+
+- **2026-08-29 — FIX-A:** `lib/constants/order-status.ts` içinde merkezi `ACTIVE_RETURN_STATUSES` ve `ACTIVE_EXCHANGE_STATUSES` sabitleri Prisma enum tipleriyle tanımlandı; `app/(storefront)/profile/orders/[id]/page.tsx` ve `lib/services/exchange.service.ts` içindeki hatalı string literal dizileri (`SHIPPED_BY_CUSTOMER` vb. geçersiz enum isimleri) merkezi sabitlerle değiştirilerek değişim butonu engelleme mantığı düzeltildi.
+- **2026-08-29 — FIX-B:** `schema.prisma` içine eksik composite index'ler (`Order(status, createdAt)`, `Product(isActive, price)`, `Product(isActive, salesCount)`, `Coupon(isActive, expireDate)`) eklendi, `20260828211507_add_missing_composite_indexes` migration'ı deploy edildi ve veri kaybı riski olmadan veritabanı sorgu performansı optimize edildi.
+- **2026-08-29 — FIX-C:** `search/page.tsx` (`Prisma.ProductWhereInput`, `Prisma.ProductOrderByWithRelationInput`) ve `app/(storefront)/page.tsx` (`RawProductWithCardIncludes`) içindeki son `any` tipleri temizlenerek proje genelinde %100 tip güvenliği sağlandı (0 `any`).
+- **2026-08-29 — FIX-D:** `components/admin/users/` altındaki 3 adet çıplak `<img>` etiketi (`CustomerProfileClient.tsx`, `CustomerDetailDrawer.tsx`, `AdminUsersClient.tsx`) Next.js `<Image />` bileşenine dönüştürülerek proje genelinde %100 `next/image` standardı sağlandı.
+- **2026-08-29 — FIX-E:** `lib/env.ts` merkezi Zod validasyon modülü oluşturuldu; dağınık `process.env` kullanımları (`rate-limiter.ts`, `email-service.ts`, `sitemap.ts`, `robots.ts`, `OrderInvoiceModal.tsx`, `invoice/route.ts`, `products/[id]/page.tsx`) bu merkezi tip-güvenli nesneye bağlandı.
+- **2026-08-29 — FIX-F:** Eksik domain servisleri (`lib/services/coupon.service.ts`, `lib/services/product.service.ts`, `lib/services/cart.service.ts`) oluşturuldu; `validate-coupon` ve `cart` API rotalarındaki doğrudan veritabanı sorguları ve iş mantığı ilgili servislere delege edildi.
+- **2026-08-29 — FIX-G:** `@tanstack/react-query` entegre edilerek `QueryProvider` ve `useUserProfile` hook'u oluşturuldu; `Navbar` ve `AccountPopover` bileşenlerindeki mükerrer `/api/profile` HTTP istekleri tek bir önbellek havuzu altında birleştirilerek deduplication sağlandı.
+- **2026-08-29 — FIX-H:** `Vitest` test altyapısı kuruldu (`vitest.config.mts`, `package.json` `"test"` scripti); `lib/rbac.ts` (`hasPermission`) ve `lib/constants/order-status.ts` (`ACTIVE_EXCHANGE_STATUSES`, `ACTIVE_RETURN_STATUSES`, `isStatusTransitionAllowed`) için 9 adet birim testi yazılarak başarıyla doğrulandı (%100 geçiş).
 
 ---
 

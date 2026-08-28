@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 import ProductDetails from "@/components/ProductDetails";
 import { Metadata } from "next";
+import { env } from "@/lib/env";
 import { getRelatedProducts } from "@/lib/recommendation";
 import { getFrequentlyBoughtTogetherProducts } from "@/lib/recommendation-engine";
 import FrequentlyBoughtTogetherSection from "@/components/product/FrequentlyBoughtTogetherSection";
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   if (!product) return { title: "Ürün Bulunamadı | Vitrin" };
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vitrin.com";
+  const baseUrl = env.NEXT_PUBLIC_APP_URL || "https://vitrin.com";
   const title = `${product.name} En Uygun Fiyatla Satın Al | Vitrin`;
   const description = product.description?.substring(0, 160) || `${product.name} en uygun fiyatlarla Vitrin'de. Sınırlı stok, hızlı kargo ve güvenli ödeme fırsatını kaçırmayın.`;
   const imageUrl = product.images?.[0]?.imageUrl || product.imageUrl;

@@ -245,6 +245,8 @@ model Product {
 
   @@index([categoryId])
   @@index([brandId])
+  @@index([isActive, price])
+  @@index([isActive, salesCount])
 }
 
 model ProductImage {
@@ -367,6 +369,7 @@ model Order {
   deliveredAt DateTime?
 
   @@index([userId])
+  @@index([status, createdAt])
 }
 
 model OrderItem {
@@ -467,6 +470,8 @@ model Coupon {
   isDeleted   Boolean @default(false)
 
   usages CouponUsage[]
+
+  @@index([isActive, expireDate])
 }
 
 model CouponUsage {

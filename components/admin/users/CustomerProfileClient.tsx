@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export interface TimelineEvent {
   id: string;
@@ -112,7 +113,7 @@ export default function CustomerProfileClient({ customer }: { customer: Customer
             <div className="flex flex-col items-center text-center">
               <div className="w-20 h-20 rounded-3xl bg-blue-600 text-white font-black text-3xl flex items-center justify-center shadow-md mb-3">
                 {customer.avatarUrl ? (
-                  <img src={customer.avatarUrl} alt={customer.name} className="w-full h-full object-cover rounded-3xl" />
+                  <Image src={customer.avatarUrl} alt={customer.name} width={80} height={80} className="w-full h-full object-cover rounded-3xl" unoptimized={customer.avatarUrl.startsWith("http")} />
                 ) : (
                   initial
                 )}

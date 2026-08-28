@@ -7,6 +7,7 @@ import ProductCard from "@/components/ProductCard";
 import Pagination from "@/components/ui/Pagination";
 import { Metadata } from "next";
 import { getMatchingCategoryIds } from "@/lib/synonyms";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -63,8 +64,7 @@ export default async function SearchPage({
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const whereClause: any = {
+  const whereClause: Prisma.ProductWhereInput = {
     isActive: true,
   };
 
@@ -94,13 +94,13 @@ export default async function SearchPage({
   }
 
   if (minPrice || maxPrice) {
-    whereClause.price = {};
-    if (minPrice) whereClause.price.gte = parseFloat(minPrice);
-    if (maxPrice) whereClause.price.lte = parseFloat(maxPrice);
+    whereClause.price = {
+      ...(minPrice ? { gte: parseFloat(minPrice) } : {}),
+      ...(maxPrice ? { lte: parseFloat(maxPrice) } : {}),
+    };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let orderByClause: any = { createdAt: "desc" };
+  let orderByClause: Prisma.ProductOrderByWithRelationInput = { createdAt: "desc" };
   if (sort === "price_asc") orderByClause = { price: "asc" };
   if (sort === "price_desc") orderByClause = { price: "desc" };
   if (sort === "sales") orderByClause = { salesCount: "desc" };

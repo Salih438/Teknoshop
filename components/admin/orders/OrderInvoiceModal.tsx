@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { env } from "@/lib/env";
 
 interface OrderInvoiceModalProps {
   orderId: string;
@@ -45,7 +46,7 @@ export default function OrderInvoiceModal({
   const kdvAmount = totalPrice - subTotal;
   const formattedInvoiceNo = `FAT-${orderId.slice(-8).toUpperCase()}`;
 
-  const storeName = process.env.NEXT_PUBLIC_STORE_NAME || "TEKNOSHOP TEKNOLOJİ A.Ş.";
+  const storeName = env.NEXT_PUBLIC_STORE_NAME || "TEKNOSHOP TEKNOLOJİ A.Ş.";
   const storeAddress = storeSettings?.address || "Maslak Mah. Büyükdere Cad. No:123 Sarıyer / İstanbul";
   const storePhone = storeSettings?.phone || "0850 123 45 67";
   const storeEmail = storeSettings?.email || "fatura@teknoshop.com";
