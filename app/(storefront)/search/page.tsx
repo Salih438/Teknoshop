@@ -4,6 +4,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
 import FilterSidebar from "@/components/search/FilterSidebar";
 import ProductCard from "@/components/ProductCard";
+import Pagination from "@/components/ui/Pagination";
 import { Metadata } from "next";
 import { getMatchingCategoryIds } from "@/lib/synonyms";
 
@@ -104,8 +105,13 @@ export default async function SearchPage({
   if (sort === "price_desc") orderByClause = { price: "desc" };
   if (sort === "sales") orderByClause = { salesCount: "desc" };
 
+  const PAGE_SIZE = 12;
+  const currentPage = Math.max(1, parseInt(resolvedParams.page || "1", 10) || 1);
+  const skip = (currentPage - 1) * PAGE_SIZE;
+
   // 1. PARALEL SUNUCU SORGULARI
-  const [products, categories, brands, popularProducts] = await Promise.all([
+  const [totalCount, products, categories, brands, popularProducts] = await Promise.all([
+    prisma.product.count({ where: whereClause }),
     prisma.product.findMany({
       where: whereClause,
       include: {
@@ -113,6 +119,8 @@ export default async function SearchPage({
         reviews: { select: { rating: true } },
       },
       orderBy: orderByClause,
+      take: PAGE_SIZE,
+      skip: skip,
     }),
 
     prisma.category.findMany({
@@ -136,6 +144,8 @@ export default async function SearchPage({
       },
     }),
   ]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
 
   return (
     <main className="min-h-screen bg-gray-50/30 w-full overflow-x-clip">
@@ -254,25 +264,34 @@ export default async function SearchPage({
             ) : (
 
               /* ARAMA SONUÇLARI GRID */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={{
-                      id: product.id,
-                      name: product.name,
-                      price: product.price,
-                      comparePrice: product.comparePrice,
-                      imageUrl: product.imageUrl || "",
-                      stock: product.stock,
-                      category: product.category ?? undefined,
-                      reviews: product.reviews,
-                      isFavorite: userFavoriteProductIds.has(product.id),
-                    }}
-                  />
-                ))}
-              </div>
+              <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {products.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={{
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        comparePrice: product.comparePrice,
+                        imageUrl: product.imageUrl || "",
+                        stock: product.stock,
+                        category: product.category ?? undefined,
+                        reviews: product.reviews,
+                        isFavorite: userFavoriteProductIds.has(product.id),
+                      }}
+                    />
+                  ))}
+                </div>
 
+                {/* SAYFALAMA */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalCount={totalCount}
+                  pageSize={PAGE_SIZE}
+                />
+              </div>
             )}
           </div>
 

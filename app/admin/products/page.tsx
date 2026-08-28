@@ -1,4 +1,4 @@
-import { checkIsAdmin } from "@/lib/auth-utils";
+import { requireAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
@@ -17,10 +17,11 @@ export default async function AdminProductsPage({
     stockStatus?: string;
   }>;
 }) {
-  // 1. SUNUCU RBAC GÜVENLİK KONTROLÜ
-  const isAdmin = await checkIsAdmin();
-  if (!isAdmin) {
-    redirect("/");
+  // 1. SUNUCU RBAC GÜVENLİK KONTROLÜ (MANAGE_PRODUCTS İzni)
+  try {
+    await requireAdmin("MANAGE_PRODUCTS");
+  } catch {
+    redirect("/admin");
   }
 
   const resolvedParams = await searchParams;

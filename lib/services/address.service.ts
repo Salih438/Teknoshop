@@ -1,6 +1,14 @@
 // Dosya: lib/services/address.service.ts
 import { prisma } from "@/lib/prisma";
 
+export interface AddressInputDTO {
+  title: string;
+  city: string;
+  district: string;
+  address: string;
+  isDefault?: boolean;
+}
+
 export const AddressService = {
   // Kullanıcının adreslerini getirme
   async getUserAddresses(userId: string) {
@@ -11,7 +19,7 @@ export const AddressService = {
   },
 
   // Yeni adres ekleme
-  async createAddress(userId: string, data: { title: string; city: string; district: string; address: string; isDefault?: boolean }) {
+  async createAddress(userId: string, data: AddressInputDTO) {
     return await prisma.$transaction(async (tx) => {
       if (data.isDefault) {
         await tx.address.updateMany({
@@ -33,6 +41,43 @@ export const AddressService = {
           userId,
         },
       });
+    });
+  },
+
+  // Adres Güncelleme İşlemi (In-place edit + IDOR koruması + Default adres yönetimi)
+  async updateAddress(addressId: string, userId: string, data: AddressInputDTO) {
+    return await prisma.$transaction(async (tx) => {
+      // 1. GÜVENLİK DUVARI: Adres bu kullanıcıya mı ait? (IDOR Koruması)
+      const existingAddress = await tx.address.findUnique({
+        where: { id: addressId },
+        select: { id: true, userId: true, isDefault: true },
+      });
+
+      if (!existingAddress || existingAddress.userId !== userId) {
+        throw new Error("UNAUTHORIZED");
+      }
+
+      // 2. Varsayılan Adres Mantığı
+      if (data.isDefault) {
+        await tx.address.updateMany({
+          where: { userId, id: { not: addressId } },
+          data: { isDefault: false },
+        });
+      }
+
+      // 3. Adresi Güncelle
+      const updated = await tx.address.update({
+        where: { id: addressId },
+        data: {
+          title: data.title.trim(),
+          city: data.city.trim(),
+          district: data.district.trim(),
+          address: data.address.trim(),
+          ...(data.isDefault !== undefined ? { isDefault: data.isDefault } : {}),
+        },
+      });
+
+      return updated;
     });
   },
 

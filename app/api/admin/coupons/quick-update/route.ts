@@ -1,13 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { checkIsAdmin } from "@/lib/auth-utils";
+import { requireAdmin, AuthError } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const isAdmin = await checkIsAdmin();
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
-    }
+    await requireAdmin("MANAGE_COUPONS");
 
     const body = await request.json();
     const { action, couponId } = body;
@@ -92,8 +89,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, coupon: newCoupon });
     }
 
-    return NextResponse.json({ error: "Geçersiz aksiyon." }, { status: 400 });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Quick Coupon Action Error:", error);
     return NextResponse.json({ error: "İşlem sırasında hata oluştu." }, { status: 500 });
   }

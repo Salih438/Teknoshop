@@ -1,4 +1,4 @@
-import { checkIsAdmin } from "@/lib/auth-utils";
+import { requireAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
@@ -11,10 +11,11 @@ export default async function AdminOrdersPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // 1. SUNUCU RBAC GÜVENLİK KONTROLÜ
-  const isAdmin = await checkIsAdmin();
-  if (!isAdmin) {
-    redirect("/");
+  // 1. SUNUCU RBAC GÜVENLİK KONTROLÜ (MANAGE_ORDERS İzni)
+  try {
+    await requireAdmin("MANAGE_ORDERS");
+  } catch {
+    redirect("/admin");
   }
 
   const params = await searchParams;

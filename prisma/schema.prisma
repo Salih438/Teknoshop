@@ -161,7 +161,7 @@ model User {
   password  String?
   phone     String?
   role      Role       @default(USER)
-  systemRole SystemRole @default(ADMIN)
+  systemRole SystemRole @default(ANALYST)
   isActive  Boolean    @default(true)
 
   avatarUrl String?

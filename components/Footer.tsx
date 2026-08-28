@@ -7,7 +7,8 @@ export default async function Footer() {
   const phone = settings?.phone || "0850 123 45 67";
   const email = settings?.email || "destek@antigravity.com";
 
-  // Yalnızca giriş yapan ve veritabanındaki rolü ADMIN olan kullanıcılar için admin linkini aktifleştir
+  // UI-ONLY: Yalnızca giriş yapan ve veritabanındaki rolü ADMIN olan kullanıcılar için admin linkini gösterir.
+  // Gerçek rota güvenliği ve RBAC koruması layout ve sayfa seviyesinde requireAdmin ile sağlanır.
   const isAdmin = await checkIsAdmin();
 
   return (

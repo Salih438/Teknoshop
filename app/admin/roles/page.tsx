@@ -22,7 +22,8 @@ export default async function AdminRolesPage() {
   });
 
   const adminsDTO: AdminUserRoleDTO[] = dbAdmins.map((u) => {
-    const systemRole = (u.systemRole as SystemRole) || "SUPER_ADMIN";
+    // DEFENSIVE FALLBACK: Güvenli varsayılan olarak ANALYST kullanılır
+    const systemRole = (u.systemRole as SystemRole) || "ANALYST";
     const permissions = ROLE_PERMISSIONS[systemRole] || [];
 
     return {

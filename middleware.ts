@@ -1,7 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Hangi sayfaların korunacağını belirliyoruz (Admin paneli ve içindeki her şey)
-const isProtectedRoute = createRouteMatcher(['/admin(.*)']);
+// Hangi sayfaların korunacağını belirliyoruz (Admin, Profil, Ödeme ve Sipariş Onay)
+const isProtectedRoute = createRouteMatcher([
+  '/admin(.*)',
+  '/profile(.*)',
+  '/checkout(.*)',
+  '/order-success(.*)',
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   // Eğer kullanıcı korumalı bir sayfaya girmeye çalışıyorsa ve giriş yapmamışsa, login sayfasına yönlendir

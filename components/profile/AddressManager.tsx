@@ -19,6 +19,17 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Address Editing States
+  const [editingAddress, setEditingAddress] = useState<AddressItem | null>(null);
+  const [isEditingLoading, setIsEditingLoading] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    city: "",
+    district: "",
+    address: "",
+    isDefault: false,
+  });
+
   // Address Deletion Confirmation States
   const [addressToDelete, setAddressToDelete] = useState<AddressItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,13 +49,15 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
     setAddresses(initialAddresses);
   }
 
-  // Handle Keyboard Escape & Body Scroll Lock for Deletion Modal
+  // Handle Keyboard Escape & Body Scroll Lock for Modals
   useEffect(() => {
-    if (!addressToDelete) return;
+    const isModalOpen = Boolean(addressToDelete || editingAddress);
+    if (!isModalOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isDeleting) {
+      if (e.key === "Escape" && !isDeleting && !isEditingLoading) {
         setAddressToDelete(null);
+        setEditingAddress(null);
       }
     };
 
@@ -56,8 +69,9 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
       window.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = originalStyle;
     };
-  }, [addressToDelete, isDeleting]);
+  }, [addressToDelete, editingAddress, isDeleting, isEditingLoading]);
 
+  // Yeni Adres Ekleme
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -75,7 +89,8 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
         toast.success("Adres başarıyla eklendi!");
         router.refresh();
       } else {
-        toast.error("Adres eklenirken bir sorun oluştu.");
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Adres eklenirken bir sorun oluştu.");
       }
     } catch (error) {
       console.error(error);
@@ -85,18 +100,61 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
     }
   };
 
-  // Step 1: Trigger confirmation modal (does NOT delete directly)
+  // Adres Düzenleme Modalını Başlat
+  const handleStartEdit = (address: AddressItem) => {
+    setEditingAddress(address);
+    setEditFormData({
+      title: address.title,
+      city: address.city,
+      district: address.district,
+      address: address.address,
+      isDefault: address.isDefault,
+    });
+  };
+
+  // Adres Düzenlemeyi Kaydet (PUT)
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAddress || isEditingLoading) return;
+
+    setIsEditingLoading(true);
+    const toastId = toast.loading("Adres güncelleniyor...");
+
+    try {
+      const res = await fetch(`/api/addresses/${editingAddress.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editFormData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Adres başarıyla güncellendi!", { id: toastId });
+        setEditingAddress(null);
+        router.refresh();
+      } else {
+        toast.error(data.error || "Adres güncellenemedi.", { id: toastId });
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Sunucuya bağlanırken bir hata oluştu.", { id: toastId });
+    } finally {
+      setIsEditingLoading(false);
+    }
+  };
+
+  // Adres Silme Tetikle
   const handlePromptDelete = (address: AddressItem) => {
     setAddressToDelete(address);
   };
 
-  // Step 2: User clicks "Vazgeç" (cancels without modifying anything)
   const handleCancelDelete = () => {
     if (isDeleting) return;
     setAddressToDelete(null);
   };
 
-  // Step 3: User confirms deletion by clicking "Adresi Sil"
+  // Adres Silmeyi Onayla (DELETE)
   const handleConfirmDelete = async () => {
     if (!addressToDelete || isDeleting) return;
 
@@ -315,16 +373,31 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
                     {address.title}
                   </h4>
 
-                  <button
-                    type="button"
-                    onClick={() => handlePromptDelete(address)}
-                    className="p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors border border-transparent hover:border-red-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    title="Sil"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  {/* AKSİYON BUTONLARI: DÜZENLE & SİL */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(address)}
+                      className="p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors border border-transparent hover:border-blue-100 min-h-[40px] min-w-[40px] flex items-center justify-center gap-1 text-xs font-bold"
+                      title="Düzenle"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      <span className="hidden sm:inline">Düzenle</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handlePromptDelete(address)}
+                      className="p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors border border-transparent hover:border-red-100 min-h-[40px] min-w-[40px] flex items-center justify-center"
+                      title="Sil"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3 text-xs sm:text-sm text-gray-600 bg-gray-50/50 p-3.5 rounded-2xl border border-gray-100">
@@ -347,6 +420,129 @@ export default function AddressManager({ initialAddresses }: { initialAddresses:
           </div>
         )}
       </div>
+
+      {/* ADRES DÜZENLEME MODALI */}
+      {editingAddress && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => !isEditingLoading && setEditingAddress(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-dialog-title"
+        >
+          <div
+            className="bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200 relative max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 id="edit-dialog-title" className="text-lg sm:text-xl font-extrabold text-gray-900">
+                    Adresi Düzenle
+                  </h3>
+                  <p className="text-xs text-gray-500">Adres bilgilerinizi güncelleyin.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingAddress(null)}
+                disabled={isEditingLoading}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Adres Başlığı
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  placeholder="Örn: Evim, İşyeri, Yazlık"
+                  className="w-full px-3.5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white text-xs sm:text-sm min-h-[44px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">İl</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.city}
+                    onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                    placeholder="Örn: İstanbul"
+                    className="w-full px-3.5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white text-xs sm:text-sm min-h-[44px]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">İlçe</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.district}
+                    onChange={(e) => setEditFormData({ ...editFormData, district: e.target.value })}
+                    placeholder="Örn: Kadıköy"
+                    className="w-full px-3.5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 focus:bg-white text-xs sm:text-sm min-h-[44px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-1.5">Açık Adres</label>
+                <textarea
+                  required
+                  value={editFormData.address}
+                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                  placeholder="Mahalle, Sokak, No, Daire..."
+                  rows={3}
+                  className="w-full px-3.5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none bg-gray-50 focus:bg-white text-xs sm:text-sm"
+                ></textarea>
+              </div>
+
+              <label className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200 cursor-pointer min-h-[44px]">
+                <input
+                  type="checkbox"
+                  checked={editFormData.isDefault}
+                  onChange={(e) => setEditFormData({ ...editFormData, isDefault: e.target.checked })}
+                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer min-h-[20px] min-w-[20px]"
+                />
+                <span className="text-xs sm:text-sm font-extrabold text-gray-700">
+                  Bu adresi varsayılan teslimat adresim yap
+                </span>
+              </label>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingAddress(null)}
+                  disabled={isEditingLoading}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl font-extrabold text-gray-700 hover:bg-gray-50 transition text-xs sm:text-sm min-h-[44px]"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditingLoading}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-5 py-3 rounded-xl transition text-xs sm:text-sm min-h-[44px] shadow-md shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isEditingLoading ? "Kaydediliyor..." : "Değişiklikleri Kaydet"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ADRES SİLME ONAY MODALI */}
       {addressToDelete && (

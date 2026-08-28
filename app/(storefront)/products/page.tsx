@@ -4,13 +4,19 @@ import { Prisma } from "@prisma/client";
 import { currentUser } from "@clerk/nextjs/server";
 import ProductFilterPanel from "@/components/storefront/ProductFilterPanel";
 import ProductCard from "@/components/ProductCard";
+import Pagination from "@/components/ui/Pagination";
+
+const PAGE_SIZE = 12;
 
 export default async function AllProductsPage({ 
   searchParams 
 }: { 
-  searchParams: Promise<{ sort?: string, min?: string, max?: string, category?: string, brand?: string }> 
+  searchParams: Promise<{ sort?: string, min?: string, max?: string, category?: string, brand?: string, page?: string }> 
 }) {
-  const { sort, min, max, category, brand } = await searchParams;
+  const { sort, min, max, category, brand, page } = await searchParams;
+
+  const currentPage = Math.max(1, parseInt(page || "1", 10) || 1);
+  const skip = (currentPage - 1) * PAGE_SIZE;
 
   // AKTİF KULLANICI FAVORİLERİNİ ÇEKİYORUZ
   const clerkUser = await currentUser();
@@ -75,16 +81,23 @@ export default async function AllProductsPage({
   if (sort === "price_desc") orderByClause = { price: "desc" };
   if (sort === "popular") orderByClause = { salesCount: "desc" };
 
-  // 4. ÜRÜNLERİ VERİTABANINDAN ÇEK
-  const products = await prisma.product.findMany({
-    where: whereClause,
-    orderBy: orderByClause,
-    include: {
-      images: true, 
-      category: true,
-      reviews: { select: { rating: true } }
-    }
-  });
+  // 4. PARALEL TOPLAM SAYI VE SAYFALANMIŞ ÜRÜNLERİ ÇEK
+  const [totalCount, products] = await Promise.all([
+    prisma.product.count({ where: whereClause }),
+    prisma.product.findMany({
+      where: whereClause,
+      orderBy: orderByClause,
+      take: PAGE_SIZE,
+      skip: skip,
+      include: {
+        images: true, 
+        category: true,
+        reviews: { select: { rating: true } }
+      }
+    }),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE) || 1;
 
   // Kategori adını bul (Başlık için)
   const selectedCategoryName = category 
@@ -101,7 +114,7 @@ export default async function AllProductsPage({
             {selectedCategoryName ? `${selectedCategoryName} Ürünleri` : "Tüm Ürünler"}
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            Kataloğumuzdaki <span className="font-bold text-blue-600">{products.length}</span> ürünü inceliyorsunuz.
+            Kataloğumuzdaki <span className="font-bold text-blue-600">{totalCount}</span> ürünü inceliyorsunuz.
           </p>
         </div>
       </div>
@@ -137,30 +150,40 @@ export default async function AllProductsPage({
               </Link>
             </div>
           ) : (
-            /* STANDART 4 KOLON GRID */
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-              {products.map((product) => {
-                const extractedImageUrls = product.images.map((img) => img.imageUrl);
-                const displayImage = extractedImageUrls.length > 0 ? extractedImageUrls[0] : (product.imageUrl || "");
+            <>
+              {/* STANDART 4 KOLON GRID */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+                {products.map((product) => {
+                  const extractedImageUrls = product.images.map((img) => img.imageUrl);
+                  const displayImage = extractedImageUrls.length > 0 ? extractedImageUrls[0] : (product.imageUrl || "");
 
-                return (
-                  <ProductCard
-                    key={product.id}
-                    product={{
-                      id: product.id,
-                      name: product.name,
-                      price: product.price,
-                      comparePrice: product.comparePrice,
-                      imageUrl: displayImage,
-                      stock: product.stock,
-                      category: product.category ? { name: product.category.name } : undefined,
-                      reviews: product.reviews,
-                      isFavorite: userFavoriteProductIds.has(product.id),
-                    }}
-                  />
-                );
-              })}
-            </div>
+                  return (
+                    <ProductCard
+                      key={product.id}
+                      product={{
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        comparePrice: product.comparePrice,
+                        imageUrl: displayImage,
+                        stock: product.stock,
+                        category: product.category ? { name: product.category.name } : undefined,
+                        reviews: product.reviews,
+                        isFavorite: userFavoriteProductIds.has(product.id),
+                      }}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* SAYFALAMA BİLEŞENİ */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                pageSize={PAGE_SIZE}
+              />
+            </>
           )}
         </div>
       </div>

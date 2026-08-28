@@ -1,4 +1,4 @@
-import { checkIsAdmin } from "@/lib/auth-utils";
+import { requireAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import AdminAuditClient, { AuditLogDTO } from "@/components/admin/audit/AdminAuditClient";
@@ -14,10 +14,11 @@ export default async function AdminAuditPage({
     entity?: string;
   }>;
 }) {
-  // 1. SUNUCU RBAC GÜVENLİK KONTROLÜ
-  const isAdmin = await checkIsAdmin();
-  if (!isAdmin) {
-    redirect("/");
+  // 1. SUNUCU RBAC GÜVENLİK KONTROLÜ (VIEW_AUDIT İzni)
+  try {
+    await requireAdmin("VIEW_AUDIT");
+  } catch {
+    redirect("/admin");
   }
 
   const resolvedParams = await searchParams;

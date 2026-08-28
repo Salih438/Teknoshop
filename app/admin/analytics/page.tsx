@@ -1,4 +1,4 @@
-import { checkIsAdmin } from "@/lib/auth-utils";
+import { requireAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import AnalyticsCharts, { AnalyticsDataDTO } from "@/components/admin/analytics/AnalyticsCharts";
@@ -10,10 +10,11 @@ export default async function AdminAnalyticsPage({
 }: {
   searchParams: Promise<{ period?: string }>;
 }) {
-  // 1. SUNUCU RBAC GÜVENLİK KONTROLÜ
-  const isAdmin = await checkIsAdmin();
-  if (!isAdmin) {
-    redirect("/");
+  // 1. SUNUCU RBAC GÜVENLİK KONTROLÜ (VIEW_ANALYTICS İzni)
+  try {
+    await requireAdmin("VIEW_ANALYTICS");
+  } catch {
+    redirect("/admin");
   }
 
   const resolvedSearchParams = await searchParams;

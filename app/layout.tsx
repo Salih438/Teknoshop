@@ -8,6 +8,8 @@ import { trTR } from "@clerk/localizations";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+import CookieConsent from "@/components/CookieConsent";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -101,6 +103,7 @@ export default async function RootLayout({
         */}
         <body className={`${inter.className} bg-gray-50 text-gray-900`} suppressHydrationWarning>
           {children}
+          <CookieConsent />
         </body>
       </html>
     </ClerkProvider>

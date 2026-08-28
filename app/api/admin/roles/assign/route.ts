@@ -29,7 +29,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Kullanıcı bulunamadı." }, { status: 404 });
     }
 
-    const currentTargetRole = (targetUser.systemRole as SystemRole) || "SUPER_ADMIN";
+    // DEFENSIVE FALLBACK: Prisma'da systemRole non-nullable bir alandır ve DB seviyesinde varsayılanı ANALYST'tir.
+    // Tip dönüşümü sırasında olası null/undefined durumları için en kısıtlı rol olan ANALYST fallback olarak kullanılır.
+    const currentTargetRole = (targetUser.systemRole as SystemRole) || "ANALYST";
 
     // 3. SELF-DEMOTION SAFEGUARD
     if (adminUser.id === userId) {
@@ -42,7 +44,8 @@ export async function POST(request: Request) {
     }
 
     // 4. PRIVILEGE ESCALATION PROTECTION
-    const actorRole = (adminUser.systemRole as SystemRole) || "SUPER_ADMIN";
+    // DEFENSIVE FALLBACK: Aktörün sistem rolü için de güvenli varsayılan olarak ANALYST kullanılır.
+    const actorRole = (adminUser.systemRole as SystemRole) || "ANALYST";
 
     // Non-SUPER_ADMIN cannot grant SUPER_ADMIN role
     if (newSystemRole === "SUPER_ADMIN" && actorRole !== "SUPER_ADMIN") {

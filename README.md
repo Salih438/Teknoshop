@@ -339,7 +339,17 @@ npx prisma migrate dev
 
 > Projenin mevcut Prisma migration yapısı kullanılıyorsa bu yöntem tercih edilmelidir.
 
-## 6. Development server'ı başlatın
+## 6. İlk Yöneticiyi (Super Admin) Oluşturun
+
+Sistemde en yüksek yetkili yöneticiyi (`role: "ADMIN"`, `systemRole: "SUPER_ADMIN"`) tanımlamak için bootstrap script'ini çalıştırın:
+
+```bash
+npx tsx scripts/create-super-admin.ts ornek-admin@teknoshop.com
+```
+
+Bu komut ilgili kullanıcının sistemdeki rolünü ve RBAC izin setini anında `SUPER_ADMIN` seviyesine yükseltir.
+
+## 7. Development server'ı başlatın
 
 ```bash
 npm run dev

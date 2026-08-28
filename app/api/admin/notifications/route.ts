@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import { checkIsAdmin } from "@/lib/auth-utils";
+import { requireAdmin, AuthError } from "@/lib/auth";
 import { AdminNotificationService } from "@/lib/services/admin-notification.service";
 
 export async function GET(request: Request) {
   try {
-    const isAdmin = await checkIsAdmin();
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
-    }
+    await requireAdmin("MANAGE_NOTIFICATIONS");
 
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get("filter") || "all";
@@ -15,6 +12,9 @@ export async function GET(request: Request) {
     const data = await AdminNotificationService.getNotifications(filter);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("GET Admin Notifications Hata:", error);
     return NextResponse.json({ error: "Bildirimler alınamadı." }, { status: 500 });
   }
@@ -22,10 +22,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const isAdmin = await checkIsAdmin();
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
-    }
+    await requireAdmin("MANAGE_NOTIFICATIONS");
 
     const body = await request.json();
     const { action, id } = body;
@@ -42,6 +39,9 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ error: "Geçersiz aksiyon." }, { status: 400 });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("PATCH Admin Notifications Hata:", error);
     return NextResponse.json({ error: "İşlem başarısız." }, { status: 500 });
   }
@@ -49,10 +49,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const isAdmin = await checkIsAdmin();
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
-    }
+    await requireAdmin("MANAGE_NOTIFICATIONS");
 
     const body = await request.json();
     const { action, ids } = body;
@@ -69,7 +66,11 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ error: "Geçersiz aksiyon." }, { status: 400 });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("DELETE Admin Notifications Hata:", error);
     return NextResponse.json({ error: "İşlem başarısız." }, { status: 500 });
   }
 }
+
