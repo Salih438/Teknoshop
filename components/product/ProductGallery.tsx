@@ -12,6 +12,15 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
   const [selectedImage, setSelectedImage] = useState<string>(images[0] || "");
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [zoomStyle, setZoomStyle] = useState({ display: "none", backgroundPosition: "0% 0%" });
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+  const handleImageError = (imgUrl: string) => {
+    setFailedImages((prev) => {
+      const updated = new Set(prev);
+      updated.add(imgUrl);
+      return updated;
+    });
+  };
 
   // Escape tuşu ile Lightbox kapatma dinleyicisi
   useEffect(() => {
@@ -26,6 +35,7 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
   }, [isLightboxOpen]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (failedImages.has(selectedImage)) return;
     const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - left) / width) * 100;
     const y = ((e.clientY - top) / height) * 100;
@@ -41,66 +51,107 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
 
   if (!images || images.length === 0) return null;
 
+  const isSelectedFailed = !selectedImage || failedImages.has(selectedImage);
+
   return (
     <div className="space-y-4 w-full">
       {/* 🚀 BÜYÜK GÖRSEL VE HOVER ZOOM KUTUSU */}
       <div
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        onClick={() => setIsLightboxOpen(true)}
-        className="h-[320px] sm:h-[450px] lg:h-[520px] bg-white rounded-3xl p-4 sm:p-8 shadow-xs border border-gray-100 flex items-center justify-center relative group cursor-zoom-in overflow-hidden"
+        onClick={() => {
+          if (!isSelectedFailed) setIsLightboxOpen(true);
+        }}
+        className={`h-[320px] sm:h-[450px] lg:h-[520px] bg-white rounded-3xl p-4 sm:p-8 shadow-xs border border-gray-100 flex items-center justify-center relative group overflow-hidden ${
+          !isSelectedFailed ? "cursor-zoom-in" : ""
+        }`}
       >
-        {selectedImage ? (
+        {!isSelectedFailed ? (
           <Image
             src={selectedImage}
             alt={productName}
             width={600}
             height={600}
             className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+            onError={() => handleImageError(selectedImage)}
           />
         ) : (
-          <span className="text-gray-400 text-xs">Görsel Bulunamadı</span>
+          <div className="flex flex-col items-center justify-center text-gray-400 gap-2 p-6 text-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            <span className="text-xs sm:text-sm font-semibold text-gray-400">Görsel Yüklenemedi</span>
+          </div>
         )}
 
         {/* 🔍 MASAÜSTÜ BÜYÜTEÇ HOVER ZOOM OVERLAY */}
-        <div
-          style={{
-            display: zoomStyle.display,
-            backgroundImage: `url(${selectedImage})`,
-            backgroundPosition: zoomStyle.backgroundPosition,
-            backgroundSize: "200%",
-          }}
-          className="absolute inset-0 z-30 pointer-events-none rounded-3xl bg-no-repeat bg-white hidden lg:block border border-blue-200 shadow-2xl transition-opacity duration-200"
-        />
+        {!isSelectedFailed && (
+          <div
+            style={{
+              display: zoomStyle.display,
+              backgroundImage: `url(${selectedImage})`,
+              backgroundPosition: zoomStyle.backgroundPosition,
+              backgroundSize: "200%",
+            }}
+            className="absolute inset-0 z-30 pointer-events-none rounded-3xl bg-no-repeat bg-white hidden lg:block border border-blue-200 shadow-2xl transition-opacity duration-200"
+          />
+        )}
 
         {/* İŞARETÇİ ROZETİ */}
-        <span className="absolute bottom-4 right-4 bg-gray-900/70 hover:bg-gray-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-full backdrop-blur-xs shadow-xs hidden sm:flex items-center gap-1 z-20">
-          <span>🔍 Büyütmek İçin Tıklayın</span>
-        </span>
+        {!isSelectedFailed && (
+          <span className="absolute bottom-4 right-4 bg-gray-900/70 hover:bg-gray-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-full backdrop-blur-xs shadow-xs hidden sm:flex items-center gap-1 z-20">
+            <span>🔍 Büyütmek İçin Tıklayın</span>
+          </span>
+        )}
       </div>
 
       {/* 🚀 THUMBNAIL GALERİ ŞERİDİ */}
       {images.length > 1 && (
         <div className="flex gap-3 overflow-x-auto py-2 custom-scrollbar">
-          {images.map((img, idx) => (
-            <div
-              key={idx}
-              onClick={() => setSelectedImage(img)}
-              onMouseEnter={() => setSelectedImage(img)}
-              className={`w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-2xl bg-white p-1.5 border-2 cursor-pointer transition-all duration-300 ${
-                selectedImage === img
-                  ? "border-blue-600 shadow-md scale-105 ring-2 ring-blue-100"
-                  : "border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100"
-              }`}
-            >
-              <Image src={img} alt={`${productName} - ${idx + 1}`} width={100} height={100} className="w-full h-full object-contain rounded-xl" />
-            </div>
-          ))}
+          {images.map((img, idx) => {
+            const isImgFailed = failedImages.has(img);
+            return (
+              <div
+                key={idx}
+                onClick={() => setSelectedImage(img)}
+                onMouseEnter={() => setSelectedImage(img)}
+                className={`w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-2xl bg-white p-1.5 border-2 cursor-pointer transition-all duration-300 flex items-center justify-center ${
+                  selectedImage === img
+                    ? "border-blue-600 shadow-md scale-105 ring-2 ring-blue-100"
+                    : "border-gray-200 hover:border-gray-300 opacity-70 hover:opacity-100"
+                }`}
+              >
+                {isImgFailed ? (
+                  <span className="text-gray-300 text-xs">🖼️</span>
+                ) : (
+                  <Image
+                    src={img}
+                    alt={`${productName} - ${idx + 1}`}
+                    width={100}
+                    height={100}
+                    className="w-full h-full object-contain rounded-xl"
+                    onError={() => handleImageError(img)}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
       {/* 🚀 LIGHTBOX FULLSCREEN MODAL OVERLAY */}
-      {isLightboxOpen && (
+      {isLightboxOpen && !isSelectedFailed && (
         <div
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -134,6 +185,7 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
               priority
               sizes="(max-width: 1280px) 100vw, 1200px"
               className="object-contain p-2 sm:p-6 rounded-2xl bg-white shadow-2xl transition-all duration-300"
+              onError={() => handleImageError(selectedImage)}
             />
           </div>
         </div>

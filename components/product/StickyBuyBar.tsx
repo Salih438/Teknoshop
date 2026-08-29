@@ -16,6 +16,7 @@ interface StickyBuyBarProps {
 
 export default function StickyBuyBar({ product }: StickyBuyBarProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,8 +39,15 @@ export default function StickyBuyBar({ product }: StickyBuyBarProps) {
         {/* ÜRÜN BİLGİSİ */}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-white rounded-xl border border-gray-100 p-1 flex-shrink-0 flex items-center justify-center">
-            {product.imageUrl ? (
-              <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="object-contain" />
+            {product.imageUrl && !imageError ? (
+              <Image
+                src={product.imageUrl}
+                alt={product.name}
+                width={48}
+                height={48}
+                className="object-contain"
+                onError={() => setImageError(true)}
+              />
             ) : (
               <span>📦</span>
             )}

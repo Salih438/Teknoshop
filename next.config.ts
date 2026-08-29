@@ -32,7 +32,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https://images.unsplash.com https://uploadthing.com https://*.uploadthing.com https://utfs.io https://img.clerk.com https://*.clerk.com https://res.cloudinary.com",
+      "img-src 'self' data: blob: https://images.unsplash.com https://uploadthing.com https://*.uploadthing.com https://utfs.io https://img.clerk.com https://*.clerk.com https://res.cloudinary.com https://*.gstatic.com https://*.mncdn.com https://*.mmsrg.com",
       "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://uploadthing.com https://*.uploadthing.com https://utfs.io https://*.upstash.io",
       "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
       "object-src 'none'",
@@ -73,6 +73,30 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
+        hostname: "encrypted-tbn0.gstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.gstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "st-troy.mncdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.mncdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "assets.mmsrg.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.mmsrg.com",
       },
     ],
   },

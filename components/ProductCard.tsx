@@ -23,6 +23,7 @@ export interface ProductCardProps {
 
 const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const totalReviews = product.reviews?.length || 0;
   const averageRating =
@@ -75,7 +76,7 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
             </div>
 
             {/* Görsel */}
-            {product.imageUrl ? (
+            {product.imageUrl && !imageError ? (
               <Image
                 src={product.imageUrl}
                 alt={product.name}
@@ -84,6 +85,7 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
                 className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500"
                 width={500}
                 height={500}
+                onError={() => setImageError(true)}
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
@@ -204,13 +206,14 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
                     {product.badgeText}
                   </span>
                 )}
-                {product.imageUrl ? (
+                {product.imageUrl && !imageError ? (
                   <Image
                     src={product.imageUrl}
                     alt={product.name}
                     width={400}
                     height={400}
                     className="max-w-full max-h-[260px] object-contain"
+                    onError={() => setImageError(true)}
                   />
                 ) : (
                   <span className="text-gray-400 text-xs">Görsel Yok</span>
