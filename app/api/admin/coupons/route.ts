@@ -6,7 +6,7 @@ import { AuditRiskLevel } from "@prisma/client";
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_COUPONS");
 
     const coupons = await prisma.coupon.findMany({
       where: { isDeleted: false },

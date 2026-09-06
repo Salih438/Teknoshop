@@ -18,7 +18,7 @@ export default function SaveForLaterSection() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("vitrin_saved_for_later");
+      const saved = localStorage.getItem("teknoshop_saved_for_later") || localStorage.getItem("vitrin_saved_for_later");
       if (saved) {
         Promise.resolve().then(() => setSavedItems(JSON.parse(saved)));
       }
@@ -35,14 +35,14 @@ export default function SaveForLaterSection() {
     });
     const updated = savedItems.filter((i) => i.id !== item.id);
     setSavedItems(updated);
-    localStorage.setItem("vitrin_saved_for_later", JSON.stringify(updated));
+    localStorage.setItem("teknoshop_saved_for_later", JSON.stringify(updated));
     toast.success(`${item.name} sepetinize geri eklendi! 🛒`);
   };
 
   const removeSavedItem = (id: string) => {
     const updated = savedItems.filter((i) => i.id !== id);
     setSavedItems(updated);
-    localStorage.setItem("vitrin_saved_for_later", JSON.stringify(updated));
+    localStorage.setItem("teknoshop_saved_for_later", JSON.stringify(updated));
     toast.success("Ürün listenizden kaldırıldı.");
   };
 

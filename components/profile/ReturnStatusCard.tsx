@@ -48,11 +48,11 @@ const STATUS_CONFIG: Record<
   ReturnStatus,
   { label: string; bg: string; text: string; border: string; stepIndex: number }
 > = {
-  PENDING: { label: "İade Talebi Alındı", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", stepIndex: 1 },
+  PENDING: { label: "İade Talebi Alındı", bg: "bg-amber-100", text: "text-amber-900", border: "border-amber-300", stepIndex: 1 },
   APPROVED: { label: "Talebiniz Onaylandı", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", stepIndex: 2 },
   SHIPPED: { label: "Kargoya Verildi", bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", stepIndex: 3 },
   RECEIVED: { label: "Depoya Ulaştı / Kontrol Ediliyor", bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", stepIndex: 3 },
-  COMPLETED: { label: "İade Tamamlandı", bg: "bg-green-50", text: "text-green-700", border: "border-green-200", stepIndex: 4 },
+  COMPLETED: { label: "İade Tamamlandı", bg: "bg-emerald-100", text: "text-emerald-900", border: "border-emerald-300", stepIndex: 4 },
   REJECTED: { label: "İade Reddedildi", bg: "bg-red-50", text: "text-red-700", border: "border-red-200", stepIndex: -1 },
 };
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { CartService, IncomingCartItem } from "@/lib/services/cart.service";
 import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
+import { formatApiError } from "@/lib/utils/error-handler";
 
 export async function GET(request: Request) {
   try {
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Cart GET Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return formatApiError(error, "Sepet yüklenirken bir hata oluştu.");
   }
 }
 
@@ -46,10 +47,6 @@ export async function POST(req: Request) {
     return NextResponse.json(result);
   } catch (error: unknown) {
     console.error("Cart POST Error:", error);
-    const message = error instanceof Error ? error.message : "Internal Server Error";
-    return NextResponse.json(
-      { error: message },
-      { status: 400 }
-    );
+    return formatApiError(error, "Sepet güncellenirken bir hata oluştu.");
   }
 }

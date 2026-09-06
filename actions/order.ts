@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { AdminNotificationService } from "@/lib/services/admin-notification.service";
 import { OrderService } from "@/lib/services/order.service";
+import { formatActionError } from "@/lib/utils/error-handler";
 
 export async function cancelOrderAction(orderId: string) {
   try {
@@ -63,8 +64,7 @@ export async function cancelOrderAction(orderId: string) {
     return { success: true };
   } catch (error: unknown) {
     console.error("Sipariş iptal hatası:", error);
-    const message = error instanceof Error ? error.message : "Sipariş iptal edilirken bir sunucu hatası oluştu.";
-    return { success: false, error: message };
+    return formatActionError(error, "Sipariş iptal edilirken bir sunucu hatası oluştu.");
   }
 }
 

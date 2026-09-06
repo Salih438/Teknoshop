@@ -2,7 +2,7 @@ import HelpCenterClient from "@/components/support/HelpCenterClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Hesabım - Destek Merkezi | Vitrin E-Ticaret",
+  title: "Hesabım - Destek Merkezi | Teknoshop",
   description: "Siparişleriniz, iade süreçleriniz ve canlı yardım hizmetiniz.",
 };
 

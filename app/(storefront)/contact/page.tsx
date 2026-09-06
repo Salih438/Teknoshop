@@ -4,7 +4,7 @@ import { Metadata } from "next";
 import ContactForm from "@/components/contact/ContactForm";
 
 export const metadata: Metadata = {
-  title: "İletişim | Vitrin E-Ticaret",
+  title: "İletişim | Teknoshop",
   description: "Bize ulaşın, öneri ve şikayetlerinizi iletin.",
 };
 
@@ -14,7 +14,7 @@ export default async function ContactPage() {
   const address = settings?.address || "Teknoloji Vadisi, Bilişim Plaza No:42\nLevent, Şişli / İstanbul";
   const phone = settings?.phone || "0850 123 45 67";
   const workingHours = settings?.workingHours || "Hafta içi: 09:00 - 18:00";
-  const email = settings?.email || "destek@vitrin.com";
+  const email = settings?.email || "destek@teknoshop.com";
 
   return (
     <div className="min-h-screen bg-gray-50 py-16">

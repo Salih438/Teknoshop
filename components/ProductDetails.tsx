@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useCartStore } from "@/lib/store";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -13,6 +13,7 @@ import RelatedProductsSlider from "@/components/product/RelatedProductsSlider";
 import RecentlyViewedProducts from "@/components/product/RecentlyViewedProducts";
 import { ProductCardProps } from "@/components/ProductCard";
 import FavoriteButton from "@/components/FavoriteButton";
+import { getEffectiveStock } from "@/lib/product-stock";
 
 interface ProductDetailsProps {
   id: string;
@@ -49,10 +50,17 @@ export default function ProductDetails({
 
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("desc");
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
+  const initialVariant = useMemo(() => {
+    if (!product.variants || product.variants.length === 0) return null;
+    return product.variants.find((v) => v.stock > 0) || product.variants[0] || null;
+  }, [product.variants]);
+
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(initialVariant);
+
+  const effectiveStock = getEffectiveStock(product);
   const currentPrice = selectedVariant?.discountedPrice || selectedVariant?.price || product.price;
-  const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
+  const currentStock = selectedVariant ? selectedVariant.stock : effectiveStock;
   const inStock = currentStock > 0;
 
   const totalReviews = product?.reviews?.length || 0;
@@ -204,6 +212,7 @@ export default function ProductDetails({
           {product.variants && product.variants.length > 0 && (
             <VariantSelector
               variants={product.variants}
+              selectedVariantId={selectedVariant?.id}
               onSelect={(variant) => {
                 setSelectedVariant(variant);
                 setQuantity(1);
@@ -269,7 +278,14 @@ export default function ProductDetails({
                   : "bg-gray-200 text-gray-400 cursor-not-allowed"
               }`}
             >
-              <span>🛒 {inStock ? "Sepete Ekle" : "Tükendi"}</span>
+              <span>
+                🛒{" "}
+                {!inStock
+                  ? "Tükendi"
+                  : product.variants && product.variants.length > 0 && !selectedVariant
+                  ? "Seçenek Belirleyin"
+                  : "Sepete Ekle"}
+              </span>
             </button>
 
             <FavoriteButton
@@ -365,7 +381,9 @@ export default function ProductDetails({
       <StickyBuyBar
         product={{
           id: product.id,
-          name: product.name,
+          name: selectedVariant
+            ? `${product.name} (${selectedVariant.combination || [selectedVariant.color, selectedVariant.storage].filter(Boolean).join(" • ")})`
+            : product.name,
           price: currentPrice,
           imageUrl: imageList[0] || "",
           stock: currentStock,

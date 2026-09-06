@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminCategoriesPage() {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_CATEGORIES");
   } catch {
-    redirect("/");
+    redirect("/admin");
   }
 
   const categories = await prisma.category.findMany({

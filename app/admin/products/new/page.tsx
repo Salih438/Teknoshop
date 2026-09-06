@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_PRODUCTS");
   } catch {
-    redirect("/");
+    redirect("/admin");
   }
 
   // Prisma Studio ile eklediğimiz Kategori ve Markaları veritabanından çekiyoruz

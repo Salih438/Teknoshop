@@ -37,7 +37,7 @@ export default function DeliverySelector({ onSelectDelivery, isFreeShipping }: D
     {
       id: "store_pickup",
       name: "Mağazadan Teslim Al (Tıkla & Gel)",
-      description: "En yakın Vitrin Mağazasından randevusuz teslim alabilirsiniz.",
+      description: "En yakın Teknoshop Mağazasından randevusuz teslim alabilirsiniz.",
       estimatedDate: "2 Saat İçinde Hazır",
       fee: 0,
       icon: "🏪",

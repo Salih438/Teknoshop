@@ -38,6 +38,7 @@ export default async function Home() {
         include: { 
           category: { select: { name: true } },
           reviews: { select: { rating: true } },
+          variants: { select: { stock: true } },
         },
       }),
       prisma.product.findMany({
@@ -47,6 +48,7 @@ export default async function Home() {
         include: { 
           category: { select: { name: true } },
           reviews: { select: { rating: true } },
+          variants: { select: { stock: true } },
         },
       }),
       prisma.product.findMany({
@@ -55,6 +57,7 @@ export default async function Home() {
         include: {
           category: { select: { name: true } },
           reviews: { select: { rating: true } },
+          variants: { select: { stock: true } },
         },
       }),
       getPersonalizedRecommendations(dbUserId, 8),
@@ -69,18 +72,25 @@ export default async function Home() {
     stock: number;
     category?: { name: string } | null;
     reviews?: { rating: number }[];
+    variants?: { stock: number }[];
   };
 
-  const formatProductForCard = (p: RawProductWithCardIncludes): ProductCardProps => ({
-    id: p.id,
-    name: p.name,
-    price: p.price,
-    comparePrice: p.comparePrice,
-    imageUrl: p.imageUrl || "",
-    stock: p.stock,
-    category: p.category ?? undefined,
-    reviews: p.reviews,
-  });
+  const formatProductForCard = (p: RawProductWithCardIncludes): ProductCardProps => {
+    const effectiveStock = p.variants && p.variants.length > 0
+      ? p.variants.reduce((sum, v) => sum + v.stock, 0)
+      : p.stock;
+
+    return {
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      comparePrice: p.comparePrice,
+      imageUrl: p.imageUrl || "",
+      stock: effectiveStock,
+      category: p.category ?? undefined,
+      reviews: p.reviews,
+    };
+  };
 
   const newProducts = newProductsRaw.map(formatProductForCard);
   const popularProducts = popularProductsRaw.map(formatProductForCard);

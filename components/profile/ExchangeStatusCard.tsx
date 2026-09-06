@@ -49,14 +49,14 @@ const STATUS_CONFIG: Record<
   ExchangeStatus,
   { label: string; bg: string; text: string; border: string; stepIndex: number }
 > = {
-  PENDING: { label: "Değişim Talebi Alındı", bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", stepIndex: 1 },
+  PENDING: { label: "Değişim Talebi Alındı", bg: "bg-amber-100", text: "text-amber-900", border: "border-amber-300", stepIndex: 1 },
   APPROVED: { label: "Talebiniz Onaylandı", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", stepIndex: 2 },
   WAITING_FOR_CUSTOMER: { label: "Kargo Bekleniyor", bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", stepIndex: 2 },
   WAITING_STOCK: { label: "Stok Bekleniyor", bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", stepIndex: 2 },
   SHIPPED: { label: "Ürün Kargoda", bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", stepIndex: 3 },
   RECEIVED: { label: "Depoya Ulaştı & İnceleniyor", bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", stepIndex: 3 },
   PROCESSING: { label: "Yeni Ürün Hazırlanıyor", bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", stepIndex: 4 },
-  COMPLETED: { label: "Değişim Tamamlandı", bg: "bg-green-50", text: "text-green-700", border: "border-green-200", stepIndex: 5 },
+  COMPLETED: { label: "Değişim Tamamlandı", bg: "bg-emerald-100", text: "text-emerald-900", border: "border-emerald-300", stepIndex: 5 },
   REJECTED: { label: "Değişim Reddedildi", bg: "bg-red-50", text: "text-red-700", border: "border-red-200", stepIndex: -1 },
 };
 

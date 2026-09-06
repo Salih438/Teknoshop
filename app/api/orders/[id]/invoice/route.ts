@@ -3,6 +3,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { getClientIdentifier, checkRateLimit, rateLimitResponse } from "@/lib/rate-limiter";
+import { calculateInvoice } from "@/lib/utils/invoice-calculator";
 
 export async function GET(
   request: Request,
@@ -65,17 +66,56 @@ export async function GET(
     const storePhone = storeSettings?.phone || "0850 123 45 67";
     const storeEmail = storeSettings?.email || "fatura@teknoshop.com";
 
-    // Finansal Hesaplamalar
-    const subTotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const discount = order.discountAmount || 0;
-    const netAmount = Math.max(0, subTotal - discount);
-    const kdvAmount = Number((netAmount * 0.20).toFixed(2));
+    // Merkezi Fatura ve KDV Hesaplama Motoru (BE-08 Unified Calculator)
+    const invoice = calculateInvoice({
+      totalPrice: order.totalPrice,
+      discountAmount: order.discountAmount,
+      items: order.items.map((i) => ({ price: i.price, quantity: i.quantity })),
+      paymentFee: order.payment?.paymentMethod?.fee,
+    });
+
     const orderCode = `#ORD-${order.id.slice(-8).toUpperCase()}`;
     const formattedDate = new Date(order.createdAt).toLocaleDateString("tr-TR", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
+
+    // JSON Format Talebi (Modal veya headless tüketim için)
+    const url = new URL(request.url);
+    if (url.searchParams.get("format") === "json") {
+      return NextResponse.json({
+        success: true,
+        orderCode,
+        formattedDate,
+        store: { name: storeName, address: storeAddress, phone: storePhone, email: storeEmail },
+        customer: {
+          name: order.user?.name || "Değerli Müşterimiz",
+          email: order.user?.email || "-",
+          address: order.address,
+        },
+        payment: {
+          method: order.payment?.paymentMethod?.name || "Kredi Kartı / Banka",
+          status: order.payment?.status === "COMPLETED" ? "Ödendi" : "Bekliyor",
+          fee: invoice.paymentFee,
+        },
+        shipment: {
+          company: order.shipment?.company || "Yurtiçi Kargo",
+          trackingNumber: order.shipment?.trackingNumber || "Hazırlanıyor",
+          cost: invoice.shippingCost,
+        },
+        items: order.items.map((item) => ({
+          id: item.id,
+          name: item.product?.name || "Ürün",
+          combination: item.variant?.combination || null,
+          sku: item.variant?.sku || item.product?.sku || "-",
+          quantity: item.quantity,
+          price: item.price,
+          total: item.price * item.quantity,
+        })),
+        calculation: invoice,
+      });
+    }
 
     // Printable Kurumsal HTML Fatura Şablonu
     const htmlContent = `
@@ -98,9 +138,9 @@ export async function GET(
     th { background: #f1f5f9; text-align: left; padding: 0.75rem 1rem; font-size: 0.8rem; font-weight: 800; color: #475569; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; }
     td { padding: 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
     .text-right { text-align: right; }
-    .totals-table { width: 300px; margin-left: auto; }
-    .totals-table td { padding: 0.5rem 1rem; }
-    .grand-total { font-size: 1.2rem; font-weight: 900; color: #1e3a8a; background: #eff6ff; }
+    .totals-table { width: 340px; margin-left: auto; }
+    .totals-table td { padding: 0.5rem 1rem; font-size: 0.88rem; }
+    .grand-total { font-size: 1.15rem; font-weight: 900; color: #1e3a8a; background: #eff6ff; }
     .no-print { display: flex; gap: 1rem; justify-content: center; margin-bottom: 1.5rem; }
     .btn { background: #2563eb; color: white; border: none; padding: 0.75rem 1.5rem; font-weight: 700; border-radius: 0.5rem; cursor: pointer; text-decoration: none; font-size: 0.9rem; }
     .btn:hover { background: #1d4ed8; }
@@ -176,8 +216,8 @@ export async function GET(
             </td>
             <td><code>${item.variant?.sku || item.product.sku || "-"}</code></td>
             <td class="text-right">${item.quantity}</td>
-            <td class="text-right">${item.price.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
-            <td class="text-right"><strong>${(item.price * item.quantity).toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</strong></td>
+            <td class="text-right">${item.price.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</td>
+            <td class="text-right"><strong>${(item.price * item.quantity).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</strong></td>
           </tr>
         `
           )
@@ -185,28 +225,45 @@ export async function GET(
       </tbody>
     </table>
 
-    <!-- Alt Toplamlar -->
+    <!-- Alt Toplamlar (BE-08 Unified Line Item & Tax Breakdown) -->
     <table class="totals-table">
       <tr>
-        <td>Ara Toplam:</td>
-        <td class="text-right">${subTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+        <td>Ürünler Toplamı:</td>
+        <td class="text-right font-mono">${invoice.subTotal.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</td>
       </tr>
       ${
-        discount > 0
+        invoice.discount > 0
           ? `
       <tr>
         <td style="color: #16a34a;">Kupon İndirimi:</td>
-        <td class="text-right" style="color: #16a34a;">-${discount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+        <td class="text-right font-mono" style="color: #16a34a;">-${invoice.discount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</td>
       </tr>`
           : ""
       }
       <tr>
-        <td>KDV (%20 Dahil):</td>
-        <td class="text-right">${kdvAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+        <td>Kargo Ücreti:</td>
+        <td class="text-right font-mono">${invoice.shippingCost === 0 ? '<span style="color: #16a34a; font-weight: 700;">Ücretsiz</span>' : `${invoice.shippingCost.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`}</td>
+      </tr>
+      ${
+        invoice.paymentFee > 0
+          ? `
+      <tr>
+        <td>Ödeme Hizmet Bedeli:</td>
+        <td class="text-right font-mono">${invoice.paymentFee.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</td>
+      </tr>`
+          : ""
+      }
+      <tr style="border-top: 1px dashed #cbd5e1;">
+        <td style="color: #64748b; font-size: 0.8rem;">KDV Hariç Matrah:</td>
+        <td class="text-right font-mono" style="color: #64748b; font-size: 0.8rem;">${invoice.netAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</td>
+      </tr>
+      <tr>
+        <td style="color: #64748b; font-size: 0.8rem;">Hesaplanan KDV (%20 Dahil):</td>
+        <td class="text-right font-mono" style="color: #64748b; font-size: 0.8rem;">${invoice.kdvAmount.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</td>
       </tr>
       <tr class="grand-total">
         <td>Genel Toplam:</td>
-        <td class="text-right">${order.totalPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</td>
+        <td class="text-right font-mono">${invoice.totalPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</td>
       </tr>
     </table>
 

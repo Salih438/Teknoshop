@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -41,3 +42,30 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# documentation screenshots & audit artifacts
+docs/screenshots/
+docs/*-proof.png
+docs/*-data.json
+docs/*.png
+
+# test & verification scripts
+/scripts/verify_*
+/scripts/test_*
+/scripts/capture_*
+/scripts/reconcile_*
+/scripts/calculate_*
+/scripts/recalculate_*
+/scripts/check_*
+/scripts/diagnose_*
+/scripts/get_*
+/scripts/summarize_*
+/scripts/scan_*
+/scripts/redact_*
+/scripts/spot_check_*
+/scripts/db_inventory.ts
+/scripts/get_sample_data.ts
+/scripts/summarize_audit.ts
+/scripts/enrich-gallery-coverage.ts
+/scripts/seed-additional-products.ts
+/scripts/check_csp.ts

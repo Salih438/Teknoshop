@@ -14,9 +14,9 @@ export default async function AdminReturnsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_RETURNS");
   } catch {
-    redirect("/");
+    redirect("/admin");
   }
 
   const params = await searchParams;

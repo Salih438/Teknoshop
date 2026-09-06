@@ -302,26 +302,39 @@ npm install
 
 ## 3. Environment Variables
 
-Proje kök dizininde `.env.local` dosyası oluşturun.
+Proje kök dizininde bulunan `.env.example` dosyasını referans alarak `.env.local` dosyası oluşturun:
 
-Örnek:
-
-```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
-
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="..."
-CLERK_SECRET_KEY="..."
-
-UPLOADTHING_SECRET="..."
-UPLOADTHING_APP_ID="..."
-
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-
-# Projede kullanılan diğer servis değişkenleri
-# kendi hesaplarınızdaki değerlerle doldurulmalıdır.
+```bash
+cp .env.example .env.local
 ```
 
-> ⚠️ **Güvenlik:** Gerçek API anahtarlarını, database şifrelerini veya production secret değerlerini GitHub repository'sine yüklemeyin.
+Gerekli ve opsiyonel değişkenler:
+
+```env
+# Veritabanı (Zorunlu - Neon PostgreSQL)
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
+
+# Kimlik Doğrulama (Zorunlu - Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+CLERK_SECRET_KEY="sk_test_..."
+
+# Uygulama URL & Başlık
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_STORE_NAME="TEKNOSHOP TEKNOLOJİ A.Ş."
+
+# Medya & Dosya Yükleme (UploadThing)
+UPLOADTHING_TOKEN="eyJhbGciOi..."
+
+# İşlemsel E-Posta (Opsiyonel - Resend)
+RESEND_API_KEY="re_..."
+EMAIL_FROM="Teknoshop <onboarding@resend.dev>"
+
+# Dağıtık Rate Limiting (Opsiyonel - Upstash Redis, boş bırakılırsa in-memory çalışır)
+UPSTASH_REDIS_REST_URL="https://...upstash.io"
+UPSTASH_REDIS_REST_TOKEN="..."
+```
+
+> ⚠️ **Güvenlik:** Gerçek API anahtarlarını, veritabanı parolalarını veya production secret değerlerini asla GitHub repository'sine yüklemeyin.
 
 ## 4. Prisma Client'ı oluşturun
 

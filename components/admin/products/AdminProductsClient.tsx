@@ -455,6 +455,7 @@ export default function AdminProductsClient({
                       <QuickStockUpdate
                         productId={product.id}
                         currentStock={product.stock}
+                        variantsCount={product.variantsCount}
                         onUpdate={() => router.refresh()}
                       />
                     </td>
@@ -567,6 +568,7 @@ export default function AdminProductsClient({
                     <QuickStockUpdate
                       productId={product.id}
                       currentStock={product.stock}
+                      variantsCount={product.variantsCount}
                       onUpdate={() => router.refresh()}
                     />
                   </div>

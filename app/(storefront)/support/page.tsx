@@ -2,7 +2,7 @@ import HelpCenterClient from "@/components/support/HelpCenterClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Destek Merkezi | Vitrin E-Ticaret",
+  title: "Destek Merkezi | Teknoshop",
   description: "Sıkça sorulan sorular, kargo takibi, iade süreçleri ve canlı destek hizmeti.",
 };
 

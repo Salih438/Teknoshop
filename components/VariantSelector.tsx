@@ -15,20 +15,36 @@ export interface ProductVariant {
 
 interface VariantSelectorProps {
   variants: ProductVariant[];
+  selectedVariantId?: string | null;
   onSelect: (variant: ProductVariant | null) => void;
 }
 
-export default function VariantSelector({ variants, onSelect }: VariantSelectorProps) {
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+export default function VariantSelector({
+  variants,
+  selectedVariantId: controlledVariantId,
+  onSelect,
+}: VariantSelectorProps) {
+  const defaultVariantId = variants.find((v) => v.stock > 0)?.id || variants[0]?.id || null;
+  const [internalVariantId, setInternalVariantId] = useState<string | null>(defaultVariantId);
+
+  const selectedVariantId = controlledVariantId !== undefined ? controlledVariantId : internalVariantId;
 
   useEffect(() => {
     if (selectedVariantId) {
-      const match = variants.find(v => v.id === selectedVariantId);
+      const match = variants.find((v) => v.id === selectedVariantId);
       onSelect(match || null);
     } else {
       onSelect(null);
     }
   }, [selectedVariantId, variants, onSelect]);
+
+  const handleToggle = (variant: ProductVariant) => {
+    if (variant.stock <= 0) return;
+    const isSelected = selectedVariantId === variant.id;
+    const nextId = isSelected ? null : variant.id;
+    setInternalVariantId(nextId);
+    onSelect(nextId ? variant : null);
+  };
 
   if (!variants || variants.length === 0) return null;
 
@@ -49,7 +65,7 @@ export default function VariantSelector({ variants, onSelect }: VariantSelectorP
               <button
                 key={variant.id}
                 type="button"
-                onClick={() => !isOutOfStock && setSelectedVariantId(isSelected ? null : variant.id)}
+                onClick={() => handleToggle(variant)}
                 disabled={isOutOfStock}
                 className={`relative px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl border text-xs sm:text-sm font-extrabold transition-all min-h-[44px] flex items-center justify-center
                   ${isSelected 

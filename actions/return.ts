@@ -11,10 +11,7 @@ import { revalidatePath } from "next/cache";
 import { AdminNotificationService } from "@/lib/services/admin-notification.service";
 import { EmailService } from "@/lib/email-service";
 
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) return error.message;
-  return fallback;
-}
+import { formatActionError } from "@/lib/utils/error-handler";
 
 /**
  * Müşteri: İade Talebi Oluşturma
@@ -71,10 +68,10 @@ export async function createReturnAction(input: {
     revalidatePath(`/profile/orders/${input.orderId}`);
     revalidatePath("/admin/returns");
 
-    return { success: true, data: returnRequest };
+    return { success: true as const, data: returnRequest };
   } catch (error: unknown) {
     console.error("createReturnAction error:", error);
-    return { success: false, error: getErrorMessage(error, "İade talebi oluşturulurken bir hata oluştu.") };
+    return formatActionError(error, "İade talebi oluşturulurken bir hata oluştu.");
   }
 }
 
@@ -146,10 +143,10 @@ export async function approveReturnAction(returnRequestId: string, returnTrackin
     revalidatePath("/profile/notifications");
     revalidatePath(`/profile/orders/${result.orderId}`);
 
-    return { success: true, data: result };
+    return { success: true as const, data: result };
   } catch (error: unknown) {
     console.error("approveReturnAction error:", error);
-    return { success: false, error: getErrorMessage(error, "İade onaylanırken hata oluştu.") };
+    return formatActionError(error, "İade onaylanırken hata oluştu.");
   }
 }
 
@@ -217,10 +214,10 @@ export async function rejectReturnAction(returnRequestId: string, adminNote: str
     revalidatePath("/profile/notifications");
     revalidatePath(`/profile/orders/${result.orderId}`);
 
-    return { success: true, data: result };
+    return { success: true as const, data: result };
   } catch (error: unknown) {
     console.error("rejectReturnAction error:", error);
-    return { success: false, error: getErrorMessage(error, "İade reddedilirken hata oluştu.") };
+    return formatActionError(error, "İade reddedilirken hata oluştu.");
   }
 }
 
@@ -260,10 +257,10 @@ export async function receiveReturnAction(returnRequestId: string, adminNote?: s
     revalidatePath("/profile/notifications");
     revalidatePath(`/profile/orders/${result.orderId}`);
 
-    return { success: true, data: result };
+    return { success: true as const, data: result };
   } catch (error: unknown) {
     console.error("receiveReturnAction error:", error);
-    return { success: false, error: getErrorMessage(error, "İade durumu güncellenirken hata oluştu.") };
+    return formatActionError(error, "İade durumu güncellenirken hata oluştu.");
   }
 }
 
@@ -337,10 +334,10 @@ export async function completeReturnAction(returnRequestId: string, refundMethod
       revalidatePath(`/profile/orders/${result.orderId}`);
     }
 
-    return { success: true, data: result };
+    return { success: true as const, data: result };
   } catch (error: unknown) {
     console.error("completeReturnAction error:", error);
-    return { success: false, error: getErrorMessage(error, "İade tamamlanırken hata oluştu.") };
+    return formatActionError(error, "İade tamamlanırken hata oluştu.");
   }
 }
 
@@ -369,7 +366,7 @@ export async function getUserReturnsAction() {
     }
 
     const returns = await ReturnService.getUserReturnRequests(dbUser.id);
-    return { success: true, data: returns };
+    return { success: true as const, data: returns };
   } catch (error: unknown) {
     console.error("getUserReturnsAction error:", error);
     return { success: false, error: "İade talepleri getirilemedi." };
@@ -384,7 +381,7 @@ export async function getAdminReturnsAction(statusFilter?: ReturnStatus) {
     await requireAdmin("MANAGE_RETURNS");
 
     const returns = await ReturnService.getAdminReturnRequests(statusFilter);
-    return { success: true, data: returns };
+    return { success: true as const, data: returns };
   } catch (error: unknown) {
     console.error("getAdminReturnsAction error:", error);
     return { success: false, error: "İade talepleri getirilemedi." };

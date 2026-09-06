@@ -139,7 +139,7 @@ export default function ProfileTabContainer({
                   </span>
                 )}
                 {tab.id === "returns" && (returns.length > 0 || exchanges.length > 0) && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-amber-500 text-white" : "bg-gray-100 text-gray-700"}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold" : "bg-gray-100 text-gray-700"}`}>
                     {returns.length + exchanges.length}
                   </span>
                 )}
@@ -235,7 +235,7 @@ export default function ProfileTabContainer({
             <div className="p-8 sm:p-12 text-center flex flex-col items-center justify-center">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-2xl">📦</div>
               <h4 className="text-lg font-bold text-gray-900 mb-2">Henüz Siparişiniz Yok</h4>
-              <p className="text-gray-500 text-xs sm:text-sm mb-6">Vitrin&apos;deki teknoloji ürünleri sizi bekliyor.</p>
+              <p className="text-gray-500 text-xs sm:text-sm mb-6">Teknoshop&apos;taki teknoloji ürünleri sizi bekliyor.</p>
               <Link href="/products" className="inline-flex items-center justify-center bg-gray-900 text-white font-extrabold px-6 py-3 rounded-xl hover:bg-gray-800 transition shadow-xs text-xs sm:text-sm min-h-[44px]">
                 Alışverişe Başla
               </Link>

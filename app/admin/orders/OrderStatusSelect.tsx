@@ -35,10 +35,10 @@ export default function OrderStatusSelect({ orderId, currentStatus }: OrderStatu
   }
 
   const statusColors: Record<string, string> = {
-    PENDING: "bg-orange-50 text-orange-700 border-orange-200",
+    PENDING: "bg-amber-100 text-amber-900 border-amber-300",
     PROCESSING: "bg-indigo-50 text-indigo-700 border-indigo-200", // Hazırlanıyor eklendi
     SHIPPED: "bg-blue-50 text-blue-700 border-blue-200",
-    DELIVERED: "bg-green-50 text-green-700 border-green-200",
+    DELIVERED: "bg-emerald-100 text-emerald-900 border-emerald-300",
     CANCELLED: "bg-red-50 text-red-700 border-red-200",
   };
 

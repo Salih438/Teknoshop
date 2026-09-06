@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { getRelatedProducts } from "@/lib/recommendation";
 import { getFrequentlyBoughtTogetherProducts } from "@/lib/recommendation-engine";
 import FrequentlyBoughtTogetherSection from "@/components/product/FrequentlyBoughtTogetherSection";
+import { getEffectiveStock } from "@/lib/product-stock";
 
 export const dynamic = "force-dynamic";
 
@@ -14,16 +15,17 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
-  const product = await prisma.product.findUnique({
-    where: { id },
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const product = await prisma.product.findFirst({
+    where: isUuid ? { id } : { slug: id },
     include: { images: true, category: true, brand: true },
   });
 
-  if (!product) return { title: "Ürün Bulunamadı | Vitrin" };
+  if (!product) return { title: "Ürün Bulunamadı | Teknoshop" };
 
-  const baseUrl = env.NEXT_PUBLIC_APP_URL || "https://vitrin.com";
-  const title = `${product.name} En Uygun Fiyatla Satın Al | Vitrin`;
-  const description = product.description?.substring(0, 160) || `${product.name} en uygun fiyatlarla Vitrin'de. Sınırlı stok, hızlı kargo ve güvenli ödeme fırsatını kaçırmayın.`;
+  const baseUrl = env.NEXT_PUBLIC_APP_URL || "https://teknoshop.com";
+  const title = `${product.name} En Uygun Fiyatla Satın Al | Teknoshop`;
+  const description = product.description?.substring(0, 160) || `${product.name} en uygun fiyatlarla Teknoshop'ta. Sınırlı stok, hızlı kargo ve güvenli ödeme fırsatını kaçırmayın.`;
   const imageUrl = product.images?.[0]?.imageUrl || product.imageUrl;
 
   return {
@@ -36,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       title,
       description,
       url: `${baseUrl}/products/${product.id}`,
-      siteName: "Vitrin E-Ticaret",
+      siteName: "Teknoshop",
       images: imageUrl ? [{ url: imageUrl, alt: product.name }] : [],
       locale: "tr_TR",
       type: "website",
@@ -57,11 +59,9 @@ export default async function SingleProductPage({ params }: { params: Promise<{ 
   const clerkUser = await currentUser();
   let isFavorite = false;
 
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const product = await prisma.product.findFirst({
-    where: {
-      id: id,
-      isActive: true,
-    },
+    where: isUuid ? { id: id, isActive: true } : { slug: id, isActive: true },
     include: {
       images: true,
       category: true,
@@ -115,14 +115,14 @@ export default async function SingleProductPage({ params }: { params: Promise<{ 
     sku: product.sku || product.id,
     brand: {
       "@type": "Brand",
-      name: product.brand?.name || "Vitrin",
+      name: product.brand?.name || "Teknoshop",
     },
     offers: {
       "@type": "Offer",
-      url: `https://vitrin.com/products/${product.id}`,
+      url: `${env.NEXT_PUBLIC_APP_URL || "https://teknoshop.com"}/products/${product.slug || product.id}`,
       priceCurrency: "TRY",
       price: product.price,
-      availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      availability: getEffectiveStock(product) > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
     },
     aggregateRating:
       product.reviews.length > 0

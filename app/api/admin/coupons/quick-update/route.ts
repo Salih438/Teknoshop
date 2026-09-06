@@ -89,6 +89,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, coupon: newCoupon });
     }
 
+    return NextResponse.json({ error: "Geçersiz işlem tipi." }, { status: 400 });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

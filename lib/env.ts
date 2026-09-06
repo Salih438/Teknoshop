@@ -16,7 +16,7 @@ const serverSchema = z.object({
 });
 
 const clientSchema = z.object({
-  NEXT_PUBLIC_APP_URL: z.string().default("https://vitrin.com"),
+  NEXT_PUBLIC_APP_URL: z.string().default("https://teknoshop-salih14.vercel.app"),
   NEXT_PUBLIC_STORE_NAME: z.string().default("TEKNOSHOP TEKNOLOJİ A.Ş."),
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().optional(),
 });

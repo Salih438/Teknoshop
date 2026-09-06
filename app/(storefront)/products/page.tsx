@@ -6,6 +6,7 @@ import ProductFilterPanel from "@/components/storefront/ProductFilterPanel";
 import ProductCard from "@/components/ProductCard";
 import Pagination from "@/components/ui/Pagination";
 import { getCachedStorefrontCategories } from "@/lib/services/category.service";
+import { getEffectiveStock } from "@/lib/product-stock";
 
 const PAGE_SIZE = 12;
 
@@ -60,11 +61,25 @@ export default async function AllProductsPage({
   }
 
   if (category) {
-    whereClause.categoryId = category;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(category);
+    if (isUuid) {
+      whereClause.categoryId = category;
+    } else {
+      whereClause.category = {
+        name: { equals: category, mode: 'insensitive' },
+      };
+    }
   }
 
   if (brand) {
-    whereClause.brandId = brand;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brand);
+    if (isUuid) {
+      whereClause.brandId = brand;
+    } else {
+      whereClause.brand = {
+        name: { equals: brand, mode: 'insensitive' },
+      };
+    }
   }
 
   // 3. PRISMA SIRALAMA MANTIĞI
@@ -84,6 +99,7 @@ export default async function AllProductsPage({
       include: {
         images: true, 
         category: true,
+        variants: { select: { stock: true } },
         reviews: { select: { rating: true } }
       }
     }),
@@ -148,6 +164,7 @@ export default async function AllProductsPage({
                 {products.map((product) => {
                   const extractedImageUrls = product.images.map((img) => img.imageUrl);
                   const displayImage = extractedImageUrls.length > 0 ? extractedImageUrls[0] : (product.imageUrl || "");
+                  const effectiveStock = getEffectiveStock(product);
 
                   return (
                     <ProductCard
@@ -158,7 +175,7 @@ export default async function AllProductsPage({
                         price: product.price,
                         comparePrice: product.comparePrice,
                         imageUrl: displayImage,
-                        stock: product.stock,
+                        stock: effectiveStock,
                         category: product.category ? { name: product.category.name } : undefined,
                         reviews: product.reviews,
                         isFavorite: userFavoriteProductIds.has(product.id),

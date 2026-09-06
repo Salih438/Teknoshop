@@ -8,6 +8,7 @@ import { Metadata } from "next";
 import { getMatchingCategoryIds } from "@/lib/synonyms";
 import { Prisma } from "@prisma/client";
 import { getCachedStorefrontCategories } from "@/lib/services/category.service";
+import { getEffectiveStock } from "@/lib/product-stock";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +20,10 @@ export async function generateMetadata({
   const resolvedParams = await searchParams;
   const q = resolvedParams.q || "Tüm Ürünler";
   return {
-    title: `${q} - Arama Sonuçları | Vitrin Teknolojik Mağaza`,
-    description: `${q} araması için en uygun fiyatlı, orijinal ve garantili teknoloji ürünleri Vitrin'de.`,
+    title: `${q} - Arama Sonuçları | Teknoshop`,
+    description: `${q} araması için en uygun fiyatlı, orijinal ve garantili teknoloji ürünleri Teknoshop'ta.`,
     openGraph: {
-      title: `${q} - Vitrin Mağaza`,
+      title: `${q} - Teknoshop`,
       description: `${q} arama sonuçlarını hemen keşfedin.`,
     },
   };
@@ -117,6 +118,7 @@ export default async function SearchPage({
       include: {
         category: { select: { name: true } },
         reviews: { select: { rating: true } },
+        variants: { select: { stock: true } },
       },
       orderBy: orderByClause,
       take: PAGE_SIZE,
@@ -138,6 +140,7 @@ export default async function SearchPage({
       include: {
         category: { select: { name: true } },
         reviews: { select: { rating: true } },
+        variants: { select: { stock: true } },
       },
     }),
   ]);
@@ -246,7 +249,7 @@ export default async function SearchPage({
                           price: prod.price,
                           comparePrice: prod.comparePrice,
                           imageUrl: prod.imageUrl || "",
-                          stock: prod.stock,
+                          stock: getEffectiveStock(prod),
                           category: prod.category ?? undefined,
                           reviews: prod.reviews,
                           badgeText: "🔥 Popüler",
@@ -272,7 +275,7 @@ export default async function SearchPage({
                         price: product.price,
                         comparePrice: product.comparePrice,
                         imageUrl: product.imageUrl || "",
-                        stock: product.stock,
+                        stock: getEffectiveStock(product),
                         category: product.category ?? undefined,
                         reviews: product.reviews,
                         isFavorite: userFavoriteProductIds.has(product.id),

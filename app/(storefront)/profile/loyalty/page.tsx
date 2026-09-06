@@ -34,7 +34,7 @@ export default async function LoyaltyPage() {
               <span className="text-xs font-bold text-blue-600">Sadakat & Ödüllerim</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 mt-1">
-              Vitrin Club & Ödüller 🎁
+              Teknoshop Club & Ödüller 🎁
             </h1>
           </div>
 
@@ -54,7 +54,7 @@ export default async function LoyaltyPage() {
                 <span className="text-4xl sm:text-6xl font-black text-amber-400 font-mono tracking-tight">
                   {loyalty.totalPoints.toLocaleString("tr-TR")}
                 </span>
-                <span className="text-sm font-bold text-gray-300">Vitrin Puan</span>
+                <span className="text-sm font-bold text-gray-300">TeknoPuan</span>
               </div>
             </div>
 

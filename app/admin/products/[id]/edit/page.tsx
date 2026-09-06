@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_PRODUCTS");
   } catch {
-    redirect("/");
+    redirect("/admin");
   }
 
   const resolvedParams = await params;
@@ -21,7 +21,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     where: { id: productId },
     include: { images: true, variants: true }
   });
-  console.log("PRODUCT IN DB:", product);
 
   // Eğer birisi URL'ye rastgele bir ID yazarsa ve ürün yoksa, ürünler listesine geri yolla
   if (!product) {
@@ -31,8 +30,6 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   // 2. Kategori ve markaları (Dropdown için) çekiyoruz
   const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
   const brands = await prisma.brand.findMany({ orderBy: { name: "asc" } });
-
-  console.log("FORM RENDER");
   
   return (
     <div className="max-w-4xl mx-auto">

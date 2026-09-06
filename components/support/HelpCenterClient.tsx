@@ -121,7 +121,7 @@ export default function HelpCenterClient() {
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 rounded-3xl p-6 sm:p-12 text-white shadow-xl relative overflow-hidden text-center flex flex-col items-center justify-center min-h-[260px] sm:min-h-[320px]">
         <div className="relative z-10 max-w-2xl w-full">
           <span className="bg-white/20 text-blue-100 px-3.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider mb-3 inline-block border border-white/20">
-            Vitrin Destek Merkezi
+            Teknoshop Destek Merkezi
           </span>
           <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-3">
             Size Nasıl Yardımcı Olabiliriz?
@@ -402,7 +402,7 @@ export default function HelpCenterClient() {
             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-3xl">
               💬
             </div>
-            <h3 className="text-xl font-extrabold text-gray-900">Vitrin Canlı Asistan</h3>
+            <h3 className="text-xl font-extrabold text-gray-900">Teknoshop Canlı Asistan</h3>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
               Müşteri temsilcimiz <span className="font-bold text-gray-900">Zeynep</span> birazdan bağlanıyor. Sorularınızı yanıtlamaktan memnuniyet duyacaktır.
             </p>

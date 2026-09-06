@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { AuditLogService } from "@/lib/services/audit-log.service";
 import { AuditRiskLevel } from "@prisma/client";
+import { assertCanBulkModifyUsers } from "@/lib/auth/role-guards";
 
 export async function PATCH(request: Request) {
   try {
@@ -37,6 +38,16 @@ export async function PATCH(request: Request) {
     if (action === "deactivate") {
       const adminUser = await requireAdmin("MANAGE_USERS");
 
+      const guard = await assertCanBulkModifyUsers(
+        { id: adminUser.id, systemRole: adminUser.systemRole },
+        userIds,
+        "deactivate"
+      );
+
+      if (!guard.allowed) {
+        return NextResponse.json({ error: guard.error }, { status: guard.status });
+      }
+
       await prisma.user.updateMany({
         where: { id: { in: userIds } },
         data: { isActive: false },
@@ -57,6 +68,16 @@ export async function PATCH(request: Request) {
 
     if (action === "delete") {
       const adminUser = await requireAdmin("DELETE_USERS");
+
+      const guard = await assertCanBulkModifyUsers(
+        { id: adminUser.id, systemRole: adminUser.systemRole },
+        userIds,
+        "delete"
+      );
+
+      if (!guard.allowed) {
+        return NextResponse.json({ error: guard.error }, { status: guard.status });
+      }
 
       // 🛡️ İLİŞKİSEL KORUMA: Sipariş, Adres veya İade/Değişim geçmişi olan kullanıcılar tespit edilir
       const usersWithHistory = await prisma.user.findMany({

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import AdminProductsClient, { ProductDTO } from "@/components/admin/products/AdminProductsClient";
+import { getEffectiveStock } from "@/lib/product-stock";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,15 @@ export default async function AdminProductsPage({
     prisma.product.count(),
     prisma.product.count({ where: { isActive: true } }),
     prisma.product.count({ where: { isActive: false } }),
-    prisma.product.count({ where: { stock: { lte: 5 }, isActive: true } }),
+    prisma.product.count({
+      where: {
+        isActive: true,
+        OR: [
+          { variants: { none: {} }, stock: { lte: 5 } },
+          { variants: { some: {}, every: { stock: { lte: 5 } } } },
+        ],
+      },
+    }),
     prisma.brand.count(),
     prisma.category.count(),
     prisma.category.findMany({ orderBy: { name: "asc" } }),
@@ -53,39 +62,49 @@ export default async function AdminProductsPage({
   ]);
 
   // 3. DİNAMİK VERİTABANI WHERECONDITION KUTUSU
-  const whereCondition: Prisma.ProductWhereInput = {};
+  const andConditions: Prisma.ProductWhereInput[] = [];
 
-  if (categoryId) {
-    whereCondition.categoryId = categoryId;
-  }
-
-  if (brandId) {
-    whereCondition.brandId = brandId;
-  }
-
-  if (statusFilter === "active") {
-    whereCondition.isActive = true;
-  } else if (statusFilter === "passive") {
-    whereCondition.isActive = false;
-  }
+  if (categoryId) andConditions.push({ categoryId });
+  if (brandId) andConditions.push({ brandId });
+  if (statusFilter === "active") andConditions.push({ isActive: true });
+  else if (statusFilter === "passive") andConditions.push({ isActive: false });
 
   if (stockStatusFilter === "in_stock") {
-    whereCondition.stock = { gt: 5 };
+    andConditions.push({
+      OR: [
+        { variants: { none: {} }, stock: { gt: 5 } },
+        { variants: { some: { stock: { gt: 5 } } } },
+      ],
+    });
   } else if (stockStatusFilter === "critical") {
-    whereCondition.stock = { gte: 1, lte: 5 };
+    andConditions.push({
+      OR: [
+        { variants: { none: {} }, stock: { gte: 1, lte: 5 } },
+        { variants: { some: { stock: { gte: 1, lte: 5 } } } },
+      ],
+    });
   } else if (stockStatusFilter === "out_of_stock") {
-    whereCondition.stock = 0;
+    andConditions.push({
+      OR: [
+        { variants: { none: {} }, stock: 0 },
+        { variants: { some: {}, every: { stock: 0 } } },
+      ],
+    });
   }
 
   if (searchQuery) {
-    whereCondition.OR = [
-      { name: { contains: searchQuery, mode: "insensitive" } },
-      { sku: { contains: searchQuery, mode: "insensitive" } },
-      { slug: { contains: searchQuery, mode: "insensitive" } },
-      { category: { name: { contains: searchQuery, mode: "insensitive" } } },
-      { brand: { name: { contains: searchQuery, mode: "insensitive" } } },
-    ];
+    andConditions.push({
+      OR: [
+        { name: { contains: searchQuery, mode: "insensitive" } },
+        { sku: { contains: searchQuery, mode: "insensitive" } },
+        { slug: { contains: searchQuery, mode: "insensitive" } },
+        { category: { name: { contains: searchQuery, mode: "insensitive" } } },
+        { brand: { name: { contains: searchQuery, mode: "insensitive" } } },
+      ],
+    });
   }
+
+  const whereCondition: Prisma.ProductWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
   // 4. ÜRÜN LİSTESİ SORGUSU (N+1 ENGELİ İÇİN SELECT & INCLUDES)
   const dbProducts = await prisma.product.findMany({
@@ -93,7 +112,7 @@ export default async function AdminProductsPage({
     include: {
       category: { select: { id: true, name: true } },
       brand: { select: { id: true, name: true } },
-      variants: { select: { id: true } },
+      variants: { select: { id: true, stock: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 300, // Performans Sınırı
@@ -107,7 +126,7 @@ export default async function AdminProductsPage({
     sku: p.sku,
     price: p.price,
     comparePrice: p.comparePrice,
-    stock: p.stock,
+    stock: getEffectiveStock(p),
     isActive: p.isActive,
     imageUrl: p.imageUrl,
     category: p.category,

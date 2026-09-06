@@ -16,7 +16,7 @@ export default function ReferralCopyCard({ referralCode }: { referralCode: strin
         </span>
         <h3 className="text-lg font-black text-gray-900">Özel Referans Kodunuz</h3>
         <p className="text-xs text-gray-500 font-medium max-w-md">
-          Bu kodu arkadaşlarınızla paylaşın. Arkadaşınız ilk alışverişini yaptığında her ikiniz de <strong>500 Vitrin Puan</strong> kazanın!
+          Bu kodu arkadaşlarınızla paylaşın. Arkadaşınız ilk alışverişini yaptığında her ikiniz de <strong>500 TeknoPuan</strong> kazanın!
         </p>
       </div>
 

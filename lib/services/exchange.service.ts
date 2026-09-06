@@ -1,6 +1,22 @@
 import { prisma } from "@/lib/prisma";
 import { ExchangeStatus, ExchangeReason, ReturnStatus, Prisma } from "@prisma/client";
 import { ACTIVE_EXCHANGE_STATUSES, ACTIVE_RETURN_STATUSES } from "@/lib/constants/order-status";
+import { CheckoutError } from "@/lib/services/checkout.service";
+
+export { CheckoutError };
+
+export class InsufficientStockError extends CheckoutError {
+  public statusCode: number;
+
+  constructor(
+    message = "Talep edilen ürünün stoku yetersiz.",
+    status = 409
+  ) {
+    super(message, status);
+    this.name = "InsufficientStockError";
+    this.statusCode = status;
+  }
+}
 
 export interface CreateExchangeItemInput {
   orderItemId: string;
@@ -439,37 +455,16 @@ export class ExchangeService {
         throw new Error("Bu değişim talebi eşzamanlı başka bir işlem ile zaten tamamlanmış.");
       }
 
-      // 🚀 2. STOK BÜTÜNLÜĞÜ DOĞRULAMASI (COMPLETE ANINDA YENİ ÜRÜN STOĞU YETERLİ Mİ?)
+      // 🚀 2. STOK SENKRONİZASYONU & ATOMİK STOK KORUMASI (CHECKOUT PATTERN)
+      // Eski ürün stoku iade alınır (stock increment),
+      // Yeni ürün stoku conditional atomic updateMany({ where: { stock: { gte: quantity } } }) ile düşürülür.
+      // Eşzamanlı yarış (race condition) durumunda count === 0 döner ve InsufficientStockError fırlatılarak
+      // tüm transaction (durum güncellemesi ve iade dahil) atomik olarak geri alınır (rollback).
       for (const item of exchangeRequest.items) {
-        if (item.requestedVariantId) {
-          const reqVariant = await tx.productVariant.findUnique({
-            where: { id: item.requestedVariantId },
-          });
-
-          if (!reqVariant || reqVariant.stock < item.quantity) {
-            throw new Error(
-              `İstenen yeni varyasyonun (${reqVariant?.combination || "Varyasyon"}) stoğu yetersiz (Kalan Stok: ${reqVariant?.stock || 0}). Değişim tamamlanamıyor, talebi 'Stok Bekleniyor' durumuna alabilirsiniz.`
-            );
-          }
-        } else if (item.requestedProductId) {
-          const reqProduct = await tx.product.findUnique({
-            where: { id: item.requestedProductId },
-          });
-
-          if (!reqProduct || reqProduct.stock < item.quantity) {
-            throw new Error(
-              `İstenen yeni ürünün (${reqProduct?.name || "Ürün"}) stoğu yetersiz (Kalan Stok: ${reqProduct?.stock || 0}). Değişim tamamlanamıyor.`
-            );
-          }
-        }
-      }
-
-      // 🚀 3. STOK SENKRONİZASYONU: Eski Ürün (Stock++), Yeni Ürün (Stock--)
-      const stockPromises = exchangeRequest.items.map(async (item) => {
         const orderItem = item.orderItem;
 
-        // OrderItem.exchangedQuantity miktarını artır
-        const p1 = tx.orderItem.update({
+        // A. OrderItem.exchangedQuantity miktarını artır
+        await tx.orderItem.update({
           where: { id: orderItem.id },
           data: {
             exchangedQuantity: {
@@ -478,10 +473,8 @@ export class ExchangeService {
           },
         });
 
-        const targetProductId = item.requestedProductId || orderItem.productId;
-
-        // Geri gelen eski ürün: varyantı varsa Product.stock'a dokunma, sadece salesCount düşür
-        const p2 = tx.product.update({
+        // B. Geri gelen eski ürün: varyantı varsa Product.stock'a dokunma, sadece salesCount düşür
+        await tx.product.update({
           where: { id: orderItem.productId },
           data: orderItem.variantId
             ? { salesCount: { decrement: item.quantity } }
@@ -491,35 +484,65 @@ export class ExchangeService {
               },
         });
 
-        const p3 = orderItem.variantId
-          ? tx.productVariant.update({
-              where: { id: orderItem.variantId },
-              data: { stock: { increment: item.quantity } },
-            })
-          : Promise.resolve();
+        if (orderItem.variantId) {
+          await tx.productVariant.update({
+            where: { id: orderItem.variantId },
+            data: { stock: { increment: item.quantity } },
+          });
+        }
 
-        // Müşteriye gönderilen yeni ürün: varyantı varsa Product.stock'a dokunma, sadece salesCount artır
-        const p4 = tx.product.update({
-          where: { id: targetProductId },
-          data: item.requestedVariantId
-            ? { salesCount: { increment: item.quantity } }
-            : {
-                stock: { decrement: item.quantity },
-                salesCount: { increment: item.quantity },
-              },
-        });
+        // C. Müşteriye gönderilen yeni ürün: ATOMİK STOK DÜŞÜMÜ (Checkout Atomic Pattern)
+        const targetProductId = item.requestedProductId || orderItem.productId;
 
-        const p5 = item.requestedVariantId
-          ? tx.productVariant.update({
-              where: { id: item.requestedVariantId },
-              data: { stock: { decrement: item.quantity } },
-            })
-          : Promise.resolve();
+        if (item.requestedVariantId) {
+          // ── VARYANTLI ÜRÜN ─────────────────────────────────────────
+          // Stok guard'ı doğrudan varyant satırına uygulanır.
+          // Parent Product.stock varyantlı ürünlerde her zaman 0'dır, dokunulmaz.
+          const variantResult = await tx.productVariant.updateMany({
+            where: {
+              id: item.requestedVariantId,
+              stock: { gte: item.quantity },
+            },
+            data: {
+              stock: { decrement: item.quantity },
+            },
+          });
 
-        return Promise.all([p1, p2, p3, p4, p5]);
-      });
+          if (variantResult.count === 0) {
+            // Race condition koruması: Eşzamanlı başka bir işlem (örn. checkout veya admin) stoğu tüketti
+            throw new InsufficientStockError(
+              `İstenen yeni varyasyonun (${item.requestedVariant?.combination || "Varyasyon"}) stoğu yetersiz. Değişim tamamlanamıyor, talebi 'Stok Bekleniyor' durumuna alabilirsiniz.`,
+              409
+            );
+          }
 
-      await Promise.all(stockPromises);
+          // salesCount ana ürün üzerinde artırılır
+          await tx.product.update({
+            where: { id: targetProductId },
+            data: { salesCount: { increment: item.quantity } },
+          });
+        } else {
+          // ── BASİT ÜRÜN (Varyantsız) ──────────────────────────────────
+          // Product.stock tek gerçek kaynaktır (single source of truth).
+          const productResult = await tx.product.updateMany({
+            where: {
+              id: targetProductId,
+              stock: { gte: item.quantity },
+            },
+            data: {
+              stock: { decrement: item.quantity },
+              salesCount: { increment: item.quantity },
+            },
+          });
+
+          if (productResult.count === 0) {
+            throw new InsufficientStockError(
+              `İstenen yeni ürünün (${item.requestedProduct?.name || "Ürün"}) stoğu yetersiz. Değişim tamamlanamıyor.`,
+              409
+            );
+          }
+        }
+      }
 
       return await tx.exchangeRequest.findUnique({
         where: { id: exchangeRequestId },

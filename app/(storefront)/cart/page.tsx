@@ -94,7 +94,7 @@ export default function CartPage() {
     cartItemId: string;
   }) => {
     try {
-      const existing = localStorage.getItem("vitrin_saved_for_later");
+      const existing = localStorage.getItem("teknoshop_saved_for_later") || localStorage.getItem("vitrin_saved_for_later");
       const list = existing ? JSON.parse(existing) : [];
       const newItem = {
         id: item.id,
@@ -104,7 +104,7 @@ export default function CartPage() {
       };
       if (!list.some((i: { id: string }) => i.id === item.id)) {
         list.push(newItem);
-        localStorage.setItem("vitrin_saved_for_later", JSON.stringify(list));
+        localStorage.setItem("teknoshop_saved_for_later", JSON.stringify(list));
       }
       removeItem(item.cartItemId);
       toast.success(`${item.name} 'Daha Sonra Satın Al' listenize eklendi! 🕒`);

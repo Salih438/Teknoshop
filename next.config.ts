@@ -30,6 +30,7 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
+      "worker-src 'self' blob:",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https://images.unsplash.com https://uploadthing.com https://*.uploadthing.com https://utfs.io https://img.clerk.com https://*.clerk.com https://res.cloudinary.com https://*.gstatic.com https://*.mncdn.com https://*.mmsrg.com",

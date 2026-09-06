@@ -217,7 +217,7 @@ export default function DynamicPaymentForm({
             </div>
           ) : (
             <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs font-mono font-bold text-gray-700">
-              IBAN: TR98 0006 2000 0000 1234 5678 90 (Garanti BBVA - Vitrin A.Ş.)
+              IBAN: TR98 0006 2000 0000 1234 5678 90 (Garanti BBVA - Teknoshop A.Ş.)
             </div>
           )}
         </div>

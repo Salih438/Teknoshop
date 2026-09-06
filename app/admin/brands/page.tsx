@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminBrandsPage() {
   try {
-    await requireAdmin();
+    await requireAdmin("MANAGE_BRANDS");
   } catch {
-    redirect("/");
+    redirect("/admin");
   }
 
   // Markaları, onlara ait ürün sayısıyla birlikte çekiyoruz

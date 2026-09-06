@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { env } from "@/lib/env";
+import { calculateInvoice, formatCurrency, InvoiceCalculationResult } from "@/lib/utils/invoice-calculator";
 
 interface OrderInvoiceModalProps {
   orderId: string;
@@ -10,12 +11,42 @@ interface OrderInvoiceModalProps {
   totalPrice: number;
   createdAt: string;
   status: string;
+  discountAmount?: number;
+  paymentFee?: number;
+  shippingCost?: number;
+  items?: { price: number; quantity: number }[];
 }
 
 interface StoreSettingsData {
   phone?: string | null;
   email?: string | null;
   address?: string | null;
+}
+
+interface CustomerAddressData {
+  title?: string | null;
+  address?: string | null;
+  district?: string | null;
+  city?: string | null;
+}
+
+interface DetailedInvoiceData {
+  orderCode: string;
+  formattedDate: string;
+  store: { name: string; address: string; phone: string; email: string };
+  customer: { name: string; email: string; address?: CustomerAddressData | null };
+  payment: { method: string; status: string; fee: number };
+  shipment: { company: string; trackingNumber: string; cost: number };
+  items: {
+    id: string;
+    name: string;
+    combination: string | null;
+    sku: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }[];
+  calculation: InvoiceCalculationResult;
 }
 
 export default function OrderInvoiceModal({
@@ -25,31 +56,58 @@ export default function OrderInvoiceModal({
   totalPrice,
   createdAt,
   status,
+  discountAmount,
+  paymentFee,
+  shippingCost,
+  items,
 }: OrderInvoiceModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [storeSettings, setStoreSettings] = useState<StoreSettingsData | null>(null);
+  const [detailedData, setDetailedData] = useState<DetailedInvoiceData | null>(null);
+
+  // Synchronous baseline calculation using shared invoice calculator
+  const fallbackInvoice = calculateInvoice({
+    totalPrice,
+    discountAmount,
+    paymentFee,
+    shippingCost,
+    items,
+  });
+
+  const invoice = detailedData?.calculation || fallbackInvoice;
+  const formattedInvoiceNo = detailedData?.orderCode || `FAT-${orderId.slice(-8).toUpperCase()}`;
+
+  const storeName = detailedData?.store?.name || env.NEXT_PUBLIC_STORE_NAME || "TEKNOSHOP TEKNOLOJİ A.Ş.";
+  const storeAddress = detailedData?.store?.address || storeSettings?.address || "Maslak Mah. Büyükdere Cad. No:123 Sarıyer / İstanbul";
+  const storePhone = detailedData?.store?.phone || storeSettings?.phone || "0850 123 45 67";
+  const storeEmail = detailedData?.store?.email || storeSettings?.email || "fatura@teknoshop.com";
 
   useEffect(() => {
-    if (isOpen && !storeSettings) {
+    if (!isOpen) return;
+
+    if (!storeSettings) {
       fetch("/api/settings")
         .then((res) => res.json())
         .then((data) => {
-          if (data && !data.error) {
-            setStoreSettings(data);
-          }
+          if (data && !data.error) setStoreSettings(data);
         })
         .catch(() => {});
     }
-  }, [isOpen, storeSettings]);
 
-  const subTotal = Math.round(totalPrice / 1.2);
-  const kdvAmount = totalPrice - subTotal;
-  const formattedInvoiceNo = `FAT-${orderId.slice(-8).toUpperCase()}`;
+    let isMounted = true;
+    fetch(`/api/orders/${orderId}/invoice?format=json`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data && data.success) {
+          setDetailedData(data);
+        }
+      })
+      .catch(() => {});
 
-  const storeName = env.NEXT_PUBLIC_STORE_NAME || "TEKNOSHOP TEKNOLOJİ A.Ş.";
-  const storeAddress = storeSettings?.address || "Maslak Mah. Büyükdere Cad. No:123 Sarıyer / İstanbul";
-  const storePhone = storeSettings?.phone || "0850 123 45 67";
-  const storeEmail = storeSettings?.email || "fatura@teknoshop.com";
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, orderId, storeSettings]);
 
   const handlePrintInvoice = () => {
     window.open(`/api/orders/${orderId}/invoice`, "_blank");
@@ -125,19 +183,76 @@ export default function OrderInvoiceModal({
                 </div>
               </div>
 
-              {/* HESAPLAMA TABLOSU */}
+              {/* SİPARİŞ KALEMLERİ TABLOSU */}
+              {detailedData?.items && detailedData.items.length > 0 && (
+                <div className="border-t border-b border-gray-200 py-3 space-y-2">
+                  <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest block mb-1">
+                    SİPARİŞ KALEMLERİ ({detailedData.items.length} Kalem)
+                  </span>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                    {detailedData.items.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center text-xs bg-white p-2 rounded-lg border border-gray-100">
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-gray-900 truncate">{item.name}</p>
+                          {item.combination && (
+                            <span className="text-[10px] text-gray-400 block">{item.combination}</span>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0 font-mono">
+                          <span className="text-gray-500 mr-2">{item.quantity} × {item.price.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</span>
+                          <span className="font-bold text-gray-900">{item.total.toLocaleString("tr-TR", { minimumFractionDigits: 2 })} ₺</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* HESAPLAMA TABLOSU (BE-08 UNIFIED BREAKDOWN) */}
               <div className="border-t border-b border-gray-200 py-3 space-y-2 text-xs sm:text-sm">
-                <div className="flex justify-between text-gray-600">
-                  <span>Ara Toplam (KDV Hariç):</span>
-                  <span className="font-mono">{subTotal.toLocaleString("tr-TR")} ₺</span>
+                <div className="flex justify-between text-gray-700">
+                  <span>Ürünler Toplamı:</span>
+                  <span className="font-mono">{formatCurrency(invoice.subTotal)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Hesaplanan KDV (%20):</span>
-                  <span className="font-mono">{kdvAmount.toLocaleString("tr-TR")} ₺</span>
+
+                {invoice.discount > 0 && (
+                  <div className="flex justify-between text-green-600 font-bold">
+                    <span>Kupon İndirimi:</span>
+                    <span className="font-mono">-{formatCurrency(invoice.discount)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-gray-700">
+                  <span>Kargo Ücreti:</span>
+                  <span className="font-mono">
+                    {invoice.shippingCost === 0 ? (
+                      <span className="text-green-600 font-bold">Ücretsiz (0,00 ₺)</span>
+                    ) : (
+                      formatCurrency(invoice.shippingCost)
+                    )}
+                  </span>
                 </div>
+
+                {invoice.paymentFee > 0 && (
+                  <div className="flex justify-between text-gray-700">
+                    <span>Ödeme Hizmet Bedeli:</span>
+                    <span className="font-mono">{formatCurrency(invoice.paymentFee)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-gray-500 pt-2 border-t border-dashed border-gray-200 text-xs">
+                  <span>KDV Hariç Matrah:</span>
+                  <span className="font-mono">{formatCurrency(invoice.netAmount)}</span>
+                </div>
+
+                <div className="flex justify-between text-gray-500 text-xs">
+                  <span>Hesaplanan KDV (%20 Dahil):</span>
+                  <span className="font-mono">{formatCurrency(invoice.kdvAmount)}</span>
+                </div>
+
                 <div className="flex justify-between items-center font-bold text-base pt-2 border-t border-gray-200">
                   <span className="text-gray-900">Toplam Fatura Tutarı (KDV Dahil):</span>
-                  <span className="text-blue-600 font-black text-lg">{totalPrice.toLocaleString("tr-TR")} ₺</span>
+                  <span className="text-blue-600 font-black text-lg">{formatCurrency(invoice.totalPrice)}</span>
                 </div>
               </div>
 

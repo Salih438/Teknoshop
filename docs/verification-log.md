@@ -123,3 +123,46 @@
    - `npm test`: 4 test suite, 20 testin tamamı başarılı (PASS).
    - `npm run build`: 41 rotanın tamamı derlendi ve başarıyla paketlendi (Exit code 0).
 
+---
+
+## 🎨 [2026-09-02] Comprehensive UI/UX Audit — Desktop & Mobile (All Screens)
+
+- **Audit Type:** Tam Kapsamlı Görsel, Etkileşim ve Erişilebilirlik (A11y) Denetimi (Headless Playwright Chromium Motoru ile %100 Gerçek Ekran Görüntüleri).
+- **Target Report:** [`docs/ui-ux-audit-report.md`](file:///c:/Users/Salih/Staj/Teknoshop/docs/ui-ux-audit-report.md)
+- **Ekran Görüntüsü Arşivi:** [`docs/screenshots/`](file:///c:/Users/Salih/Staj/Teknoshop/docs/screenshots/) (94 adet yüksek çözünürlüklü desktop ve mobil kanıt görseli)
+- **Denetlenen Çözünürlükler:**
+  - **Desktop:** `1440 x 900`
+  - **Mobile:** `375 x 812` (iPhone-sınıfı görünüm)
+- **Kapsam:**
+  - **44 Ayrı Rota ve Etkileşim:** 18 Vitrin Sayfası, 7 Müşteri Hesabı Sayfası (`musteri@teknoshop.demo`), 19 Admin Paneli Sayfası (`admin@teknoshop.demo`), 4 Çapraz Etkileşim Bileşeni (Mobil Drawer, Mobil Arama, Sticky Satın Alma Çubuğu, Sepet).
+- **Temel Bulgular & Metrikler:**
+  - **Yatay Taşma (Horizontal Scroll Overflow):** 44 rotanın tamamında `scrollWidth === clientWidth` doğrulandı, 0 yatay taşma.
+  - **WCAG 2.1 Renk Kontrastı:** W3C relatif parlaklık algoritmasıyla hesaplandı ($L = 0.2126R + 0.7152G + 0.0722B$). Gövde metni (17.74:1 AAA), Butonlar (5.17:1 AA). Uyarı/beklemede rozetlerinin (#F59E0B) kontrast düşüklüğü (2.15:1) tespit edilerek eylem planına eklendi.
+  - **Mobil Drawer & Arama:** Sol hamburger butonu, Focus Trap, scroll-lock ve arka plan blur etkileşimleri doğrulandı.
+  - **Teknik Özellik & Varyant Matrisi:** Laptop/Telefon PDP'lerinde teknik spec tablolarının mobilde dikey kartlara daralması ve dinamik RAM/Depolama/Renk fiyat hesaplamaları doğrulandı.
+  - **Kalite & Sağlık Doğrulaması:** `npx tsc --noEmit` (0 Hata), `npx eslint` (0 Hata), `npm test` (4 test suite, 20/20 test PASS).
+
+---
+
+## 🔬 [2026-09-05] Comprehensive Frontend + Backend Error & Gap Analysis
+- **Audit Type:** Uçtan Uca Kod Tabanı Doğruluk, İş Mantığı, Eşzamanlılık (Concurrency), Durum Makinesi & Eksik Özellik Taraması.
+- **Target Report:** [`docs/full-stack-error-gap-report.md`](file:///c:/Users/Salih/Staj/Teknoshop/docs/full-stack-error-gap-report.md)
+- **Kapsam:**
+  - **Uygulama Ölçeği:** 110 Ürün, 15 Kategori, 20 Marka, 28 Prisma Modeli, 33 API Route, 7 Server Action.
+  - **Denetim Yaklaşımı:** Kesinlikle canlı ortamı riske atmayan, salt-okunur (read-only) derinlemesine statik ve dinamik kod analizi.
+- **Bulgular Özeti:**
+  - **Toplam Tespit:** 24 bulgu (4 Kritik P0/P1, 8 Majör P2, 9 Minör P3, 3 Not/Gözlem).
+  - **Kritik Bulgular:** 
+    - `FE-01`: Arama sonuçlarında varyantlı ürünlerin (18 adet) ana tabloda `stock: 0` olması nedeniyle "TÜKENDİ" ve butonun pasif görünmesi.
+    - `FE-02`: Ürün detay sayfasında başlangıç render'ında varyant seçilmeden önce "Tükendi" durumu oluşması.
+    - `BE-01`: Değişim tamamlama işleminde atomik stok kontrolü eksikliği nedeniyle yarış koşulu (race condition).
+    - `BE-02`: Admin hızlı stok güncellemesinin ana tabloyu güncelleyip varyant tablosunu atlaması.
+- **Eylemler & Düzeltmeler:**
+  - `docs/verification-log.md` içindeki kişisel e-posta adresleri anonimleştirildi/temizlendi.
+  - `app/admin/products/[id]/edit/page.tsx` içindeki debug `console.log` çağrıları temizlendi.
+  - Kritik ve Majör bulgular için GitHub push öncesi ve sonrası 3 aşamalı eylem planı hazırlandı.
+- **Kalite & Sağlık Doğrulaması:**
+  - `npx tsc --noEmit`: 0 Hata (Clean compilation).
+  - `npm test`: 4 test suite, 20/20 test PASS.
+  - `npx eslint app components lib`: 0 error, 0 warning.
+  - `npm run build`: 41 rotanın tamamı derlendi ve başarıyla paketlendi (Exit code 0).

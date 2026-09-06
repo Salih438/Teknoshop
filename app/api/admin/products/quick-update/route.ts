@@ -24,21 +24,51 @@ export async function POST(request: Request) {
 
       const existing = await prisma.product.findUnique({
         where: { id: productId },
-        select: { name: true, stock: true },
+        select: {
+          id: true,
+          name: true,
+          stock: true,
+          variants: { select: { id: true } },
+        },
       });
 
-      const updated = await prisma.product.update({
+      if (!existing) {
+        return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
+      }
+
+      if (existing.variants.length > 0) {
+        return NextResponse.json(
+          {
+            error:
+              "Varyantlı ürünlerde stok miktarı varyant bazında yönetilmelidir. Lütfen ürün düzenleme sayfasını kullanın.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const updateResult = await prisma.product.updateMany({
         where: { id: productId },
         data: { stock: newStock },
+      });
+
+      if (updateResult.count === 0) {
+        return NextResponse.json(
+          { error: "Ürün güncellenemedi veya silinmiş olabilir." },
+          { status: 404 }
+        );
+      }
+
+      const updated = await prisma.product.findUnique({
+        where: { id: productId },
       });
 
       await AuditLogService.createAuditLog({
         action: "PRODUCT_STOCK_UPDATE",
         entityType: "Product",
         entityId: productId,
-        entityName: existing?.name || "Ürün",
+        entityName: existing.name || "Ürün",
         riskLevel: AuditRiskLevel.LOW,
-        oldValue: { stock: existing?.stock },
+        oldValue: { stock: existing.stock },
         newValue: { stock: newStock },
       });
 

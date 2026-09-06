@@ -13,6 +13,7 @@ import { ExchangeStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { AdminNotificationService } from "@/lib/services/admin-notification.service";
 import { EmailService } from "@/lib/email-service";
+import { formatActionError } from "@/lib/utils/error-handler";
 
 /**
  * 1. Müşteri: Ürün Değişim Talebi Oluşturma Action'ı
@@ -60,10 +61,9 @@ export async function createExchangeAction(input: {
     revalidatePath(`/profile/orders/${input.orderId}`);
     revalidatePath("/profile");
 
-    return { success: true, data: exchangeRequest };
+    return { success: true as const, data: exchangeRequest };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Değişim talebi oluşturulurken bir hata oluştu.";
-    return { success: false, error: errorMessage };
+    return formatActionError(error, "Değişim talebi oluşturulurken bir hata oluştu.");
   }
 }
 
@@ -148,10 +148,9 @@ export async function approveExchangeAction(
     revalidatePath("/profile");
     revalidatePath("/profile/notifications");
     revalidatePath(`/profile/orders/${updated.orderId}`);
-    return { success: true, data: updated };
+    return { success: true as const, data: updated };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "İşlem başarısız.";
-    return { success: false, error: errorMessage };
+    return formatActionError(error, "İşlem başarısız.");
   }
 }
 
@@ -224,10 +223,9 @@ export async function rejectExchangeAction(
     revalidatePath("/profile");
     revalidatePath("/profile/notifications");
     revalidatePath(`/profile/orders/${updated.orderId}`);
-    return { success: true, data: updated };
+    return { success: true as const, data: updated };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "İşlem başarısız.";
-    return { success: false, error: errorMessage };
+    return formatActionError(error, "İşlem başarısız.");
   }
 }
 
@@ -300,10 +298,9 @@ export async function receiveExchangeAction(
     revalidatePath("/profile");
     revalidatePath("/profile/notifications");
     revalidatePath(`/profile/orders/${updated.orderId}`);
-    return { success: true, data: updated };
+    return { success: true as const, data: updated };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "İşlem başarısız.";
-    return { success: false, error: errorMessage };
+    return formatActionError(error, "İşlem başarısız.");
   }
 }
 
@@ -390,10 +387,9 @@ export async function updateExchangeStatusAction(
     revalidatePath("/profile");
     revalidatePath("/profile/notifications");
     revalidatePath(`/profile/orders/${updated.orderId}`);
-    return { success: true, data: updated };
+    return { success: true as const, data: updated };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "İşlem başarısız.";
-    return { success: false, error: errorMessage };
+    return formatActionError(error, "İşlem başarısız.");
   }
 }
 
@@ -475,9 +471,8 @@ export async function completeExchangeAction(
       revalidatePath(`/profile/orders/${updated.orderId}`);
     }
 
-    return { success: true, data: updated };
+    return { success: true as const, data: updated };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "İşlem başarısız.";
-    return { success: false, error: errorMessage };
+    return formatActionError(error, "İşlem başarısız.");
   }
 }

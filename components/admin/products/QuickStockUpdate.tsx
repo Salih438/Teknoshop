@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import toast from "react-hot-toast";
 
 interface QuickStockUpdateProps {
   productId: string;
   currentStock: number;
+  variantsCount?: number;
   onUpdate?: () => void;
 }
 
-export default function QuickStockUpdate({ productId, currentStock, onUpdate }: QuickStockUpdateProps) {
+export default function QuickStockUpdate({ productId, currentStock, variantsCount = 0, onUpdate }: QuickStockUpdateProps) {
   const [stock, setStock] = useState(currentStock);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,8 @@ export default function QuickStockUpdate({ productId, currentStock, onUpdate }: 
         toast.success(`Stok ${newVal} olarak güncellendi!`, { id: toastId });
         if (onUpdate) onUpdate();
       } else {
-        toast.error("Stok güncelleme başarısız.", { id: toastId });
+        const errData = await res.json().catch(() => null);
+        toast.error(errData?.error || "Stok güncelleme başarısız.", { id: toastId });
       }
     } catch {
       toast.error("Sunucu hatası oluştu.", { id: toastId });
@@ -109,6 +112,23 @@ export default function QuickStockUpdate({ productId, currentStock, onUpdate }: 
       : stock > 0
       ? "bg-amber-50 text-amber-700 border-amber-200"
       : "bg-red-50 text-red-700 border-red-200";
+
+  if (variantsCount > 0) {
+    return (
+      <div className="flex items-center gap-1.5 group">
+        <span className={`px-2.5 py-1 rounded-full text-xs font-black border ${stockBadgeClass}`}>
+          {stock > 0 ? `${stock} Adet` : "Tükendi"}
+        </span>
+        <Link
+          href={`/admin/products/${productId}/edit`}
+          className="text-[10px] font-bold text-purple-600 hover:text-purple-800 hover:underline bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded transition inline-flex items-center gap-0.5"
+          title="Varyantlı ürünlerin stokları ürün düzenleme sayfasından yönetilir"
+        >
+          ⚙️ {variantsCount} Varyant
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1.5 group">
