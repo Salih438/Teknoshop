@@ -48,7 +48,9 @@ export default function EditProductForm({ product, categories, brands }: EditPro
   const [imageUrl, setImageUrl] = useState(existingImage);
   const [galleryImages, setGalleryImages] = useState<string[]>(product.images?.map(img => img.imageUrl) || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const [imageMode, setImageMode] = useState<"upload" | "url">(
+    existingImage && !existingImage.startsWith("https://utfs.io") ? "url" : "upload"
+  );
   const [galleryImageMode, setGalleryImageMode] = useState<"upload" | "url">("upload");
   const [galleryUrlInput, setGalleryUrlInput] = useState("");
 
@@ -273,36 +275,42 @@ export default function EditProductForm({ product, categories, brands }: EditPro
           <div className="p-6 flex flex-col md:flex-row gap-8 items-start">
             <div className="flex-1 w-full bg-white border border-gray-200 p-6 rounded-xl flex flex-col items-center justify-center min-h-[160px]">
               {imageMode === "upload" ? (
-                imageUrl && !imageUrl.startsWith("https://utfs.io") && imageUrl !== "" ? (
-                   <div className="text-center w-full">
-                    <p className="text-sm text-amber-600 mb-3">Şu an bir dış URL kullanıyorsunuz. Buluta resim yüklemek için mevcut URL&apos;i temizleyin.</p>
-                    <button type="button" onClick={() => setImageUrl("")} className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-bold hover:bg-amber-200 transition">URL&apos;i Temizle</button>
-                   </div>
-                ) : imageUrl ? (
-                  <div className="text-center">
-                    <span className="text-green-600 font-bold text-lg mb-2 block">✅ Yüklendi!</span>
-                    <button type="button" onClick={() => setImageUrl("")} className="text-sm text-red-500 hover:underline">Başka fotoğraf seç</button>
-                  </div>
-                ) : (
-                  <>
+                <div className="flex flex-col items-center justify-center w-full">
+                  {imageUrl ? (
+                    <div className="text-center mb-3">
+                      <span className="text-green-600 font-bold text-xs sm:text-sm block mb-1">
+                        {imageUrl.startsWith("https://utfs.io") ? "☁️ Bulut Görseli Seçili" : "🔗 Mevcut Görsel Seçili"}
+                      </span>
+                      <p className="text-xs text-gray-500 mb-2">Yeni bir fotoğraf seçerek görseli doğrudan değiştirebilirsiniz:</p>
+                    </div>
+                  ) : (
                     <p className="text-sm text-gray-500 mb-4 text-center">Vitrinde görünecek ana kapağı seçin.</p>
-                    <UploadButton
-                      endpoint="productImageUploader"
-                      onClientUploadComplete={(res) => {
-                        if (res && res.length > 0) {
-                          setImageUrl(res[0].url);
-                          toast.success("Fotoğraf buluta başarıyla yüklendi! ☁️");
-                        }
-                      }}
-                      onUploadError={(error: Error) => {
-                        toast.error(`Yükleme hatası: ${error.message}`);
-                      }}
-                      appearance={{
-                        button: "bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg transition"
-                      }}
-                    />
-                  </>
-                )
+                  )}
+                  <UploadButton
+                    endpoint="productImageUploader"
+                    onClientUploadComplete={(res) => {
+                      if (res && res.length > 0) {
+                        setImageUrl(res[0].url);
+                        toast.success("Fotoğraf buluta başarıyla yüklendi! ☁️");
+                      }
+                    }}
+                    onUploadError={(error: Error) => {
+                      toast.error(`Yükleme hatası: ${error.message}`);
+                    }}
+                    appearance={{
+                      button: "bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg transition text-sm cursor-pointer"
+                    }}
+                  />
+                  {imageUrl && (
+                    <button 
+                      type="button" 
+                      onClick={() => setImageUrl("")} 
+                      className="mt-3 text-xs text-red-500 hover:underline font-medium cursor-pointer"
+                    >
+                      Mevcut görseli kaldır
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="w-full flex flex-col items-start">
                   <label className="block text-xs font-bold text-gray-500 mb-2 uppercase">Resim Linki (URL)</label>

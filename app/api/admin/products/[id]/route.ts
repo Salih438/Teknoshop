@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireAdmin, AuthError } from "@/lib/auth";
 import { AuditLogService } from "@/lib/services/audit-log.service";
 import { AuditRiskLevel } from "@prisma/client";
@@ -110,8 +111,23 @@ export async function PUT(
     
     const variantsData = formData.get("variants") as string | null;
 
-    if (!name || !slug || !price || !categoryId || !brandId || !imageUrl) {
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, slug: true, imageUrl: true },
+    });
+
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Güncellenecek ürün bulunamadı." }, { status: 404 });
+    }
+
+    if (!name || !slug || isNaN(price) || price < 0 || !categoryId || !brandId || !imageUrl || imageUrl.trim() === "") {
       return NextResponse.json({ error: "Lütfen tüm zorunlu alanları doldurun." }, { status: 400 });
+    }
+
+    try {
+      new URL(imageUrl);
+    } catch {
+      return NextResponse.json({ error: "Geçersiz görsel URL formatı." }, { status: 400 });
     }
 
     if (comparePrice !== null && !isNaN(comparePrice) && comparePrice <= price) {
@@ -257,6 +273,7 @@ export async function PUT(
           brandId,
           sku,            
           isActive,        
+          imageUrl,
           images: {
             deleteMany: {}, 
             ...(galleryImages.length > 0 && {
@@ -279,6 +296,20 @@ export async function PUT(
       riskLevel: AuditRiskLevel.LOW,
       newValue: { name: updatedProduct.name, price: updatedProduct.price, stock: updatedProduct.stock },
     });
+
+    // 🚀 CACHE YENİLEME (Revalidation)
+    try {
+      revalidatePath("/");
+      revalidatePath("/products");
+      revalidatePath("/admin/products");
+      revalidatePath(`/products/${updatedProduct.slug}`);
+      revalidatePath(`/products/${productId}`);
+      if (existingProduct.slug !== updatedProduct.slug) {
+        revalidatePath(`/products/${existingProduct.slug}`);
+      }
+    } catch {
+      // Next.js static generation store test ortamlarında bulunmayabilir
+    }
 
     return NextResponse.json(updatedProduct, { status: 200 });
   } catch (error: unknown) {
