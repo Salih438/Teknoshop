@@ -18,12 +18,12 @@ export const metadata: Metadata = {
   description: "En yeni teknoloji ürünleri ve elektronik cihazlar",
   icons: {
     icon: [
-      { url: "/icon.png", type: "image/png", sizes: "512x512" },
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png?v=3", type: "image/png", sizes: "512x512" },
+      { url: "/favicon.ico?v=3", sizes: "any" },
+      { url: "/icon.svg?v=3", type: "image/svg+xml" },
     ],
-    shortcut: "/favicon.ico",
-    apple: "/apple-icon.png",
+    shortcut: "/favicon.ico?v=3",
+    apple: "/apple-icon.png?v=3",
   },
 };
 
