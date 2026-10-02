@@ -261,10 +261,11 @@ export default function CartPage() {
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => saveForLater(item)}
-                          className="text-xs font-bold text-gray-500 hover:text-blue-600 transition"
+                          className="text-xs font-bold text-gray-600 hover:text-blue-600 transition min-h-[44px] px-2 py-2 flex items-center justify-center cursor-pointer"
                           aria-label={`${item.name} ürününü daha sonra satın almak için kaydet`}
                           title={`${item.name} ürününü daha sonra satın almak için kaydet`}
                         >
@@ -272,8 +273,9 @@ export default function CartPage() {
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => setItemToRemove(item.cartItemId)}
-                          className="text-xs font-bold text-red-500 hover:text-red-700 transition"
+                          className="text-xs font-bold text-red-500 hover:text-red-700 transition min-h-[44px] px-2 py-2 flex items-center justify-center cursor-pointer"
                           aria-label={`${item.name} ürününü sepetten kaldır`}
                           title={`${item.name} ürününü sepetten kaldır`}
                         >

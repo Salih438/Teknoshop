@@ -64,7 +64,7 @@ export default function StickyBuyBar({ product }: StickyBuyBarProps) {
         {/* FİYAT VE SEPETE EKLE BUTONU */}
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <span className="text-xs text-gray-400 font-bold block">FİYAT</span>
+            <span className="text-xs text-gray-500 font-bold block">FİYAT</span>
             <span className="text-lg sm:text-2xl font-black text-blue-600">
               {product.price.toLocaleString("tr-TR")} ₺
             </span>

@@ -155,7 +155,7 @@ export default async function Home() {
               <div className="bg-blue-100 text-blue-600 p-2.5 rounded-xl text-xl flex-shrink-0">🚚</div>
               <div className="text-left">
                 <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">Ücretsiz Kargo</span>
-                <span className="text-[10px] text-gray-400 font-bold block">5.000 ₺ Üzerine</span>
+                <span className="text-[10px] text-gray-500 font-bold block">5.000 ₺ Üzerine</span>
               </div>
             </div>
 
@@ -163,7 +163,7 @@ export default async function Home() {
               <div className="bg-green-100 text-green-600 p-2.5 rounded-xl text-xl flex-shrink-0">🔒</div>
               <div className="text-left">
                 <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">Güvenli Ödeme</span>
-                <span className="text-[10px] text-gray-400 font-bold block">256-Bit SSL Koruma</span>
+                <span className="text-[10px] text-gray-500 font-bold block">256-Bit SSL Koruma</span>
               </div>
             </div>
 
@@ -171,7 +171,7 @@ export default async function Home() {
               <div className="bg-purple-100 text-purple-600 p-2.5 rounded-xl text-xl flex-shrink-0">⚡</div>
               <div className="text-left">
                 <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">Hızlı Teslimat</span>
-                <span className="text-[10px] text-gray-400 font-bold block">24 Saatte Kargoda</span>
+                <span className="text-[10px] text-gray-500 font-bold block">24 Saatte Kargoda</span>
               </div>
             </div>
 
@@ -179,7 +179,7 @@ export default async function Home() {
               <div className="bg-orange-100 text-orange-600 p-2.5 rounded-xl text-xl flex-shrink-0">↩️</div>
               <div className="text-left">
                 <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">14 Gün İade</span>
-                <span className="text-[10px] text-gray-400 font-bold block">Kolay ve Ücretsiz</span>
+                <span className="text-[10px] text-gray-500 font-bold block">Kolay ve Ücretsiz</span>
               </div>
             </div>
 
@@ -187,7 +187,7 @@ export default async function Home() {
               <div className="bg-amber-100 text-amber-600 p-2.5 rounded-xl text-xl flex-shrink-0">⭐</div>
               <div className="text-left">
                 <span className="font-extrabold text-gray-900 text-xs sm:text-sm block">Orijinal Ürün</span>
-                <span className="text-[10px] text-gray-400 font-bold block">%100 Resmi Garanti</span>
+                <span className="text-[10px] text-gray-500 font-bold block">%100 Resmi Garanti</span>
               </div>
             </div>
           </div>

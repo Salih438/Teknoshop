@@ -92,7 +92,7 @@ export default function Pagination({
         {currentPage > 1 ? (
           <Link
             href={createPageUrl(currentPage - 1)}
-            className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-2xs min-h-[40px]"
+            className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-2xs min-h-[44px] min-w-[44px] justify-center"
             aria-label="Önceki Sayfa"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -103,7 +103,7 @@ export default function Pagination({
         ) : (
           <button
             disabled
-            className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-gray-100 text-gray-400 border border-gray-100 cursor-not-allowed min-h-[40px]"
+            className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-gray-100 text-gray-400 border border-gray-100 cursor-not-allowed min-h-[44px] min-w-[44px] justify-center"
             aria-disabled="true"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,7 +119,7 @@ export default function Pagination({
             return (
               <span
                 key={`ellipsis-${index}`}
-                className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-xs sm:text-sm font-bold text-gray-400 select-none"
+                className="w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center text-xs sm:text-sm font-bold text-gray-400 select-none min-h-[44px] min-w-[44px]"
               >
                 •••
               </span>
@@ -134,7 +134,7 @@ export default function Pagination({
               key={`page-${pageNum}`}
               href={createPageUrl(pageNum)}
               aria-current={isCurrent ? "page" : undefined}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center transition-all min-h-[36px] min-w-[36px] ${
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center transition-all min-h-[44px] min-w-[44px] ${
                 isCurrent
                   ? "bg-blue-600 text-white shadow-md shadow-blue-500/20 pointer-events-none"
                   : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-2xs"
@@ -149,7 +149,7 @@ export default function Pagination({
         {currentPage < totalPages ? (
           <Link
             href={createPageUrl(currentPage + 1)}
-            className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-2xs min-h-[40px]"
+            className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-2xs min-h-[44px] min-w-[44px] justify-center"
             aria-label="Sonraki Sayfa"
           >
             <span className="hidden sm:inline">Sonraki</span>
@@ -160,7 +160,7 @@ export default function Pagination({
         ) : (
           <button
             disabled
-            className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-gray-100 text-gray-400 border border-gray-100 cursor-not-allowed min-h-[40px]"
+            className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-gray-100 text-gray-400 border border-gray-100 cursor-not-allowed min-h-[44px] min-w-[44px] justify-center"
             aria-disabled="true"
           >
             <span className="hidden sm:inline">Sonraki</span>

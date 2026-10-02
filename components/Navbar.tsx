@@ -95,7 +95,7 @@ export default function Navbar({
               title="Menüyü aç"
               aria-expanded={isDrawerOpen}
               aria-controls="mobile-navigation-drawer"
-              className="sm:hidden text-gray-700 hover:text-blue-600 p-2 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[40px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
+              className="sm:hidden text-gray-700 hover:text-blue-600 p-2 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-600 outline-none"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -133,7 +133,7 @@ export default function Navbar({
               onClick={() => setIsMobileSearchOpen((prev) => !prev)}
               aria-label="Arama Yap"
               title="Arama Yap"
-              className="lg:hidden text-gray-600 hover:text-blue-600 p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[40px] sm:min-w-[44px] flex items-center justify-center cursor-pointer"
+              className="lg:hidden text-gray-600 hover:text-blue-600 p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -152,7 +152,7 @@ export default function Navbar({
                 {isSignedIn && isAdmin && (
                   <Link
                     href="/admin"
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 sm:px-3 py-1.5 rounded-xl border border-gray-200 font-medium transition-all flex items-center gap-1.5 min-h-[44px] min-w-[40px] sm:min-w-[44px] justify-center"
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 sm:px-3 py-1.5 rounded-xl border border-gray-200 font-medium transition-all flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center"
                     title="Admin Yönetim Paneli"
                   >
                     <span>🛡️</span>
@@ -232,7 +232,7 @@ export default function Navbar({
                 {/* MOBİL SEPET LİNKİ */}
                 <Link
                   href="/cart"
-                  className="sm:hidden hover:text-blue-600 transition-colors flex items-center gap-1.5 p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 text-gray-600 group min-h-[44px] min-w-[40px] sm:min-w-[44px] justify-center"
+                  className="sm:hidden hover:text-blue-600 transition-colors flex items-center gap-1.5 p-2 sm:p-2.5 rounded-xl hover:bg-gray-100 text-gray-600 group min-h-[44px] min-w-[44px] justify-center"
                   title="Sepetim"
                   aria-label="Sepetim"
                 >

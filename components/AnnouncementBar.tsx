@@ -45,7 +45,7 @@ export default function AnnouncementBar() {
         onClick={handleDismiss}
         aria-label="Kapat"
         title="Duyuruyu Kapat"
-        className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800 min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer flex-shrink-0"
+        className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-800 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer flex-shrink-0"
       >
         ✕
       </button>

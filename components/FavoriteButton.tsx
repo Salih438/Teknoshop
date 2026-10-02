@@ -72,7 +72,7 @@ export default function FavoriteButton({
     <button 
       onClick={handleToggle}
       disabled={loading}
-      className={`bg-white p-2.5 sm:p-3 rounded-full shadow-md transition-all duration-300 z-10 ${
+      className={`bg-white p-2.5 sm:p-3 rounded-full shadow-md transition-all duration-300 z-10 min-h-[44px] min-w-[44px] flex items-center justify-center ${
         loading ? 'cursor-wait scale-95' : 'hover:scale-110 active:scale-95 hover:shadow-lg'
       } ${className}`}
       type="button"

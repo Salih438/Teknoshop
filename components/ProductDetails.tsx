@@ -224,13 +224,13 @@ export default function ProductDetails({
           <div className="p-5 sm:p-6 bg-white border border-gray-200 rounded-3xl shadow-xs space-y-3">
             <div>
               {product.comparePrice && product.comparePrice > currentPrice && (
-                <span className="text-sm text-gray-400 line-through font-bold block">
+                <span className="text-sm text-gray-500 line-through font-bold block">
                   {product.comparePrice.toLocaleString("tr-TR")} ₺
                 </span>
               )}
               <div className="text-3xl sm:text-5xl font-black text-gray-900 tracking-tight">
                 {currentPrice.toLocaleString("tr-TR")}{" "}
-                <span className="text-xl sm:text-2xl text-gray-400">₺</span>
+                <span className="text-xl sm:text-2xl text-gray-500">₺</span>
               </div>
             </div>
 
@@ -253,8 +253,10 @@ export default function ProductDetails({
           <div className="flex gap-4 items-center pt-2">
             <div className="flex items-center border-2 border-gray-200 rounded-2xl bg-gray-50 overflow-hidden min-h-[48px]">
               <button
+                type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="px-4 py-2.5 text-gray-600 hover:bg-gray-200 font-bold text-lg min-h-[44px] min-w-[44px]"
+                aria-label="Adeti azalt"
+                className="px-4 py-2.5 text-gray-600 hover:bg-gray-200 font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
               >
                 -
               </button>
@@ -262,8 +264,10 @@ export default function ProductDetails({
                 {quantity}
               </span>
               <button
+                type="button"
                 onClick={() => setQuantity((q) => Math.min(currentStock, q + 1))}
-                className="px-4 py-2.5 text-gray-600 hover:bg-gray-200 font-bold text-lg min-h-[44px] min-w-[44px]"
+                aria-label="Adeti artır"
+                className="px-4 py-2.5 text-gray-600 hover:bg-gray-200 font-bold text-lg min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
               >
                 +
               </button>
