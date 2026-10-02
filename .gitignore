@@ -1,4 +1,4 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+﻿# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
 /node_modules
@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 !.env.example
 !.env.test.example
@@ -46,11 +46,9 @@ next-env.d.ts
 
 # documentation screenshots & audit artifacts
 docs/screenshots/
-docs/*-proof.png
 docs/*-data.json
-docs/*.png
 
-# test & verification scripts
+# ad-hoc audit / verification scripts (not part of the application)
 /scripts/verify_*
 /scripts/test_*
 /scripts/capture_*
@@ -65,8 +63,15 @@ docs/*.png
 /scripts/redact_*
 /scripts/spot_check_*
 /scripts/db_inventory.ts
-/scripts/get_sample_data.ts
-/scripts/summarize_audit.ts
 /scripts/enrich-gallery-coverage.ts
 /scripts/seed-additional-products.ts
-/scripts/check_csp.ts
+
+# lint & analysis reports (generated, not source)
+eslint_report.json
+*.report.json
+
+# temporary scratch files
+/scratch/
+
+# AI agent config shims
+CLAUDE.md
