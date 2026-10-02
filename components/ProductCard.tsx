@@ -19,6 +19,7 @@ export interface ProductCardProps {
   };
   reviews?: { rating: number }[];
   isFavorite?: boolean;
+  priority?: boolean;
 }
 
 const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
@@ -80,8 +81,9 @@ const ProductCard = memo(({ product }: { product: ProductCardProps }) => {
               <Image
                 src={product.imageUrl}
                 alt={product.name}
-                loading="lazy"
-                decoding="async"
+                priority={product.priority}
+                loading={product.priority ? undefined : "lazy"}
+                decoding={product.priority ? undefined : "async"}
                 className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-500"
                 width={500}
                 height={500}

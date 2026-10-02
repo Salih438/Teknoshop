@@ -161,7 +161,7 @@ export default async function AllProductsPage({
             <>
               {/* STANDART 4 KOLON GRID */}
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-                {products.map((product) => {
+                {products.map((product, index) => {
                   const extractedImageUrls = product.images.map((img) => img.imageUrl);
                   const displayImage = extractedImageUrls.length > 0 ? extractedImageUrls[0] : (product.imageUrl || "");
                   const effectiveStock = getEffectiveStock(product);
@@ -179,6 +179,7 @@ export default async function AllProductsPage({
                         category: product.category ? { name: product.category.name } : undefined,
                         reviews: product.reviews,
                         isFavorite: userFavoriteProductIds.has(product.id),
+                        priority: index < 4,
                       }}
                     />
                   );

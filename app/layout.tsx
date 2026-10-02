@@ -103,7 +103,7 @@ export default async function RootLayout({
         },
       }}
     >
-      <html lang="tr" suppressHydrationWarning>
+      <html lang="tr" data-scroll-behavior="smooth" suppressHydrationWarning>
         {/* suppressHydrationWarning özelliği ile tarayıcı eklentilerinin 
           (ColorZilla vb.) body'ye yaptığı müdahaleleri susturuyoruz.
         */}

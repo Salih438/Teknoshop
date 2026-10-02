@@ -119,7 +119,7 @@ export default function AdminNotificationBell() {
     let timerId: NodeJS.Timeout | null = null;
 
     const poll = async () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      if (typeof document !== "undefined" && (document.hidden || document.visibilityState === "hidden")) {
         return;
       }
 
@@ -139,7 +139,7 @@ export default function AdminNotificationBell() {
       if (isSubscribed) {
         poll();
       }
-    }, 30000);
+    }, 60000);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && isSubscribed) {

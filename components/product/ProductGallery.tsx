@@ -72,6 +72,7 @@ export default function ProductGallery({ images, productName }: ProductGalleryPr
             alt={productName}
             width={600}
             height={600}
+            priority
             className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
             onError={() => handleImageError(selectedImage)}
           />

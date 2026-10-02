@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import Image from "next/image";
 import ProductCard, { ProductCardProps } from "@/components/ProductCard";
 import Link from "next/link"; 
 import CategorySlider from "@/components/storefront/CategorySlider";
@@ -101,7 +102,16 @@ export default async function Home() {
       
       {/* HERO SECTION */}
       <section className="relative bg-gray-900 text-white overflow-hidden w-full">
-        <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center" />
+        <div className="absolute inset-0 opacity-40">
+          <Image
+            src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop"
+            alt="Teknoshop Hero Banner"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+        </div>
         <div className="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/85 to-gray-900/60 z-10" />
         
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-36 flex flex-col items-start">
