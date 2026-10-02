@@ -16,6 +16,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Teknoshop | Teknoloji ve Elektronik Mağazası",
   description: "En yeni teknoloji ürünleri ve elektronik cihazlar",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 // 🚀 YENİ: Layout'u async yaptık ki sunucu tarafında Prisma'yı bekleyebilelim
